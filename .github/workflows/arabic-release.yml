@@ -1,0 +1,50 @@
+name: Build and publish ArabicGames Windows
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['release/version.json']
+permissions:
+  contents: write
+concurrency:
+  group: arabic-windows-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate channel and immutable version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $info=Get-Content release/version.json -Raw|ConvertFrom-Json
+          if($info.repository -ne '${{ github.repository }}'){throw 'Release channel must match this repository'}
+          if($info.version -notmatch '^\d+\.\d+\.\d+$'){throw 'Invalid version'}
+          gh release view "v$($info.version)" --repo '${{ github.repository }}' 2>$null
+          if($LASTEXITCODE -eq 0){throw 'This version is already published; bump release/version.json first'}
+          $global:LASTEXITCODE=0
+      - name: Regression tests
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests"
+      - name: Publish Windows application
+        run: dotnet publish windows/src/GameTranslator.App/GameTranslator.App.csproj -c Release -r win-x64 --self-contained true -o publish -p:EnableWindowsTargeting=true
+      - name: Download verified runtime dependencies
+        run: python release/bootstrap_runtime.py --target bundled-runtime
+      - name: Package release and source
+        run: python release/package_windows.py --publish publish --runtime bundled-runtime --output out
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $info=Get-Content release/version.json -Raw|ConvertFrom-Json
+          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" out/SHA256SUMS.txt --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes "Windows release with corresponding AGPL source, update integrity checks, and retained settings."
+          if($LASTEXITCODE -ne 0){throw 'Release upload failed'}

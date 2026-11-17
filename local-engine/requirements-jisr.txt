@@ -1,0 +1,3 @@
+# Install CPU PyTorch separately from https://download.pytorch.org/whl/cpu first.
+transformers>=4.45,<5
+protobuf==5.29.5

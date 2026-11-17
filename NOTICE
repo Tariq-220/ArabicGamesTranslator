@@ -1,0 +1,19 @@
+Arabic Games Console Translation prototype, 2026. AGPL-3.0-only.
+The Google TV HDMI TvView approach is adapted from Sefflex/GameTranslator,
+which is derived from Sinan Yorulmaz's CouchSubs. Preserve their copyright notices:
+Copyright (C) 2026 Sinan Yorulmaz (CouchSubs).
+Copyright (C) 2026 Sefflex (GameTranslator improvements and modifications).
+Upstream reviewed: https://gitlab.com/sefflex/GameTranslator
+Commit: 34a2c328490137898e26f947ae5728b54565879a
+https://github.com/yorulmazsinan/couchsubs
+TranslaCat was inspected statically as a reference; no proprietary decompiled
+source, capture script, credentials, APK, branding or account code is included.
+Android libraries, Gradle and the optional Windows runtime retain their own
+licenses. Translation model downloads are obtained on the user's device from
+Google; model weights are not bundled as a game translation pack.
+
+0.4.0: Android QR generation uses ZXing core 3.5.3 (Apache-2.0); Windows QR generation uses QRCoder 1.6.0 (MIT). Optional QuickMT weights (CC-BY-4.0) and Jisr weights (Apache-2.0) are not bundled; see local-engine/README-ar.txt. No Hearth code or model binaries are embedded in these APKs.
+
+Windows 0.4.2 optionally bundles official Python 3.12.10 embeddable x64 under its PSF license (local-engine/python/LICENSE.txt). Pip bootstrap from bootstrap.pypa.io; provenance recorded. Model weights and third-party model dependencies download only when the user explicitly starts a local model.
+
+Google GTX translation path adapted from Sefflex/GameTranslator v1.7.0 (70e12ef2e3a0f5122b099ce9d8a682cc32c37d82), AGPL-3.0-only. See corresponding source and upstream notices.

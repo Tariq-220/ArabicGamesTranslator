@@ -1,0 +1,11 @@
+* text=auto
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.cs text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.gz binary
+*.png binary
+*.ttf binary
+*.jar binary

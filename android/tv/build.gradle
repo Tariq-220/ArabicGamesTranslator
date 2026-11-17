@@ -1,0 +1,18 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'dev.arabicgames.tv'
+ compileSdk 35
+ defaultConfig { applicationId 'dev.arabicgames.tv'; minSdk 26; targetSdk 35; versionCode 8; versionName '0.3.1-test' }
+ testOptions { unitTests.includeAndroidResources = true
+  unitTests.all {
+   maxHeapSize = '1g'
+   systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+   ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort','javax.net.ssl.trustStore'].each { key -> if(System.getProperty(key)) systemProperty key,System.getProperty(key) }
+  }
+ }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.robolectric:robolectric:4.14.1'
+ implementation project(':common') }
