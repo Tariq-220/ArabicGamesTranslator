@@ -25,6 +25,7 @@ public static class Versions
     public static string? OfBundledFile(string fileName)
     {
         var name = Path.GetFileNameWithoutExtension(fileName);
+        if(name.EndsWith("_all",StringComparison.Ordinal))name=name[..^4];
         var underscore = name.LastIndexOf('_');
         return underscore > 0 && underscore < name.Length - 1 ? name[(underscore + 1)..] : null;
     }

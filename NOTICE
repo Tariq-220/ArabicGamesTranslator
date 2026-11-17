@@ -17,3 +17,9 @@ Google; model weights are not bundled as a game translation pack.
 Windows 0.4.2 optionally bundles official Python 3.12.10 embeddable x64 under its PSF license (local-engine/python/LICENSE.txt). Pip bootstrap from bootstrap.pypa.io; provenance recorded. Model weights and third-party model dependencies download only when the user explicitly starts a local model.
 
 Google GTX translation path adapted from Sefflex/GameTranslator v1.7.0 (70e12ef2e3a0f5122b099ce9d8a682cc32c37d82), AGPL-3.0-only. See corresponding source and upstream notices.
+
+ArabicGames additions (2026-11-17): webOS companion adapted from
+Sefflex/GameTranslator GitLab tag v1.7.0, tv/webos and scripts/package-ipk.py,
+AGPL-3.0-only. Original Sefflex/CouchSubs notices retained.
+Setup workflow researched against yunusdemirbag/nino-game-translator (AGPL-3.0);
+no Nino source files copied in this release.

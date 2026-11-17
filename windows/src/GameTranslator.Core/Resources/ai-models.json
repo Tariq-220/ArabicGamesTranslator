@@ -10,6 +10,13 @@
       "id": "gemini-3.5-flash-lite",
       "label": "Lower latency comparison",
       "thinking": "minimal"
+    },
+    {
+      "id": "gemini-3.6-flash",
+      "label": "Better quality, a little slower",
+      "thinking": "LOW",
+      "freeTier": true,
+      "requestsPerMinute": 10
     }
   ],
   "openai": [
@@ -20,6 +27,16 @@
     },
     {
       "id": "gpt-4o",
+      "label": "Better quality, a little slower",
+      "effort": "none"
+    },
+    {
+      "id": "gpt-6-luna",
+      "label": "Fast and cheap (recommended)",
+      "effort": "none"
+    },
+    {
+      "id": "gpt-6.1-terra",
       "label": "Better quality, a little slower",
       "effort": "none"
     }
@@ -33,6 +50,18 @@
     },
     {
       "id": "claude-3-5-sonnet-20241022",
+      "label": "Better quality, a little slower",
+      "effort": "low",
+      "thinking": "between_tools"
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "label": "Fast and cheap (recommended)",
+      "effort": "low",
+      "thinking": "disabled"
+    },
+    {
+      "id": "claude-sonnet-5-5",
       "label": "Better quality, a little slower",
       "effort": "low",
       "thinking": "between_tools"

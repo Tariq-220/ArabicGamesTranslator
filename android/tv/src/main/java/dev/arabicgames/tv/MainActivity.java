@@ -29,6 +29,7 @@ public final class MainActivity extends Activity {
  private String receiverId,lastArabic="";private int drops,subtitleCount;
  private final ScheduledExecutorService poller=Executors.newSingleThreadScheduledExecutor();private ScheduledFuture<?> pollTask;
  private volatile HttpURLConnection pollingConnection;private long acceptedRevision,manualTestUntil;
+ private boolean discovering;
  private volatile HttpURLConnection connection;private volatile int session;private volatile boolean destroyed;
  private final Runnable hide=()->subtitle.setVisibility(View.INVISIBLE);
  @Override public void onCreate(Bundle saved){super.onCreate(saved);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -43,8 +44,9 @@ public final class MainActivity extends Activity {
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.1",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.2",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
+  button(panel,"اكتشاف الكمبيوتر تلقائيًا",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
   connectionPanel=column();host=new EditText(this);host.setHint("عنوان الجوال مثل 192.168.0.118");host.setTextSize(14);host.setSingleLine();host.setTextDirection(View.TEXT_DIRECTION_LTR);host.setInputType(InputType.TYPE_CLASS_PHONE);host.setText(getPreferences(0).getString("host",""));connectionPanel.addView(host);
   code=new EditText(this);code.setHint("رمز الربط — 8 أرقام");code.setTextSize(14);code.setSingleLine();code.setTextDirection(View.TEXT_DIRECTION_LTR);code.setInputType(InputType.TYPE_CLASS_NUMBER);code.setText(getPreferences(0).getString("code",""));connectionPanel.addView(code);
@@ -63,9 +65,21 @@ public final class MainActivity extends Activity {
   panelWindow=new PanelScroll(this);panelWindow.addView(panel);int w=Math.min(dp(340),(int)(getResources().getDisplayMetrics().widthPixels*.46));FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(w,-2,Gravity.TOP|Gravity.RIGHT);pp.setMargins(dp(16),dp(16),dp(16),dp(16));root.addView(panelWindow,pp);
   setContentView(root);host.requestFocus();
   if(!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
+  if(host.getText().toString().isEmpty())discoverDesktop();
   if(!inputs.isEmpty()&&!getPreferences(0).getString("hdmi","").isEmpty())tune();
   if(inputs.isEmpty())hdmiStatus.setText("لا توجد مداخل HDMI متاحة للتطبيق على هذه الشاشة.");
  }
+ private void discoverDesktop(){
+  if(discovering||destroyed)return;discovering=true;status.setText("جارٍ البحث عن الكمبيوتر على الشبكة المحلية…");
+  new Thread(()->{List<String> found;try{found=DesktopDiscovery.find();}catch(Exception e){found=Collections.emptyList();}final List<String> results=found;
+   ui.post(()->{discovering=false;if(destroyed)return;
+    if(results.isEmpty()){status.setText("لم نجد الكمبيوتر. شغّل المترجم على نفس الشبكة واسمح له في جدار الحماية، أو أدخل العنوان يدويًا.");return;}
+    if(results.size()==1){useDesktop(results.get(0));return;}
+    new AlertDialog.Builder(this).setTitle("اختر الكمبيوتر — يوجد أكثر من مصدر").setItems(results.toArray(new String[0]),(d,n)->useDesktop(results.get(n))).setNegativeButton("إلغاء",null).show();
+   });
+  },"discover-desktop").start();
+ }
+ private void useDesktop(String address){host.setText(address);desktop.setChecked(true);connect();}
  private void refreshInputs(){
   List<String> labels=new ArrayList<>();TvInputManager manager=(TvInputManager)getSystemService(TV_INPUT_SERVICE);
   List<TvInputInfo> list=manager==null?null:manager.getTvInputList();if(list!=null)for(TvInputInfo i:list)if(i.getType()==TvInputInfo.TYPE_HDMI&&i.isPassthroughInput()){inputs.add(i);labels.add(i.loadLabel(this).toString());}

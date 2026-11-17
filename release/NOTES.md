@@ -1,12 +1,12 @@
-# ArabicGames 0.4.10
+ArabicGames Windows 0.4.11
 
-- Add an explicit PS5 Remote Play path: launch the installed official player, select its window, and show setup guidance. Sign-in remains in Sony’s app; no native PS5 account implementation is claimed.
-- Add an opt-in 40ms frame-sampling gap (balanced default remains 80ms). It may increase laptop load and does not reduce Remote Play or model inference latency.
-- Record console selection and requested capture gap in comparison logs.
-- Fix Arabic prepositions in RDR2 character-name correction (Dutch).
-- Keep a recent complete OCR reading when a fade-out loses words or joins them. Real meaning changes remain distinct.
-- Add a small RDR2-only reviewed phrase dictionary; its output is marked separately from engine requests in the UI and comparison log. This is not a general model-quality upgrade.
-- Record app edition and translation method in new comparison entries.
-- Preserve user settings, API keys and the selected engine.
+- واجهة Ambient داكنة بأربع صفحات: مصدر اللعبة، المحرك، الشاشة، المظهر. أزرار البدء والاختبار ثابتة وخيارات القراءة المتقدمة قابلة للطي.
+- دليل تفعيل عربي داخل التطبيق لـXbox وPS5 وGoogle TV وLG وMonitor، مع توضيح حدود كل مسار.
+- روابط مباشرة لصفحات مفاتيح Gemini وDeepL وOpenAI وClaude؛ حفظ مفاتيح OpenAI وClaude مستقلًا بتشفير Windows وإعادة استخدامها دون لصق متكرر.
+- اختيار نماذج سحابية إضافية من قائمة Sefflex v1.7.0 مع الإبقاء على QuickMT وJisr وHY-MT وGoogle. توفر النماذج والجودة يتطلب اختبار حساب المستخدم؛ لا توجد نتيجة مقارنة جديدة تثبت تفوقها.
+- واجهة اكتشاف LG/Samsung والاقتران، وحزمة LG webOS عربية 1.0.8 مرفقة. يتطلب LG تثبيتًا أوليًا عبر Developer Mode وقد لا يدعم HDMI على كل موديل.
+- باركود الشاشة الثانية يعمل عبر المتصفح على iPhone/iPad أو Android؛ يحتاج الكمبيوتر مصدرًا، ولا يحول شاشة HDMI العادية إلى شاشة ذات طبقة ترجمة.
+- الربط المباشر بالكود لـXbox لم يُدمج في هذه النسخة؛ يستخدم Windows نافذة Remote Play الرسمية أو Greenlight. سورس Sefflex الموسوم 1.7.0 لا يحتوي مجلد Xbox bridge المذكور في README؛ مصدر Nino لديه تنفيذ Android/WebRTC مستقل يحتاج دمجًا واختبارًا منفصلًا.
+- تطبيق TCL 0.3.2 يضيف اكتشاف الكمبيوتر محليًا واختيار المصدر عند تعدد النتائج. تطبيق الجوال 0.4.3 يضيف روابط المفاتيح وخطوات التفعيل؛ لا يضيف اتصال Xbox أصليًا أو تطبيق iOS.
 
-Validation: 30 translation/update/profile tests and 23 focused reading/pipeline tests passed locally; GitHub Actions performs the Windows build before publishing. No physical console/TV test in the build environment.
+تم بناء APK الشاشة وفحص حزمة الجوال وتطابق توقيعها مع السابقة. اختبار اكتشاف الشبكة و30 اختبار ترجمة نجحت محليًا؛ البناء والاختبارات على Windows من GitHub Actions. لم يُختبر Xbox/PS5/LG فعليًا من هذه البيئة.

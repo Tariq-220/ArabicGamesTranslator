@@ -30,6 +30,14 @@ public final class AiSettingsActivity extends Activity {
   root.addView(Ui.text(this,"QuickMT وJisr يحتاجان تشغيل الخادم المرفق على الكمبيوتر؛ ليست نماذج مدمجة بالجوال. الاتصال المحلي HTTP لشبكتك المنزلية الموثوقة فقط؛ رمز الربط هو خانة المفتاح.",13));
   root.addView(Ui.text(this,"اسم النموذج — اترك الافتراضي أول تجربة",15));model=field(root,InputType.TYPE_CLASS_TEXT);
   root.addView(Ui.text(this,"اسم اللعبة للسياق",15));game=field(root,InputType.TYPE_CLASS_TEXT);game.setText(AiPreferences.prefs(this).getString("game","Red Dead Redemption 2"));
+  Ui.button(this,root,"الحصول على مفتاح API للمحرك المختار",false,()->{
+   String selected=providers[provider.getSelectedItemPosition()];String url;
+   if(AiPreferences.GEMINI.equals(selected))url="https://aistudio.google.com/apikey";
+   else if(AiPreferences.OPENAI.equals(selected))url="https://platform.openai.com/api-keys";
+   else if(AiPreferences.DEEPL.equals(selected))url="https://www.deepl.com/your-account/keys";
+   else {feedback.setText("المحرك المختار لا يحتاج مفتاح خدمة سحابية. QuickMT عبر الكمبيوتر يحتاج رمز خادمك المحلي.");return;}
+   try{startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(android.content.ActivityNotFoundException e){feedback.setText("ثبّت متصفحًا لفتح صفحة المفتاح.");}
+  });
   root.addView(Ui.text(this,"مفتاح API — داخل التطبيق فقط، وليس في المحادثة",15));key=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
   key.setTag("api-key");model.setTag("api-model");provider.setTag("api-provider");key.setSaveEnabled(false);key.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
   consent=new CheckBox(this);consent.setText("أوافق على إرسال نص الحوار والسياق إلى الخدمة المختارة وتطبيق تكلفتها وسياساتها.");consent.setTextColor(Ui.TEXT);consent.setChecked(AiPreferences.cloud(this));root.addView(consent);
