@@ -39,7 +39,7 @@ jobs:
           if($env:PUBLISH -eq 'true' -and $LASTEXITCODE -eq 0){throw 'This version is already published; bump release/version.json first'}
           $global:LASTEXITCODE=0
       - name: Regression tests
-        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests"
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests"
       - name: Reading guard regression tests
         run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~LocalRequestPolicyTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~ConsoleWindowSelectionTests|FullyQualifiedName~RereadGuardTests|FullyQualifiedName~ReadSchedulerTests|FullyQualifiedName~ReviewedLookup|FullyQualifiedName~RereadGuardPrevents"
       - name: Package Arabic LG webOS companion
@@ -55,10 +55,12 @@ jobs:
       - name: Render and smoke-test Arabic setup screens
         shell: pwsh
         run: |
-          $p=Start-Process publish/GameTranslator.exe -ArgumentList '--render-arabic', 'ui-preview' -Wait -PassThru
+          $p=Start-Process publish/GameTranslator.exe -ArgumentList '--render-arabic', 'ui-preview' -PassThru
+          if(-not $p.WaitForExit(45000)){Stop-Process -Id $p.Id -Force;throw 'Arabic UI rendering timed out'}
           if($p.ExitCode -ne 0){if(Test-Path ui-preview/errors.txt){Get-Content ui-preview/errors.txt};throw 'Arabic UI failed to render'}
           if((Get-ChildItem ui-preview/arabic-*.png).Count -ne 4){throw 'Missing Arabic UI previews'}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
         with:
           name: arabic-ui-preview
           path: |

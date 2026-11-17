@@ -21,19 +21,17 @@
   ],
   "openai": [
     {
-      "id": "gpt-4o-mini",
-      "label": "Fast and cheap (recommended)",
-      "effort": "none"
-    },
-    {
-      "id": "gpt-4o",
-      "label": "Better quality, a little slower",
-      "effort": "none"
-    },
-    {
       "id": "gpt-6-luna",
       "label": "Fast and cheap (recommended)",
       "effort": "none"
+    },
+    {
+      "id": "gpt-4o-mini",
+      "label": "Fast and cheap (recommended)"
+    },
+    {
+      "id": "gpt-4o",
+      "label": "Better quality, a little slower"
     },
     {
       "id": "gpt-6.1-terra",
@@ -43,22 +41,18 @@
   ],
   "claude": [
     {
-      "id": "claude-3-5-haiku-20241022",
-      "label": "Fast and cheap (recommended)",
-      "effort": "low",
-      "thinking": "disabled"
-    },
-    {
-      "id": "claude-3-5-sonnet-20241022",
-      "label": "Better quality, a little slower",
-      "effort": "low",
-      "thinking": "between_tools"
-    },
-    {
       "id": "claude-haiku-5-5",
       "label": "Fast and cheap (recommended)",
       "effort": "low",
       "thinking": "disabled"
+    },
+    {
+      "id": "claude-3-5-haiku-20241022",
+      "label": "Fast and cheap (recommended)"
+    },
+    {
+      "id": "claude-3-5-sonnet-20241022",
+      "label": "Better quality, a little slower"
     },
     {
       "id": "claude-sonnet-5-5",

@@ -100,11 +100,11 @@ public static class AiRequest
                 {
                     ["model"] = model.Id,
                     ["messages"] = new JsonArray(
-                        new JsonObject { ["role"] = "developer", ["content"] = SystemPrompt },
+                        new JsonObject { ["role"] = model.Id.StartsWith("gpt-4o",StringComparison.Ordinal)?"system":"developer", ["content"] = SystemPrompt },
                         new JsonObject { ["role"] = "user", ["content"] = user }),
                     ["max_completion_tokens"] = MaxOutputTokens,
                 };
-                if (model.Effort is { } effort) body["reasoning_effort"] = effort;
+                if (!model.Id.StartsWith("gpt-4o",StringComparison.Ordinal)&&model.Effort is { } effort) body["reasoning_effort"] = effort;
                 break;
             case AiProvider.Local:
                 // Ollama ve LM Studio'nun OpenAI uyumlu Chat Completions'ı: POST {adres}/chat/completions. Yalnız iki
@@ -138,8 +138,8 @@ public static class AiRequest
                     ["system"] = SystemPrompt,
                     ["messages"] = new JsonArray(new JsonObject { ["role"] = "user", ["content"] = user }),
                 };
-                if (model.Effort is { } claudeEffort) body["output_config"] = new JsonObject { ["effort"] = claudeEffort };
-                if (model.Thinking is { } thinking) body["thinking"] = new JsonObject { ["type"] = thinking };
+                if (!model.Id.StartsWith("claude-3",StringComparison.Ordinal)&&model.Effort is { } claudeEffort) body["output_config"] = new JsonObject { ["effort"] = claudeEffort };
+                if (!model.Id.StartsWith("claude-3",StringComparison.Ordinal)&&model.Thinking is { } thinking) body["thinking"] = new JsonObject { ["type"] = thinking };
                 break;
         }
         request.Content = new StringContent(body.ToJsonString(Compact), Encoding.UTF8, "application/json");

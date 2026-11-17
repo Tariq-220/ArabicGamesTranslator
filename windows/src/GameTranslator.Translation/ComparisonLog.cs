@@ -32,5 +32,5 @@ public sealed class ComparisonLog : IAsyncDisposable
             catch (Exception e) when(e is IOException or UnauthorizedAccessException) { Error="تعذر حفظ سجل المقارنة"; }
         }
     }
-    public async ValueTask DisposeAsync() { queue.Writer.TryComplete();await writer; }
+    public async ValueTask DisposeAsync() { queue.Writer.TryComplete();await writer.ConfigureAwait(false); }
 }

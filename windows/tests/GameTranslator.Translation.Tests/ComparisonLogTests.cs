@@ -3,6 +3,21 @@ using GameTranslator.Core;
 namespace GameTranslator.Translation.Tests;
 public class ComparisonLogTests
 {
+    private sealed class NonPumpingContext:SynchronizationContext { public override void Post(SendOrPostCallback callback,object? state){} }
+    [Fact]
+    public void ClosingLogDoesNotNeedTheCallingUiMessageLoop()
+    {
+        var folder=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N"));
+        try {
+            var log=new ComparisonLog(Path.Combine(folder,"comparison.jsonl"));
+            for(int n=0;n<200;n++)Assert.True(log.Add(new(DateTimeOffset.UtcNow,"one","game","engine","Hello","مرحبًا",null,new(),false)));
+            Task close;var previous=SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(new NonPumpingContext());
+            try{close=log.DisposeAsync().AsTask();}finally{SynchronizationContext.SetSynchronizationContext(previous);}
+            Assert.True(close.Wait(TimeSpan.FromSeconds(5)),"Closing from a UI thread must not wait for its own dispatcher.");
+            Assert.Equal(200,File.ReadAllLines(Path.Combine(folder,"comparison.jsonl")).Length);
+        }finally{if(Directory.Exists(folder))Directory.Delete(folder,true);}
+    }
     [Fact]
     public async Task SavesSeparateEngineSessionsWithMatchingTimingsAndEscapedDialogue()
     {
