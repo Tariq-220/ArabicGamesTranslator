@@ -182,9 +182,9 @@ public sealed class XboxTestWindow : Window
         Grid.SetRow(tabs,2);shell.Children.Add(tabs);
         var live=new StackPanel{Margin=new Thickness(8)};
         live.Children.Add(status);live.Children.Add(timing);live.Children.Add(updateLabel);
-        var preview=new StackPanel();preview.Children.Add(Card(source));preview.Children.Add(Card(translated));
+        var livePreview=new StackPanel();livePreview.Children.Add(Card(source));livePreview.Children.Add(Card(translated));
         // Source and translated were inside cards in the former flat list.
-        live.Children.Add(new Expander{Header="النص المقروء والترجمة — تفاصيل الجلسة",Content=preview,IsExpanded=false,Foreground=Brushes.White});
+        live.Children.Add(new Expander{Header="النص المقروء والترجمة — تفاصيل الجلسة",Content=livePreview,IsExpanded=false,Foreground=Brushes.White});
         Grid.SetRow(live,3);shell.Children.Add(live);
         Content=shell;
         DesktopSubtitleOverlay.IsOverlayEnabled = true;

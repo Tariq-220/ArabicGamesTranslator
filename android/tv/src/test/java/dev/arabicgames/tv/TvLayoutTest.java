@@ -23,6 +23,20 @@ public class TvLayoutTest {
    assertEquals(17f,caption.getTextSize()/c.get().getResources().getDisplayMetrics().scaledDensity,.1f);
   }
  }
+ @Test public void subtitlePositionPersistsAndRepairRestoresVisibleDefaults(){
+  try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
+   MainActivity a=c.get();ViewGroup root=(ViewGroup)((ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);
+   find(root,"حجم وخلفية الترجمة").performClick();android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+   SeekBar position=dialog.getWindow().getDecorView().findViewWithTag("subtitle-position");position.setProgress(18);dialog.dismiss();
+   TextView caption=(TextView)root.getChildAt(1);int h=a.getResources().getDisplayMetrics().heightPixels;
+   assertEquals(Math.round(h*.20f),((FrameLayout.LayoutParams)caption.getLayoutParams()).bottomMargin);
+   c.recreate();a=c.get();root=(ViewGroup)((ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);caption=(TextView)root.getChildAt(1);
+   assertEquals(Math.round(h*.20f),((FrameLayout.LayoutParams)caption.getLayoutParams()).bottomMargin);
+   find(root,"إصلاح ظهور الترجمة").performClick();
+   assertEquals(Math.round(h*.07f),((FrameLayout.LayoutParams)caption.getLayoutParams()).bottomMargin);
+   assertEquals(View.VISIBLE,caption.getVisibility());assertTrue(caption.getText().toString().contains("اختبار الإصلاح"));
+  }
+ }
  private static Button find(View v,String text){if(v instanceof Button&&((Button)v).getText().toString().equals(text))return (Button)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){Button b=find(((ViewGroup)v).getChildAt(i),text);if(b!=null)return b;}return null;}
  @Test public void panelStaysNarrowAndTestSubtitleCanShow(){try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
   MainActivity a=c.get();View decor=a.getWindow().getDecorView();int w=a.getResources().getDisplayMetrics().widthPixels,h=a.getResources().getDisplayMetrics().heightPixels;decor.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));decor.layout(0,0,w,h);

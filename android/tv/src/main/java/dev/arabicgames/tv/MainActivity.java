@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public final class MainActivity extends Activity {
+ private String tunedInput;
  private TvView tv;private LinearLayout panel,connectionPanel;private ScrollView panelWindow;
  private TextView subtitle,status,received,hdmiStatus;
  private EditText host,code;private Spinner input;private CheckBox desktop,audio;
@@ -42,7 +43,7 @@ public final class MainActivity extends Activity {
    @Override public void onVideoUnavailable(String id,int reason){hdmiStatus.setText("HDMI غير متاح ("+reason+")؛ تأكد من المدخل.");}
   });
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
-  FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);
+  FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
   panel.addView(label("الترجمة العربية · 0.3.2",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
@@ -73,7 +74,8 @@ public final class MainActivity extends Activity {
    settings.addView(view);
   }
   connectionPanel.setVisibility(View.VISIBLE);
-  button(panel,"عرض اللعبة / إخفاء اللوحة",()->{tune();hidePanel();});
+  button(panel,"عرض اللعبة / إخفاء اللوحة",()->{if(tunedInput==null)tune();hidePanel();});
+  button(panel,"إصلاح ظهور الترجمة",this::repairDisplay);
   button(panel,"الإعدادات: الربط والخط والصوت",()->settings.setVisibility(settings.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
   button(settings,"اختبار الحروف العربية",()->testLocal("اختبار العربية — الحروف متصلة فوق اللعبة"));panel.addView(settings);
   setContentView(root);panel.requestFocus();
@@ -99,21 +101,21 @@ public final class MainActivity extends Activity {
   if(labels.isEmpty())labels.add("لا توجد مداخل HDMI");input.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));
   String saved=getPreferences(0).getString("hdmi","");for(int i=0;i<inputs.size();i++)if(inputs.get(i).getId().equals(saved))input.setSelection(i);
  }
- private void tune(){if(inputs.isEmpty())return;try{TvInputInfo selected=inputs.get(input.getSelectedItemPosition());getPreferences(0).edit().putString("hdmi",selected.getId()).apply();restoreAudio();tv.tune(selected.getId(),TvContract.buildChannelUriForPassthroughInput(selected.getId()));}catch(SecurityException e){hdmiStatus.setText("نظام الشاشة يمنع فتح HDMI من التطبيق.");}catch(Exception e){hdmiStatus.setText("تعذر فتح المدخل المختار.");}}
+ private void tune(){if(inputs.isEmpty())return;try{TvInputInfo selected=inputs.get(input.getSelectedItemPosition());if(selected.getId().equals(tunedInput))return;getPreferences(0).edit().putString("hdmi",selected.getId()).apply();restoreAudio();tv.tune(selected.getId(),TvContract.buildChannelUriForPassthroughInput(selected.getId()));tunedInput=selected.getId();}catch(SecurityException e){hdmiStatus.setText("نظام الشاشة يمنع فتح HDMI من التطبيق.");}catch(Exception e){hdmiStatus.setText("تعذر فتح المدخل المختار.");}}
  private void restoreAudio(){if(tv==null||audio==null)return;if(audio.isChecked()){audioManager.requestAudioFocus(audioFocus);tv.setStreamVolume(1f);}else{tv.setStreamVolume(0f);audioManager.abandonAudioFocusRequest(audioFocus);}}
  private void connect(){
   String address=host.getText().toString().trim(),pair=desktop.isChecked()?null:code.getText().toString().trim();
   if(!Pairing.privateIpv4(address)||(pair!=null&&!Pairing.validCode(pair))){status.setText("أدخل IPv4 محليًا ورمز الجوال كاملًا.");return;}
-  getPreferences(0).edit().putString("host",address).putString("code",pair==null?"":pair).putBoolean("desktop",desktop.isChecked()).apply();int generation=++session;HttpURLConnection old=connection;if(old!=null)old.disconnect();status.setText("جارٍ الاتصال بالجوال…");acceptedRevision=0;if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();
+  getPreferences(0).edit().putString("host",address).putString("code",pair==null?"":pair).putBoolean("desktop",desktop.isChecked()).apply();int generation=++session;HttpURLConnection old=connection;if(old!=null)old.disconnect();status.setText(desktop.isChecked()?"جارٍ إعادة ربط الكمبيوتر المحفوظ…":"جارٍ إعادة ربط الجوال المحفوظ…");acceptedRevision=0;if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();
   if(pair!=null)pollTask=poller.scheduleWithFixedDelay(()->pollLatest(address,pair,generation),0,500,TimeUnit.MILLISECONDS);
   new Thread(()->receive(address,pair,generation),"phone-subtitles").start();
  }
- private void receive(String address,String pair,int generation){int retry=1000;
+ private void receive(String address,String pair,int generation){int retry=250,failedConnections=0;boolean searched=false;
   while(!destroyed&&generation==session){HttpURLConnection conn=null;
    try{
     conn=(HttpURLConnection)new URL("http://"+address+":8787/events"+(pair==null?"":"?code="+pair+"&receiver="+receiverId)).openConnection();connection=conn;conn.setConnectTimeout(4000);conn.setReadTimeout(45000);conn.setRequestProperty("Accept","text/event-stream");
     int result=conn.getResponseCode();if(result==403){post(generation,()->{status.setText("رمز الربط غير صحيح؛ حدّثه من إعدادات الربط.");connectionPanel.setVisibility(View.VISIBLE);});return;}
-    if(result!=200)throw new IOException("HTTP "+result);retry=1000;post(generation,()->{status.setText("✓ متصل بالجوال. السطور المترجمة ستظهر فوق اللعبة.");connectionPanel.setVisibility(View.VISIBLE);});
+    if(result!=200)throw new IOException("HTTP "+result);retry=250;failedConnections=0;post(generation,()->{status.setText("✓ متصل. الترجمة تظهر فوق اللعبة.");connectionPanel.setVisibility(View.VISIBLE);});
     try(BufferedReader lines=new BufferedReader(new InputStreamReader(conn.getInputStream(),StandardCharsets.UTF_8))){String event="",data="",line;
      while(!destroyed&&generation==session&&(line=lines.readLine())!=null){
       if(line.startsWith("event: "))event=line.substring(7);else if(line.startsWith("data: "))data=line.substring(6);else if(line.isEmpty()){
@@ -123,8 +125,8 @@ public final class MainActivity extends Activity {
      }
     }
     if(!destroyed&&generation==session)throw new EOFException("Relay closed");
-   }catch(Exception e){String reason=e instanceof SocketTimeoutException?"مهلة استقبال":e instanceof EOFException?"الجوال أغلق الاتصال":e instanceof ConnectException?"خدمة الجوال غير متاحة":e.getClass().getSimpleName();int count=++drops;post(generation,()->status.setText("إعادة ربط ("+count+"): "+reason));}
-   finally{if(conn!=null)conn.disconnect();}if(destroyed||generation!=session)return;try{Thread.sleep(retry);}catch(InterruptedException e){return;}retry=Math.min(10000,retry*2);
+   }catch(Exception e){if(pair==null&&!searched&&++failedConnections>=3){searched=true;post(generation,this::discoverDesktop);}String reason=e instanceof SocketTimeoutException?"مهلة استقبال":e instanceof EOFException?"الجوال أغلق الاتصال":e instanceof ConnectException?"خدمة الجوال غير متاحة":e.getClass().getSimpleName();int count=++drops;post(generation,()->status.setText("إعادة ربط ("+count+"): "+reason));}
+   finally{if(conn!=null)conn.disconnect();}if(destroyed||generation!=session)return;try{Thread.sleep(retry);}catch(InterruptedException e){return;}retry=Math.min(2500,retry*2);
   }
  }
  private void pollLatest(String address,String pair,int generation){
@@ -146,17 +148,25 @@ public final class MainActivity extends Activity {
   int size=Math.max(14,Math.min(34,getPreferences(0).getInt("subtitleSize",20)));
   int opacity=Math.max(0,Math.min(100,getPreferences(0).getInt("subtitleOpacity",70)));
   subtitle.setTextSize(size);GradientDrawable background=new GradientDrawable();background.setColor((Math.round(opacity*255f/100)<<24));background.setCornerRadius(dp(6));subtitle.setBackground(background);
+  if(subtitle.getLayoutParams() instanceof FrameLayout.LayoutParams){FrameLayout.LayoutParams params=(FrameLayout.LayoutParams)subtitle.getLayoutParams();params.bottomMargin=Math.round(getResources().getDisplayMetrics().heightPixels*Math.max(2,Math.min(35,getPreferences(0).getInt("subtitleBottom",7)))/100f);subtitle.setLayoutParams(params);}
  }
  private void subtitleSettings(){
   LinearLayout content=column();content.setPadding(dp(20),dp(10),dp(20),dp(10));
   TextView sizeLabel=label("",15),opacityLabel=label("",15);content.addView(sizeLabel);
   SeekBar size=new SeekBar(this);size.setTag("subtitle-size");size.setMax(20);size.setProgress(Math.max(0,Math.min(20,getPreferences(0).getInt("subtitleSize",20)-14)));content.addView(size);
   content.addView(opacityLabel);SeekBar opacity=new SeekBar(this);opacity.setMax(100);opacity.setProgress(Math.max(0,Math.min(100,getPreferences(0).getInt("subtitleOpacity",70))));content.addView(opacity);
-  Runnable update=()->{sizeLabel.setText("حجم الخط: "+(size.getProgress()+14));opacityLabel.setText("خلفية الترجمة: "+opacity.getProgress()+"%");getPreferences(0).edit().putInt("subtitleSize",size.getProgress()+14).putInt("subtitleOpacity",opacity.getProgress()).apply();applySubtitleStyle();};
+  TextView positionLabel=label("",15);content.addView(positionLabel);SeekBar position=new SeekBar(this);position.setTag("subtitle-position");position.setMax(33);position.setProgress(Math.max(0,Math.min(33,getPreferences(0).getInt("subtitleBottom",7)-2)));content.addView(position);
+  Runnable update=()->{positionLabel.setText("ارتفاع الترجمة من الأسفل: "+(position.getProgress()+2)+"%");sizeLabel.setText("حجم الخط: "+(size.getProgress()+14));opacityLabel.setText("خلفية الترجمة: "+opacity.getProgress()+"%");getPreferences(0).edit().putInt("subtitleSize",size.getProgress()+14).putInt("subtitleOpacity",opacity.getProgress()).putInt("subtitleBottom",position.getProgress()+2).apply();applySubtitleStyle();};
   SeekBar.OnSeekBarChangeListener listener=new SeekBar.OnSeekBarChangeListener(){public void onStartTrackingTouch(SeekBar bar){}public void onStopTrackingTouch(SeekBar bar){}public void onProgressChanged(SeekBar bar,int progress,boolean user){update.run();}};
-  size.setOnSeekBarChangeListener(listener);opacity.setOnSeekBarChangeListener(listener);update.run();
+  size.setOnSeekBarChangeListener(listener);opacity.setOnSeekBarChangeListener(listener);position.setOnSeekBarChangeListener(listener);update.run();
   new android.app.AlertDialog.Builder(this).setTitle("حجم وخلفية الترجمة").setView(content).setPositiveButton("تم",(d,w)->{}).show();
   testLocal("آرثر: معاينة حجم الترجمة العربية.");
+ }
+ private void repairDisplay(){
+  getPreferences(0).edit().putInt("subtitleSize",20).putInt("subtitleOpacity",70).putInt("subtitleBottom",7).apply();
+  applySubtitleStyle();subtitle.bringToFront();panelWindow.bringToFront();
+  testLocal("اختبار الإصلاح — الترجمة العربية تظهر هنا");
+  if(Pairing.privateIpv4(host.getText().toString().trim())&&(desktop.isChecked()||Pairing.validCode(code.getText().toString().trim())))connect();else discoverDesktop();
  }
  private void hidePanel(){panelWindow.setVisibility(View.GONE);tv.requestFocus();}
  private void showPanel(){panelWindow.setVisibility(View.VISIBLE);panel.requestFocus();}
