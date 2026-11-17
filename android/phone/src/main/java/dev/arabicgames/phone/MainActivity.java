@@ -26,16 +26,18 @@ public final class MainActivity extends Activity {
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().setNavigationBarColor(Ui.BG);getWindow().setStatusBarColor(Ui.BG);
   LinearLayout root=Ui.column(this);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,20));root.setBackgroundColor(Ui.BG);
   TextView title=Ui.text(this,"مترجم الألعاب",27);title.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(title);
-  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — نسخة اختبار 0.4.5",14));
+  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — نسخة اختبار 0.4.6",14));
 
   LinearLayout model=Ui.card(this,root,"1 · تجهيز العربية");modelLabel=Ui.text(this,"افحص نموذج الترجمة أولًا",15);model.addView(modelLabel);
   download=Ui.button(this,model,"المحلي فقط: فحص / تنزيل العربية",false,this::prepare);
   Ui.button(this,model,"محرك الترجمة: محلي / Gemini / OpenAI / DeepL",false,()->startActivity(new Intent(this,AiSettingsActivity.class)));
   LinearLayout play=Ui.card(this,root,"2 · قراءة اللعبة");play.addView(Ui.text(this,"افتح اللعبة، ثم اضغط بدء الترجمة. اترك التطبيق ظاهرًا والجوال على جنب.",14));
   Ui.button(this,play,"افتح Xbox — بدون كاميرا",true,()->startActivity(new Intent(this,XboxActivity.class)));
+  Ui.button(this,play,"PS5 — ربط Sony وبدء الترجمة",true,()->startActivity(new Intent(this,PlayStationActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
   Ui.button(this,play,"PS5 / الكمبيوتر / OBS — طرق أخرى",false,()->startActivity(new Intent(this,SourcePathsActivity.class)));
   LinearLayout connection=Ui.card(this,root,"3 · ربط الشاشة — بدون كتابة");summary=Ui.text(this,"",16);summary.setTextIsSelectable(true);connection.addView(summary);
   Ui.button(this,connection,"تشغيل الربط / إرسال جملة اختبار",false,()->startForegroundService(new Intent(this,CaptureService.class).setAction("test")));
+  Ui.button(this,connection,"فتح لوحة الترجمة في الشاشة المتصلة",false,()->{RelayServer relay=RelayServer.active;if(relay==null){Status.message="شغّل الربط أولًا واتصل بالشاشة.";return;}relay.openTvPanel();Status.message="أُرسل طلب فتح اللوحة إلى الشاشات المتصلة بالبث اللحظي.";});
   connection.addView(Ui.text(this,"شغّل الربط هنا، ثم اختر «اكتشاف الجوال أو الكمبيوتر» بالشاشة. وافق على الرمز المتطابق في الجوال. احفظ الربط مرة واحدة؛ العنوان والرمز اليدويان بديل عند تعذر الاكتشاف.",13));
   LinearLayout manual=Ui.fold(this,connection,"بديل الربط اليدوي ▾");
   Ui.button(this,manual,"نسخ عنوان الجوال ورمز الربط",false,()->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText("ربط الشاشة",Status.address()+" / "+Status.code));android.widget.Toast.makeText(this,"تم النسخ",android.widget.Toast.LENGTH_SHORT).show();});

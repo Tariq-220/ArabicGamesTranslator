@@ -9,11 +9,12 @@
  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
  <uses-permission android:name="android.permission.WAKE_LOCK"/>
  <queries><package android:name="com.playstation.remoteplay"/></queries>
- <application android:icon="@drawable/app_icon" android:label="مترجم الألعاب — الجوال" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="true">
+ <application android:name="dev.arabicgames.phone.PhoneApplication" android:icon="@drawable/app_icon" android:label="مترجم الألعاب — الجوال" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="true">
   <activity android:name="dev.arabicgames.phone.MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
   <activity android:name="dev.arabicgames.phone.HistoryActivity" android:exported="false"/>
   <activity android:name="dev.arabicgames.phone.SecondScreenActivity" android:exported="false"/>
   <activity android:name="dev.arabicgames.phone.AiSettingsActivity" android:exported="false"/>
+  <activity android:name="dev.arabicgames.phone.PlayStationActivity" android:exported="false"/>
   <activity android:name="dev.arabicgames.phone.SourcePathsActivity" android:exported="false"/>
   <activity android:name="dev.arabicgames.phone.CameraActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" android:exported="false"/>
   <activity android:name="dev.arabicgames.phone.XboxActivity" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" android:exported="false"/>

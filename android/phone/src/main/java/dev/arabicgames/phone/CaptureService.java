@@ -52,7 +52,7 @@ public final class CaptureService extends Service {
    current=this;
    foreground(projection!=null||"capture".equals(intent.getAction()));
    if(server==null){String code=getSharedPreferences("relay",MODE_PRIVATE).getString("pairingCode",null);if(code==null){code=Pairing.createCode();getSharedPreferences("relay",MODE_PRIVATE).edit().putString("pairingCode",code).apply();}server=new RelayServer(code);server.start(15000,false);Status.code=code;ui.post(testLoop);}
-   if("test".equals(intent.getAction())){server.subtitle("آرثر: هذا اختبار العربية — 25 دولارًا",5000);Status.message="اختبار الربط فقط؛ لترجمة اللعبة اختر Xbox مباشر بلا كاميرا. أدخل عنوان الجوال ورمزه في التلفزيون.";return START_NOT_STICKY;}
+   if("test".equals(intent.getAction())){server.subtitle("آرثر: هذا اختبار العربية — 25 دولارًا",5000);Status.message="اختبار الربط فقط؛ لترجمة اللعبة اختر Xbox أو بدء ترجمة PS5. من الشاشة اختر اكتشاف الجوال ووافق على الرمز.";return START_NOT_STICKY;}
    if("direct".equals(intent.getAction())) {
     if(projection!=null){Status.message="أوقف مشاركة الشاشة أولًا قبل فتح وضع Xbox المباشر.";return START_NOT_STICKY;}
     epoch++;gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;return START_NOT_STICKY;
@@ -153,6 +153,7 @@ public final class CaptureService extends Service {
   });
  }
  private void processBitmap(Bitmap bitmap,long now,int generation){
+   if(projection!=null&&Status.translatorUiVisible){bitmap.recycle();busy.set(false);return;}
    Status.framesRead++;
    recognizer.process(InputImage.fromBitmap(bitmap,0))
     .addOnSuccessListener(result->{

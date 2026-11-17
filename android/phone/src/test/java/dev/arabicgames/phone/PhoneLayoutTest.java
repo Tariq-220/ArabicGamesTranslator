@@ -42,4 +42,10 @@ public class PhoneLayoutTest {
    TextView caption=text(c.get().getWindow().getDecorView(),arabic);assertNotNull(caption);assertEquals(View.VISIBLE,caption.getVisibility());
   }finally{Status.arabic="";}
  }
+ @Test @Config(qualifiers="w360dp-h780dp-port")public void playStationSetupIsReadableInPortrait(){try(var c=Robolectric.buildActivity(PlayStationActivity.class).setup()){
+  PlayStationActivity a=c.get();find(a.getWindow().getDecorView(),"ألعب على التلفزيون وبيد PS5").performClick();layout(a,360,780);preview(a,"ps5-secondary-account.png");
+  find(a.getWindow().getDecorView(),"جهزت الحساب الثانوي على PS5 — التالي").performClick();layout(a,360,780);preview(a,"ps5-sony-stream.png");
+  find(a.getWindow().getDecorView(),"ظهر فيديو اللعبة — التالي").performClick();find(a.getWindow().getDecorView(),"رجعت للأساسي واليد تعمل — التالي").performClick();layout(a,360,780);assertTrue(find(a.getWindow().getDecorView(),"بدء ترجمة PS5").getWidth()>0);preview(a,"ps5-start.png");
+ }}
+
 }

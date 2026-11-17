@@ -61,6 +61,7 @@ final class RelayServer extends NanoHTTPD {
  synchronized void subtitle(String arabic,int ms) { lastText=arabic;lastUntil=System.nanoTime()/1_000_000+ms;revision++;broadcast("subtitle",captionJson(arabic,ms,revision)); }
  private static String captionJson(String text,int ms,long revision){try{return new JSONObject().put("text",text).put("duration",ms).put("revision",revision).toString();}catch(Exception e){return "{}";}}
  private static byte[] caption(String text,int ms,long revision){return ("event: subtitle\ndata: "+captionJson(text,ms,revision)+"\n\n").getBytes(StandardCharsets.UTF_8);}
+ synchronized void openTvPanel(){broadcast("settings","{}");}
  synchronized void clear() { lastText=null;lastUntil=0;revision++;broadcast("clear","{\"revision\":"+revision+"}"); }
  private void broadcast(String event,String json) { byte[] data=("event: "+event+"\ndata: "+json+"\n\n").getBytes(StandardCharsets.UTF_8);for(Stream s:streams)s.offer(data); }
  @Override public void stop() { if(active==this)active=null; for(Stream s:streams)s.close();pollingSeen.clear();super.stop(); }

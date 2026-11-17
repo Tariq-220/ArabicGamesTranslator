@@ -3,7 +3,7 @@ package dev.arabicgames.phone;
 import java.net.*;
 import java.util.*;
 final class Status {
- static volatile boolean running,captureActive,modelReady;
+ static volatile boolean running,captureActive,modelReady,translatorUiVisible;
  static volatile String message="نزّل نموذج العربية ثم ابدأ اختبار ربط التلفزيون.";
  static volatile String code="", source="", arabic="", metrics="";
  static volatile String cloudMetrics="آخر طلب AI: لم يكتمل طلب جديد في هذه الجلسة بعد.";
