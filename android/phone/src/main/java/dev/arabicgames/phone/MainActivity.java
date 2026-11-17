@@ -13,9 +13,10 @@ import com.google.mlkit.common.model.DownloadConditions;
 public final class MainActivity extends Activity {
  private final Handler handler=new Handler(Looper.getMainLooper());
  private TextView status,summary,modelLabel;private Button download,start;private boolean modelReady;
- private Translator downloader;
+ private Translator downloader;private String promptedPair;private AlertDialog pairingDialog;
+ private void checkPairing(){RelayServer relay=RelayServer.active;if(relay==null)return;String challenge=relay.pendingChallenge();if(challenge==null||challenge.equals(promptedPair)||pairingDialog!=null)return;promptedPair=challenge;pairingDialog=new AlertDialog.Builder(this).setTitle("ربط الشاشة بدون كتابة").setMessage("تأكد أن الرمز نفسه ظاهر على شاشتك: "+challenge+"\nوافق فقط إذا أنت طلبت الربط الآن من الشاشة.").setPositiveButton("ربط شاشتي",(d,w)->relay.approve(challenge,true)).setNegativeButton("رفض",(d,w)->relay.approve(challenge,false)).create();pairingDialog.setOnDismissListener(d->pairingDialog=null);pairingDialog.show();}
  private final Runnable refresh=new Runnable(){public void run(){
-  modelReady=modelReady||Status.modelReady;
+  checkPairing();modelReady=modelReady||Status.modelReady;
   modelLabel.setText(AiPreferences.cloud(MainActivity.this)?"المحرك المختار: "+AiPreferences.label(AiPreferences.provider(MainActivity.this))+" — لا يلزم النموذج المحلي":modelReady?"✓ نموذج العربية جاهز":"افحص النموذج المحلي أو اختر AI");modelLabel.setTextColor(modelReady?Ui.ACCENT:Ui.MUTED);
   summary.setText("الجوال: "+Status.address()+"\nرمز الربط: "+(Status.code.isEmpty()?"شغّل الربط أولًا":Status.code)+"\nشاشات متصلة: "+Status.clients);
   status.setText(Status.message+"\n"+Status.metrics+"\nEnglish: "+Status.observedOcr+"\nالعربية: "+Status.arabic);
@@ -25,22 +26,26 @@ public final class MainActivity extends Activity {
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().setNavigationBarColor(Ui.BG);getWindow().setStatusBarColor(Ui.BG);
   LinearLayout root=Ui.column(this);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,20));root.setBackgroundColor(Ui.BG);
   TextView title=Ui.text(this,"مترجم الألعاب",27);title.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(title);
-  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — نسخة اختبار 0.3",14));
-  Ui.button(this,root,"ابدأ هنا — خطوات التفعيل",false,()->new android.app.AlertDialog.Builder(this).setTitle("تفعيل الترجمة").setMessage("1. فعّل الميزات البعيدة في Xbox، أو اللعب عن بُعد في PS5.\n2. افتح مصادر اللعبة واختر Xbox أو خطوات PS5. تسجيل الحساب يتم لدى Microsoft أو Sony.\n3. اختر المحرك: المحلي يحتاج تنزيلًا أول مرة؛ Gemini وOpenAI وDeepL تحتاج مفتاحك من زر الحصول على API وموافقة إرسال النص.\n4. اربط التلفزيون بالجوال بالرمز، أو استخدم الكمبيوتر: تطبيق التلفزيون الجديد يكتشف الكمبيوتر على الشبكة.\n5. فعّل النص الإنجليزي داخل اللعبة واختبر العربية ثم ابدأ الترجمة.\n6. للـMonitor: استخدم شاشة ثانية أو QR الكمبيوتر.\nQuickMT يعمل على الكمبيوتر ويرتبط بالجوال محليًا؛ ليس نموذجًا مدمجًا بالجوال. حماية OLED داخل جلسة Xbox لا تعني أن قفل Android سيُبقي الالتقاط يعمل على كل الأجهزة.").setPositiveButton("فهمت",null).show());
+  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — نسخة اختبار 0.4.5",14));
+
   LinearLayout model=Ui.card(this,root,"1 · تجهيز العربية");modelLabel=Ui.text(this,"افحص نموذج الترجمة أولًا",15);model.addView(modelLabel);
-  download=Ui.button(this,model,"فحص / تنزيل نموذج العربية",false,this::prepare);
+  download=Ui.button(this,model,"المحلي فقط: فحص / تنزيل العربية",false,this::prepare);
   Ui.button(this,model,"محرك الترجمة: محلي / Gemini / OpenAI / DeepL",false,()->startActivity(new Intent(this,AiSettingsActivity.class)));
   LinearLayout play=Ui.card(this,root,"2 · قراءة اللعبة");play.addView(Ui.text(this,"افتح اللعبة، ثم اضغط بدء الترجمة. اترك التطبيق ظاهرًا والجوال على جنب.",14));
   Ui.button(this,play,"افتح Xbox — بدون كاميرا",true,()->startActivity(new Intent(this,XboxActivity.class)));
   Ui.button(this,play,"PS5 / الكمبيوتر / OBS — طرق أخرى",false,()->startActivity(new Intent(this,SourcePathsActivity.class)));
-  Ui.button(this,play,"سجل الحوارات / تصدير حزمة",false,()->startActivity(new Intent(this,HistoryActivity.class)));
-  LinearLayout connection=Ui.card(this,root,"3 · ربط Google TV");summary=Ui.text(this,"",16);summary.setTextIsSelectable(true);connection.addView(summary);
+  LinearLayout connection=Ui.card(this,root,"3 · ربط الشاشة — بدون كتابة");summary=Ui.text(this,"",16);summary.setTextIsSelectable(true);connection.addView(summary);
   Ui.button(this,connection,"تشغيل الربط / إرسال جملة اختبار",false,()->startForegroundService(new Intent(this,CaptureService.class).setAction("test")));
-  connection.addView(Ui.text(this,"أدخل العنوان والرمز في تطبيق الشاشة. جملة الاختبار مؤقتة ولا تعني قراءة اللعبة.",13));
-  Ui.button(this,connection,"نسخ عنوان الجوال ورمز الربط",false,()->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText("ربط الشاشة",Status.address()+" / "+Status.code));android.widget.Toast.makeText(this,"تم النسخ",android.widget.Toast.LENGTH_SHORT).show();});
+  connection.addView(Ui.text(this,"شغّل الربط هنا، ثم اختر «اكتشاف الجوال أو الكمبيوتر» بالشاشة. وافق على الرمز المتطابق في الجوال. احفظ الربط مرة واحدة؛ العنوان والرمز اليدويان بديل عند تعذر الاكتشاف.",13));
+  LinearLayout manual=Ui.fold(this,connection,"بديل الربط اليدوي ▾");
+  Ui.button(this,manual,"نسخ عنوان الجوال ورمز الربط",false,()->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText("ربط الشاشة",Status.address()+" / "+Status.code));android.widget.Toast.makeText(this,"تم النسخ",android.widget.Toast.LENGTH_SHORT).show();});
   Ui.button(this,connection,"شاشة ثانية / QR للمتصفح",false,()->startActivity(new Intent(this,SecondScreenActivity.class)));
+  LinearLayout quality=Ui.card(this,root,"4 · جودة الترجمة والتصحيحات");
+  quality.addView(Ui.text(this,"صحّح ترجمة خاطئة مرة واحدة؛ نستخدم تصحيحك تلقائيًا للنص نفسه في اللعبة نفسها. لا تُرفع التصحيحات ولا تُعتمد اقتراحات المحرك تلقائيًا.",13));
+  Ui.button(this,quality,"السجل / تصحيح سطر / تصدير حزمة",false,()->startActivity(new Intent(this,HistoryActivity.class)));
   LinearLayout advanced=Ui.column(this);
   Ui.button(this,root,"مسارات أخرى وحزم جاهزة ▾",false,()->advanced.setVisibility(advanced.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));root.addView(advanced);advanced.setVisibility(View.GONE);
+  Ui.button(this,advanced,"ابدأ هنا — خطوات التفعيل",false,()->new android.app.AlertDialog.Builder(this).setTitle("تفعيل الترجمة").setMessage("1. فعّل الميزات البعيدة في Xbox، أو اللعب عن بُعد في PS5.\n2. افتح مصادر اللعبة واختر Xbox أو خطوات PS5. تسجيل الحساب يتم لدى Microsoft أو Sony.\n3. اختر المحرك: المحلي يحتاج تنزيلًا أول مرة؛ Gemini وOpenAI وDeepL تحتاج مفتاحك من زر الحصول على API وموافقة إرسال النص.\n4. اربط التلفزيون بالجوال بالرمز، أو استخدم الكمبيوتر: تطبيق التلفزيون الجديد يكتشف الكمبيوتر على الشبكة.\n5. فعّل النص الإنجليزي داخل اللعبة واختبر العربية ثم ابدأ الترجمة.\n6. للـMonitor: استخدم شاشة ثانية أو QR الكمبيوتر.\nQuickMT يعمل على الكمبيوتر ويرتبط بالجوال محليًا؛ ليس نموذجًا مدمجًا بالجوال. حماية OLED داخل جلسة Xbox لا تعني أن قفل Android سيُبقي الالتقاط يعمل على كل الأجهزة.").setPositiveButton("فهمت",null).show());
   Ui.button(this,advanced,"استيراد حزمة عربية JSON",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE);try{startActivityForResult(i,703);}catch(ActivityNotFoundException e){Status.message="لا يوجد منتقي ملفات على الجهاز.";}});
   Ui.button(this,advanced,"كاميرا الجوال — اختيارية",false,()->startActivity(new Intent(this,CameraActivity.class)));
   Ui.button(this,advanced,"فتح Xbox في متصفح خارجي",false,()->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.xbox.com/remoteplay")));}catch(ActivityNotFoundException e){Status.message="ثبّت متصفحًا يدعم Xbox Remote Play.";}});

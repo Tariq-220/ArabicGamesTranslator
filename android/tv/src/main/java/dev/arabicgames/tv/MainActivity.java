@@ -45,9 +45,9 @@ public final class MainActivity extends Activity {
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.2",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.3",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
-  button(panel,"اكتشاف الكمبيوتر تلقائيًا",this::discoverDesktop);
+  button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
   connectionPanel=column();host=new EditText(this);host.setHint("عنوان الجوال مثل 192.168.0.118");host.setTextSize(14);host.setSingleLine();host.setTextDirection(View.TEXT_DIRECTION_LTR);host.setInputType(InputType.TYPE_CLASS_PHONE);host.setText(getPreferences(0).getString("host",""));connectionPanel.addView(host);
   code=new EditText(this);code.setHint("رمز الربط — 8 أرقام");code.setTextSize(14);code.setSingleLine();code.setTextDirection(View.TEXT_DIRECTION_LTR);code.setInputType(InputType.TYPE_CLASS_NUMBER);code.setText(getPreferences(0).getString("code",""));connectionPanel.addView(code);
@@ -70,10 +70,12 @@ public final class MainActivity extends Activity {
   LinearLayout settings=column();settings.setTag("tv-settings");settings.setVisibility(View.GONE);
   for(View view:oldPanel){
    if(view==oldPanel.get(0)||view==status||view==received||view==actions)continue;
-   if(view instanceof Button&&"إعدادات الربط ▾".contentEquals(((Button)view).getText()))continue;
+   if(view instanceof Button&&("إعدادات الربط ▾".contentEquals(((Button)view).getText())||"اكتشاف الجوال أو الكمبيوتر".contentEquals(((Button)view).getText())))continue;
    settings.addView(view);
   }
-  connectionPanel.setVisibility(View.VISIBLE);
+  connectionPanel.setVisibility(View.GONE);
+  button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
+  button(settings,"عنوان ورمز يدوي — بديل",()->connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
   button(panel,"عرض اللعبة / إخفاء اللوحة",()->{if(tunedInput==null)tune();hidePanel();});
   button(panel,"إصلاح ظهور الترجمة",this::repairDisplay);
   button(panel,"الإعدادات: الربط والخط والصوت",()->settings.setVisibility(settings.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
@@ -85,14 +87,28 @@ public final class MainActivity extends Activity {
   if(inputs.isEmpty())hdmiStatus.setText("لا توجد مداخل HDMI متاحة للتطبيق على هذه الشاشة.");
  }
  private void discoverDesktop(){
-  if(discovering||destroyed)return;discovering=true;status.setText("جارٍ البحث عن الكمبيوتر على الشبكة المحلية…");
+  if(discovering||destroyed)return;discovering=true;status.setText("جارٍ البحث عن الجوال والكمبيوتر على الشبكة المحلية…");
   new Thread(()->{List<String> found;try{found=DesktopDiscovery.find();}catch(Exception e){found=Collections.emptyList();}final List<String> results=found;
    ui.post(()->{discovering=false;if(destroyed)return;
-    if(results.isEmpty()){status.setText("لم نجد الكمبيوتر. شغّل المترجم على نفس الشبكة واسمح له في جدار الحماية، أو أدخل العنوان يدويًا.");return;}
-    if(results.size()==1){useDesktop(results.get(0));return;}
-    new AlertDialog.Builder(this).setTitle("اختر الكمبيوتر — يوجد أكثر من مصدر").setItems(results.toArray(new String[0]),(d,n)->useDesktop(results.get(n))).setNegativeButton("إلغاء",null).show();
+    if(results.isEmpty()){status.setText("لم نجد مصدرًا. شغّل الربط بالجوال أو مترجم الكمبيوتر، وتأكد من نفس الشبكة؛ العنوان اليدوي بديل.");return;}
+    if(results.size()==1){useSource(results.get(0));return;}
+    new AlertDialog.Builder(this).setTitle("اختر مصدر الترجمة").setItems(results.toArray(new String[0]),(d,n)->useSource(results.get(n))).setNegativeButton("إلغاء",null).show();
    });
   },"discover-desktop").start();
+ }
+ private int pairingAttempt;
+ private void useSource(String result){String address=result.substring(result.indexOf(" · ")+3);if(result.startsWith("جوال"))pairPhone(address);else useDesktop(address);}
+ private void pairPhone(String address){
+  final int attempt=++pairingAttempt;String ticket=UUID.randomUUID().toString().replace("-","");
+  status.setText("افتح تطبيق الجوال ووافق على رمز الربط: "+ticket.substring(0,6));
+  new Thread(()->{for(int n=0;n<70&&!destroyed&&attempt==pairingAttempt;n++){
+   HttpURLConnection c=null;try{
+    c=(HttpURLConnection)new URL("http://"+address+":8787/pair?ticket="+ticket).openConnection();c.setConnectTimeout(1500);c.setReadTimeout(1500);c.setInstanceFollowRedirects(false);
+    if(c.getResponseCode()!=200)break;String body;try(InputStream in=c.getInputStream()){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[128];int count;while((count=in.read(b))!=-1){out.write(b,0,count);if(out.size()>1024)throw new IOException();}body=out.toString("UTF-8");}
+    String paired=new JSONObject(body).optString("code","");if(Pairing.validCode(paired)){ui.post(()->{if(destroyed||attempt!=pairingAttempt)return;host.setText(address);code.setText(paired);desktop.setChecked(false);connect();});return;}
+    Thread.sleep(750);
+   }catch(Exception e){break;}finally{if(c!=null)c.disconnect();}
+  }ui.post(()->{if(!destroyed&&attempt==pairingAttempt)status.setText("لم يكتمل الربط. افتح الجوال ووافق على الرمز، ثم أعد الاكتشاف.");});},"pair-phone").start();
  }
  private void useDesktop(String address){host.setText(address);desktop.setChecked(true);connect();}
  private void refreshInputs(){
@@ -173,10 +189,16 @@ public final class MainActivity extends Activity {
  @Override public boolean onKeyDown(int key,KeyEvent event){if(key==KeyEvent.KEYCODE_PROG_RED){testLocal("اختبار العربية — الحروف متصلة؟");return true;}if(key==KeyEvent.KEYCODE_BACK){if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();return true;}if((key==KeyEvent.KEYCODE_DPAD_CENTER||key==KeyEvent.KEYCODE_ENTER)&&panelWindow.getVisibility()!=View.VISIBLE){showPanel();return true;}return super.onKeyDown(key,event);}
  @Override protected void onResume(){super.onResume();if(tv!=null&&audio!=null&&!getPreferences(0).getString("hdmi","").isEmpty())restoreAudio();}
  @Override protected void onPause(){if(tv!=null)tv.setStreamVolume(0f);if(audioManager!=null&&audioFocus!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onPause();}
- @Override public void onDestroy(){destroyed=true;if(pollTask!=null)pollTask.cancel(true);poller.shutdownNow();if(pollingConnection!=null)pollingConnection.disconnect();session++;if(connection!=null)connection.disconnect();ui.removeCallbacksAndMessages(null);tv.reset();if(audioManager!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onDestroy();}
+ @Override public void onDestroy(){destroyed=true;pairingAttempt++;if(pollTask!=null)pollTask.cancel(true);poller.shutdownNow();if(pollingConnection!=null)pollingConnection.disconnect();session++;if(connection!=null)connection.disconnect();ui.removeCallbacksAndMessages(null);tv.reset();if(audioManager!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onDestroy();}
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
  private TextView label(String text,int size){TextView v=new TextView(this);v.setText(text);v.setTextColor(Color.WHITE);v.setTextSize(size);v.setPadding(0,dp(3),0,dp(3));return v;}
  private LinearLayout column(){LinearLayout v=new LinearLayout(this);v.setOrientation(LinearLayout.VERTICAL);v.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);return v;}
- private Button button(LinearLayout parent,String text,Runnable action){Button b=new Button(this);b.setText(text);b.setTextSize(13);b.setAllCaps(false);b.setOnClickListener(v->action.run());parent.addView(b,new LinearLayout.LayoutParams(-1,-2));return b;}
+ private Button button(LinearLayout parent,String text,Runnable action){Button b=new Button(this);b.setText(text);b.setTextSize(13);b.setAllCaps(false);b.setMinHeight(dp(44));b.setPadding(dp(10),dp(6),dp(10),dp(6));
+  android.graphics.drawable.StateListDrawable colors=new android.graphics.drawable.StateListDrawable();
+  GradientDrawable focused=new GradientDrawable();focused.setColor(0xff72e2b1);focused.setCornerRadius(dp(10));
+  GradientDrawable normal=new GradientDrawable();normal.setColor(0xff34465f);normal.setCornerRadius(dp(10));
+  colors.addState(new int[]{android.R.attr.state_focused},focused);colors.addState(new int[]{},normal);b.setBackground(colors);
+  b.setTextColor(new android.content.res.ColorStateList(new int[][]{new int[]{android.R.attr.state_focused},new int[]{}},new int[]{0xff0f1724,0xfff4f7fa}));
+  b.setOnClickListener(v->action.run());LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(-1,-2);layout.topMargin=dp(6);parent.addView(b,layout);return b;}
  private final class PanelScroll extends ScrollView {PanelScroll(Context c){super(c);}@Override protected void onMeasure(int w,int h){super.onMeasure(w,View.MeasureSpec.makeMeasureSpec((int)(getResources().getDisplayMetrics().heightPixels*.76),View.MeasureSpec.AT_MOST));}}
 }

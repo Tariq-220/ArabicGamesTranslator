@@ -165,6 +165,8 @@ public final class CaptureService extends Service {
      }
      lastText=readDone;
      if(gate.alreadyShown(text)){if(lease.renew(text,readDone)){Status.arabic=lease.text();if(server!=null)server.subtitle(lease.text(),5000);}busy.set(false);return;}
+     String reviewed=DialogueStore.get(this).reviewed(AiPreferences.game(this),text);
+     if(reviewed!=null){Status.source=text;publish(text,reviewed,now,readDone,readDone,generation,"تصحيحك المعتمد — بدون طلب محرك");return;}
      String packed=pack.find(text);
      if(packed!=null&&!gate.alreadyShown(text)){Status.source=text;publish(text,packed,now,readDone,readDone,generation,"حزمة عربية: "+pack.game);return;}
      if(!gate.accept(text,readDone)){busy.set(false);return;}
@@ -190,7 +192,7 @@ public final class CaptureService extends Service {
     }).addOnFailureListener(e->{bitmap.recycle();Status.message="تعذرت قراءة الإطار.";busy.set(false);});
  }
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin){
-  arabic=DialogueProfile.arabic(text,arabic,AiPreferences.game(this));
+  if(!origin.startsWith("تصحيحك المعتمد"))arabic=DialogueProfile.arabic(text,arabic,AiPreferences.game(this));
   try{
    if(closed||generation!=epoch)return;
    gate.remember(text,arabic);gate.shown(text);lease.store(text,arabic,translated);Status.arabic=arabic;

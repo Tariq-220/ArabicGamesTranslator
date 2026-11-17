@@ -24,17 +24,18 @@ public final class DesktopDiscovery {
   Set<String> found=Collections.synchronizedSet(new TreeSet<>());ExecutorService pool=Executors.newFixedThreadPool(16);
   try{
    int scanned=0;
-   for(String sub:subnets){if(scanned++>=2)break;for(int i=1;i<255;i++){String host=sub+"."+i;pool.submit(()->{if(isDesktop(host))found.add(host);});}}
+   for(String sub:subnets){if(scanned++>=2)break;for(int i=1;i<255;i++){String host=sub+"."+i;pool.submit(()->{String type=probe(host);if(type!=null)found.add(type+host);});}}
    pool.shutdown();if(!pool.awaitTermination(25,TimeUnit.SECONDS))pool.shutdownNow();
   }finally{pool.shutdownNow();}
   synchronized(found){return new ArrayList<>(found);}
  }
- private static boolean isDesktop(String host){HttpURLConnection c=null;
+ private static String probe(String host){HttpURLConnection c=null;
   try{
    c=(HttpURLConnection)new URL("http://"+host+":8787/hello").openConnection();c.setConnectTimeout(450);c.setReadTimeout(450);c.setInstanceFollowRedirects(false);
-   if(c.getResponseCode()!=200)return false;
-   ByteArrayOutputStream b=new ByteArrayOutputStream();try(InputStream in=c.getInputStream()){byte[] buf=new byte[256];int n;while((n=in.read(buf))!=-1){b.write(buf,0,n);if(b.size()>2048)return false;}}
-   String body=b.toString(StandardCharsets.UTF_8.name());return body.contains("\"gametranslator\"")&&body.contains("\"app\"");
-  }catch(Exception e){return false;}finally{if(c!=null)c.disconnect();}
+   if(c.getResponseCode()!=200)return null;
+   ByteArrayOutputStream b=new ByteArrayOutputStream();try(InputStream in=c.getInputStream()){byte[] buf=new byte[256];int n;while((n=in.read(buf))!=-1){b.write(buf,0,n);if(b.size()>2048)return null;}}
+   String body=b.toString(StandardCharsets.UTF_8.name());if(body.contains("\"arabicgames-phone\""))return "جوال · ";
+   return body.contains("\"gametranslator\"")&&body.contains("\"app\"")?"كمبيوتر · ":null;
+  }catch(Exception e){return null;}finally{if(c!=null)c.disconnect();}
  }
 }

@@ -23,6 +23,10 @@ final class DialogueStore {
  }
  synchronized JSONArray snapshot(){try{return new JSONArray(new JSONArray(lines).toString());}catch(JSONException e){return new JSONArray();}}
  synchronized void revise(long id,String arabic){if(arabic.trim().isEmpty()||arabic.length()>3000)throw new IllegalArgumentException();for(JSONObject entry:lines)if(entry.optLong("id")==id){try{entry.put("arabic",arabic.trim()).put("reviewed",true);changed();}catch(JSONException ignored){}return;}}
+ synchronized String reviewed(String game,String source){
+  String key=source.trim().replaceAll("\\s+"," ");if(game==null||game.isBlank()||key.isEmpty())return null;
+  for(int i=lines.size()-1;i>=0;i--){JSONObject e=lines.get(i);if(e.optBoolean("reviewed")&&game.equals(e.optString("game"))&&key.equals(e.optString("source").trim().replaceAll("\\s+"," ")))return e.optString("arabic");}return null;
+ }
  synchronized void clear(){lines.clear();changed();}
  synchronized String pack(String game,boolean reviewedOnly)throws Exception{
   JSONObject pairs=new JSONObject();Set<String> conflicts=new HashSet<>();

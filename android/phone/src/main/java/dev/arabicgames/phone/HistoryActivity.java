@@ -10,7 +10,7 @@ public final class HistoryActivity extends Activity {
  private LinearLayout rows;private TextView status;private String pendingExport;
  @Override public void onCreate(Bundle saved){super.onCreate(saved);
   LinearLayout root=Ui.column(this);root.setBackgroundColor(Ui.BG);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16));root.addView(Ui.text(this,"سجل الحوارات والترجمة",24));
-  root.addView(Ui.text(this,"آخر 200 سطر محفوظة على هذا الجوال فقط. صحّح السطر قبل تصديره كحزمة مراجعة. السطور الآلية قد تكون خاطئة. لا يوجد رفع جماعي تلقائي.",14));
+  root.addView(Ui.text(this,"آخر 200 سطر محفوظة على هذا الجوال فقط. تصحيحك المعتمد يُستخدم تلقائيًا عند تكرار النص نفسه في اللعبة نفسها؛ لا نعتمد ناتج AI كتصحيح. المسح يحذف التصحيحات أيضًا. السطور الآلية قد تكون خاطئة. لا يوجد رفع جماعي تلقائي.",14));
   CheckBox enabled=new CheckBox(this);enabled.setText("حفظ سجل النصوص محليًا");enabled.setTextColor(Ui.TEXT);enabled.setChecked(getSharedPreferences("reading",0).getBoolean("history",true));enabled.setOnCheckedChangeListener((b,on)->getSharedPreferences("reading",0).edit().putBoolean("history",on).apply());root.addView(enabled);
   Ui.button(this,root,"تصدير حزمة اللعبة الحالية",false,()->new AlertDialog.Builder(this).setTitle("تصدير حزمة اللعبة الحالية").setItems(new String[]{"السطور التي صححتها فقط","الكل — ترجمة آلية تحتاج مراجعة"},(d,which)->export(which==0)).show());
   Ui.button(this,root,"مسح السجل المحلي",false,()->new AlertDialog.Builder(this).setMessage("مسح جميع أسطر السجل من هذا الجوال؟").setPositiveButton("مسح",(d,w)->{DialogueStore.get(this).clear();render();}).setNegativeButton("إلغاء",null).show());
@@ -21,6 +21,7 @@ public final class HistoryActivity extends Activity {
   for(int i=lines.length()-1;i>=0;i--){JSONObject entry=lines.optJSONObject(i);if(entry==null)continue;
    LinearLayout card=Ui.card(this,rows,entry.optString("game")+" · "+entry.optString("mode")+(entry.optBoolean("reviewed")?" · مراجع":""));
    TextView english=Ui.text(this,entry.optString("source"),15);english.setTextDirection(android.view.View.TEXT_DIRECTION_LTR);english.setTextIsSelectable(true);card.addView(english);
+   String warning=TranslationQuality.warning(entry.optString("source"),entry.optString("arabic"));if(!warning.isEmpty())card.addView(Ui.text(this,"⚠ "+warning,13));
    TextView arabic=Ui.text(this,entry.optString("arabic"),18);arabic.setTextIsSelectable(true);card.addView(arabic);card.addView(Ui.text(this,entry.optString("engine"),12));
    Ui.button(this,card,"تصحيح واعتماد هذا السطر",false,()->{EditText edit=new EditText(this);edit.setText(entry.optString("arabic"));new AlertDialog.Builder(this).setTitle("تصحيح الترجمة العربية").setView(edit).setPositiveButton("اعتماد",(d,w)->{try{DialogueStore.get(this).revise(entry.optLong("id"),edit.getText().toString());render();}catch(Exception e){status.setText("النص فارغ أو طويل جدًا.");}}).setNegativeButton("إلغاء",null).show();});
   }
