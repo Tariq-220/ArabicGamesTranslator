@@ -3,6 +3,8 @@
 مترجم ترجمات الألعاب إلى العربية على Windows وAndroid. مبني على Sefflex/GameTranslator (AGPL-3.0-only)، مع قارئ Xbox عبر Remote Play وخيارات Google بدون مفتاح، Gemini، DeepL، والنماذج المحلية QuickMT/Jisr/HY-MT على الكمبيوتر.
 
 ## التنزيل والتحديث
+[أداة التفعيل الصغيرة مرة واحدة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/latest/download/ArabicGames-Enable-AutoUpdate.zip): فك الضغط وشغّل Enable-AutoUpdate.cmd؛ ستنزّل النسخة الكاملة وتثبتها تلقائيًا.
+
 نزّل حزمة Windows من [Releases](https://github.com/Tariq-220/ArabicGamesTranslator/releases/latest)، وفك الضغط وشغّل Install.cmd مرة واحدة. التطبيق يفحص الإصدارات ويحمّل الجديد تلقائيًا خارج جلسة اللعب. ثبّت التحديث من زر التطبيق عند الانتهاء. مفاتيح API تبقى مشفرة في مجلد بيانات مستخدم Windows ولا تُرفع للمستودع.
 
 ## النشر التلقائي

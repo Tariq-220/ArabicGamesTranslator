@@ -1,0 +1,24 @@
+name: Validate installer and activation scripts
+on:
+  workflow_dispatch:
+  push:
+    paths: ['installer/**', 'release/Enable-AutoUpdate.ps1', 'release/Enable-AutoUpdate.cmd']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          foreach($file in @('installer/Install.ps1','release/Enable-AutoUpdate.ps1')) {
+            $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file),[ref]$null,[ref]$errors)
+            if($errors.Count){$errors|Format-List;throw "Invalid script: $file"}
+          }
+      - name: Test installer files and rollback with OS operations mocked
+        shell: pwsh
+        run: ./installer/Test-Installer.ps1

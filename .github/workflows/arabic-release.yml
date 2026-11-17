@@ -46,5 +46,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $info=Get-Content release/version.json -Raw|ConvertFrom-Json
-          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" out/SHA256SUMS.txt --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes "Windows release with corresponding AGPL source, update integrity checks, and retained settings."
+          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes "Windows release with corresponding AGPL source, update integrity checks, and retained settings."
           if($LASTEXITCODE -ne 0){throw 'Release upload failed'}

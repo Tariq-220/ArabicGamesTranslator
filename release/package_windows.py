@@ -35,6 +35,10 @@ def package(root,publish,runtime,output):
         z.write(root/'LICENSE','LICENSE');z.write(root/'NOTICE','NOTICE')
         z.writestr('START-HERE-ar.txt','فك ضغط الحزمة وشغّل Install.cmd مرة واحدة. من بعدها يفحص التطبيق إصدارات GitHub وينزّل الجديد تلقائيًا خارج جلسة اللعب. اضغط تثبيت التحديث وإعادة التشغيل عندما يناسبك. المفاتيح والإعدادات محفوظة خارج مجلدات الإصدارات، والنسخة السابقة تبقى للرجوع عبر Rollback.cmd. تحميل التحديث يتطلب مستودع GitHub عامًا ومربوطًا داخل إعداد الإصدار.\n')
     with zipfile.ZipFile(archive) as z:assert z.testzip() is None
+    activation=output/'ArabicGames-Enable-AutoUpdate.zip'
+    with zipfile.ZipFile(activation,'w',zipfile.ZIP_DEFLATED) as z:
+        for name in ['Enable-AutoUpdate.cmd','Enable-AutoUpdate.ps1']:z.write(root/'release'/name,name)
+        z.writestr('START-HERE-ar.txt','فك الضغط وشغّل Enable-AutoUpdate.cmd مرة واحدة. ينزّل أحدث نسخة متحققًا من بصمتها ويثبتها. بعد ذلك يفحص التطبيق وينزّل التحديثات خارج اللعب، وتثبتها من زر التطبيق. لا يحتاج مفتاح GitHub.\n')
     digest=hashlib.sha256(archive.read_bytes()).hexdigest()
     (output/'SHA256SUMS.txt').write_text(digest+'  '+archive.name+'\n',encoding='ascii')
     print(archive,archive.stat().st_size,digest)
