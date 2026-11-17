@@ -2,6 +2,10 @@ name: Publish locally signed Android packages
 on:
   workflow_dispatch:
     inputs:
+      publish:
+        description: 'Explicit approval to publish Android assets'
+        type: boolean
+        default: false
       source_ref:
         description: 'Temporary release-binaries branch containing the signed APKs'
         required: true
@@ -12,6 +16,7 @@ permissions:
   contents: write
 jobs:
   upload:
+    if: inputs.publish == true
     runs-on: ubuntu-latest
     steps:
       - name: Validate requested source
@@ -21,7 +26,7 @@ jobs:
         run: |
           [[ "$SOURCE_REF" =~ ^release-binaries-[a-zA-Z0-9.-]+$ ]] || exit 1
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.source_ref }}
       - name: Verify signed package bytes and archive structure

@@ -23,7 +23,12 @@ public static class Program
             {
                 if (p.Id != current.Id)
                 {
-                    try { p.Kill(); } catch { }
+                    try {
+                        var candidate=p.MainModule?.FileName;
+                        var own=current.MainModule?.FileName;
+                        var managed=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"ArabicGamesLauncher")+System.IO.Path.DirectorySeparatorChar;
+                        if(candidate!=null&&(candidate.Equals(own,StringComparison.OrdinalIgnoreCase)||candidate.StartsWith(managed,StringComparison.OrdinalIgnoreCase)))p.Kill();
+                    } catch { }
                 }
             }
         }

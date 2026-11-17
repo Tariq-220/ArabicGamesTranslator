@@ -9,3 +9,5 @@ Nino documents native Android Xbox home streaming using Microsoft device code, X
 Adopted: provider key shortcuts, provider/model selection, device-specific activation guide, existing SSDP TV pairing exposed in our UI, bounded private-LAN desktop discovery on Google TV, webOS companion, and QR second-screen workflow. API quota, model access, and translation quality remain account/model dependent; no secret keys or user comparison logs are published.
 
 Windows source plays on HDMI while reading a visible Remote Play window. Monitor mode uses the Windows overlay if the game is shown on that PC; QR displays captions on a separate browser device, not above arbitrary HDMI input. iOS-only ingestion and native Mac packaging are deferred by user instruction.
+
+Deferred guide reference supplied by the user: https://claude.ai/artifact/4rZ6o8y1azRgQiPjni1FMn#pc . The fetched HTML is a dynamic artifact shell; the actual guide text was not retrievable in this pass, so its steps have not been claimed or copied. A public setup website is deferred until after package review.

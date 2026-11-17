@@ -112,6 +112,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     private readonly object gate = new();
     private readonly List<Client> clients = [];
     private TcpListener? listener;
+    private int activeRequests;
     private Timer? pingTimer;
     private SubtitleStyle? lastStyle;
     /// <summary>GET ile verilen dosyalar: dublaj sesleri ve seslendirme modelinin ses örnekleri.</summary>
@@ -279,6 +280,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
             TcpClient tcp;
             try { tcp = await listener.AcceptTcpClientAsync(); }
             catch { return; }
+            if(Interlocked.Increment(ref activeRequests)>32){Interlocked.Decrement(ref activeRequests);tcp.Dispose();continue;}
             _ = Serve(tcp);
         }
     }
@@ -291,7 +293,11 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
             // Altyazı çerçeveleri küçüktür; Nagle beklemesi her satırı TV'ye geç ulaştırmasın.
             tcp.NoDelay = true;
             var stream = tcp.GetStream();
-            var requestLine = await ReadRequestLine(stream);
+            var headers = await ReadRequestHeaders(stream);
+            if(headers==null||tcp.Client.RemoteEndPoint is not IPEndPoint peer||!LocalRequestPolicy.Allows(peer.Address,headers)){
+                await RespondAndClose(tcp,"403 Forbidden");return;
+            }
+            var requestLine=headers.Split("\r\n")[0];
             var parts = requestLine?.Split(' ') ?? [];
             var method = parts.Length > 0 ? parts[0] : "";
             var target = parts.Length > 1 ? parts[1] : "";
@@ -299,7 +305,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
 
             if (method == "OPTIONS")
             {
-                var optionsHead = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: *\r\nConnection: close\r\n\r\n";
+                var optionsHead = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: *\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n";
                 await tcp.GetStream().WriteAsync(Encoding.ASCII.GetBytes(optionsHead));
                 tcp.Dispose();
             }
@@ -322,21 +328,23 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
         {
             tcp.Dispose();
         }
+        finally { Interlocked.Decrement(ref activeRequests); }
     }
 
-    /// <summary>Başlıkların sonuna (boş satır) kadar okur, ilk satırı döner. 64 KB'yi aşan istek kapatılır.</summary>
-    private static async Task<string?> ReadRequestLine(Stream stream)
+    /// <summary>Read complete headers, bounded to 16KB and five seconds.</summary>
+    private static async Task<string?> ReadRequestHeaders(Stream stream)
     {
-        var buffer = new byte[8192];
+        using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var buffer = new byte[4096];
         using var head = new MemoryStream();
-        while (head.Length < 65536)
+        while (head.Length < 16384)
         {
-            var count = await stream.ReadAsync(buffer);
+            var count = await stream.ReadAsync(buffer,timeout.Token);
             if (count == 0) return null;
             head.Write(buffer, 0, count);
             var text = Encoding.ASCII.GetString(head.GetBuffer(), 0, (int)head.Length);
             var end = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
-            if (end >= 0) return text[..text.IndexOf("\r\n", StringComparison.Ordinal)];
+            if (end >= 0) return text[..end];
         }
         return null;
     }
@@ -349,7 +357,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     private static async Task RespondAndClose(TcpClient tcp, byte[] data, string type)
     {
         var head = $"HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: *\r\nContent-Type: {type}\r\nCache-Control: no-cache\r\n" +
-                   $"Content-Length: {data.Length}\r\nConnection: close\r\n\r\n";
+                   $"Content-Length: {data.Length}\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n";
         var stream = tcp.GetStream();
         await stream.WriteAsync(Encoding.ASCII.GetBytes(head));
         await stream.WriteAsync(data);
@@ -359,7 +367,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     private static async Task RespondAndClose(TcpClient tcp, string status, string body = "")
     {
         var bodyBytes = Encoding.UTF8.GetBytes(body);
-        var head = $"HTTP/1.1 {status}\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: *\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {bodyBytes.Length}\r\nConnection: close\r\n\r\n";
+        var head = $"HTTP/1.1 {status}\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: *\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: {bodyBytes.Length}\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n";
         var stream = tcp.GetStream();
         await stream.WriteAsync(Encoding.ASCII.GetBytes(head));
         if (bodyBytes.Length > 0)

@@ -151,9 +151,8 @@ public class SubtitleServerTests
         await WaitUntil(() => server.ConnectedClients == 1);
         server.SendSubtitle("Kapıyı tut, evlat!", 4000);
         using var reader = new StreamReader(await response.Content.ReadAsStreamAsync());
-        var lines = await ReadLines(reader, "");
-        lines = await ReadLines(reader, "");
-        Assert.Contains(lines, l => l.Contains("Kapıyı tut, evlat!"));
+        await ReadLines(reader,"event: subtitle");
+        Assert.Contains("Kapıyı tut, evlat!",await reader.ReadLineAsync()??"");
     }
 
     [Fact]
@@ -215,7 +214,8 @@ public class SubtitleServerTests
         using var server = new SubtitleServer(0);
         var port = await server.StartAsync();
         using var http = new HttpClient();
-        Assert.Equal("{\"app\":\"GameTranslator\"}", await http.GetStringAsync($"http://127.0.0.1:{port}/hello"));
+        using var json=System.Text.Json.JsonDocument.Parse(await http.GetStringAsync($"http://127.0.0.1:{port}/hello"));
+        Assert.Equal("gametranslator",json.RootElement.GetProperty("app").GetString());
     }
 
     [Fact]

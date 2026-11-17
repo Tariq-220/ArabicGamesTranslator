@@ -54,6 +54,7 @@ public sealed class XboxTestWindow : Window
         this.controller = controller;
         start.MinHeight=48;windows.MinHeight=48;engineChoice.MinHeight=48;key.MinHeight=48;recordComparison.MinHeight=44;
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/GameTranslator;component/Theme/ArabicTestStyles.xaml",UriKind.Relative) });
+        Icon=System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/GameTranslator;component/Assets/GameTranslator.ico"));
         Title = "مترجم الألعاب بالعربية — لابتوب Xbox / PS5 — "+ArabicRelease.Version;
         Width = 900; Height = 820; MinWidth = 700; MinHeight = 620;
         FlowDirection = FlowDirection.RightToLeft;
@@ -76,7 +77,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(consoleHelp);UpdateConsoleHelp();
         root.Children.Add(Button("خطوات ربط PS5 الرسمية",()=>OpenUrl("https://remoteplay.dl.playstation.net/remoteplay/lang/en/ps5_win.html")));
         root.Children.Add(Label("فعّل الترجمة الإنجليزية داخل اللعبة. أبقِ نافذة البث ظاهرة وغير مصغّرة."));
-        root.Children.Add(Label("النسخة التجريبية تستخدم الإنترنت لترجمة النصوص المقروءة. لا تتصل بحساب Xbox ولا تطلب كلمة مروره."));
+        root.Children.Add(Label("المحركات السحابية ترسل النص المقروء للمزوّد؛ اختر نافذة اللعبة لتجنّب قراءة إشعاراتك. QuickMT المحلي لا يحتاج خدمة ترجمة سحابية."));
         var pick = Row(); pick.Children.Add(windows); pick.Children.Add(Button("تحديث النوافذ", RefreshWindows)); root.Children.Add(pick);
         root.Children.Add(Label("اختر نافذة جلسة الريموت بلاي. عند ظهور صورة سوداء جرّب التقاط الشاشة كاملة."));
         var crop = Row(); crop.Children.Add(Label("بداية منطقة القراءة من أعلى الصورة (%)")); crop.Children.Add(top); root.Children.Add(crop);

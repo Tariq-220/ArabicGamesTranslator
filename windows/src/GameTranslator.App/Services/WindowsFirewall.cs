@@ -20,7 +20,7 @@ internal sealed class WindowsFirewall : IFirewall
 {
     private const string RuleName = "GameTranslator";
     // NET_FW_PROFILE2_DOMAIN, _PRIVATE, _PUBLIC
-    private static readonly int[] Profiles = [1, 2, 4];
+    private static readonly int[] Profiles = [2]; // Home/private network only.
     // NET_FW_IP_PROTOCOL_TCP, _UDP; 256 = herhangi biri
     private static readonly int[] Protocols = [6, 17];
     private const int AnyProtocol = 256;
@@ -68,14 +68,14 @@ internal sealed class WindowsFirewall : IFirewall
 
     /// <summary>
     /// Tek UAC sorusuyla: bu exe'nin gelen bağlantı kurallarının hepsi (Windows'un yazdığı engelleme kuralları da) silinir,
-    /// yerine her profilde, her protokolde izin veren tek kural eklenir.
+    /// yalnız özel yerel ağdan bağlantıya izin veren uygulama kuralı eklenir.
     /// </summary>
     public async Task<bool> AddRuleAsync()
     {
         if (ExePath is not { } exe) return false;
         var program = $"program=\"{exe}\"";
-        var command = $"netsh advfirewall firewall delete rule name=all dir=in {program} >nul"
-                      + $" & netsh advfirewall firewall add rule name=\"{RuleName}\" dir=in action=allow {program} enable=yes profile=any protocol=any";
+        var command = $"netsh advfirewall firewall delete rule name=\"{RuleName}\" dir=in {program} >nul"
+                      + $" & netsh advfirewall firewall add rule name=\"{RuleName}\" dir=in action=allow {program} enable=yes profile=private remoteip=localsubnet protocol=any";
         try
         {
             // /s: cmd yalnız baştaki ve sondaki tırnağı atar; yoldaki tırnaklar korunur.

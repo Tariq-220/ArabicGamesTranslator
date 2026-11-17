@@ -1,6 +1,11 @@
-name: Build and publish ArabicGames Windows
+name: Build and prepare ArabicGames Windows
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish publicly after reviewing prepared packages'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ['release/version.json']
@@ -14,47 +19,65 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
       - name: Validate channel and immutable version
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          PUBLISH: ${{ inputs.publish || false }}
         run: |
           $info=Get-Content release/version.json -Raw|ConvertFrom-Json
           if($info.repository -ne '${{ github.repository }}'){throw 'Release channel must match this repository'}
           if($info.version -notmatch '^\d+\.\d+\.\d+$'){throw 'Invalid version'}
           gh release view "v$($info.version)" --repo '${{ github.repository }}' 2>$null
-          if($LASTEXITCODE -eq 0){throw 'This version is already published; bump release/version.json first'}
+          if($env:PUBLISH -eq 'true' -and $LASTEXITCODE -eq 0){throw 'This version is already published; bump release/version.json first'}
           $global:LASTEXITCODE=0
       - name: Regression tests
         run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests"
       - name: Reading guard regression tests
-        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~ConsoleWindowSelectionTests|FullyQualifiedName~RereadGuardTests|FullyQualifiedName~ReadSchedulerTests|FullyQualifiedName~ReviewedLookup|FullyQualifiedName~RereadGuardPrevents"
+        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~LocalRequestPolicyTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~ConsoleWindowSelectionTests|FullyQualifiedName~RereadGuardTests|FullyQualifiedName~ReadSchedulerTests|FullyQualifiedName~ReviewedLookup|FullyQualifiedName~RereadGuardPrevents"
       - name: Package Arabic LG webOS companion
         run: python scripts/package-ipk.py --version auto --out-dir tv/packages
       - name: Publish Windows application
         run: dotnet publish windows/src/GameTranslator.App/GameTranslator.App.csproj -c Release -r win-x64 --self-contained true -o publish -p:EnableWindowsTargeting=true
+      - name: Audit NuGet dependencies
+        shell: pwsh
+        run: |
+          dotnet list windows/src/GameTranslator.App/GameTranslator.App.csproj package --vulnerable --include-transitive --format json > dependency-audit.json
+          if($LASTEXITCODE -ne 0){throw 'Dependency audit could not complete'}
+          python -c "import json; j=json.load(open('dependency-audit.json',encoding='utf-8-sig')); assert j.get('projects') and not j.get('problems'); bad=[(p['id'],v.get('severity')) for project in j.get('projects',[]) for f in project.get('frameworks',[]) for p in f.get('topLevelPackages',[])+f.get('transitivePackages',[]) for v in p.get('vulnerabilities',[]) if v.get('severity','').lower() in ('high','critical')]; print('High/critical findings:',bad); assert not bad"
       - name: Render and smoke-test Arabic setup screens
         shell: pwsh
         run: |
           $p=Start-Process publish/GameTranslator.exe -ArgumentList '--render-arabic', 'ui-preview' -Wait -PassThru
           if($p.ExitCode -ne 0){if(Test-Path ui-preview/errors.txt){Get-Content ui-preview/errors.txt};throw 'Arabic UI failed to render'}
           if((Get-ChildItem ui-preview/arabic-*.png).Count -ne 4){throw 'Missing Arabic UI previews'}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: arabic-ui-preview
-          path: ui-preview
+          path: |
+            ui-preview
+            dependency-audit.json
+          retention-days: 7
       - name: Download verified runtime dependencies
         run: python release/bootstrap_runtime.py --target bundled-runtime
       - name: Package release and source
         run: python release/package_windows.py --publish publish --runtime bundled-runtime --output out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: prepared-windows-packages
+          retention-days: 7
+          path: |
+            out/
+            tv/packages/*.ipk
       - name: Publish GitHub release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
