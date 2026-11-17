@@ -31,6 +31,8 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private static readonly Lazy<HttpClient> SharedClient = new(() => new HttpClient { Timeout = TimeSpan.FromSeconds(4) });
 
     private readonly string _key;
+    private readonly string? _modelType,_game;
+    public string? ActualModelType {get;private set;}
     private readonly ITextTranslator? _fallback;
     private readonly HttpClient _http;
     private readonly TranslationCache _cache;
@@ -40,8 +42,10 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private DateTimeOffset _pausedUntil = DateTimeOffset.MinValue;
 
     /// <param name="cache">Kalıcı önbellek; verilmezse yalnız bellekte tutulur.</param>
-    public DeepLTranslator(string key, ITextTranslator? fallback, HttpClient? http = null, TranslationCache? cache = null)
+    public DeepLTranslator(string key, ITextTranslator? fallback, HttpClient? http = null, TranslationCache? cache = null,string? modelType=null,string? game=null)
     {
+        if(modelType is not (null or "latency_optimized" or "quality_optimized" or "prefer_quality_optimized"))throw new ArgumentException("Unsupported DeepL model type",nameof(modelType));
+        _modelType=modelType;_game=game;
         _key = key.Trim();
         _fallback = fallback;
         _http = http ?? SharedClient.Value;
@@ -114,7 +118,10 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     /// <summary>Son gösterilen satırlar, eskiden yeniye; DeepL'e bağlam olarak gider.</summary>
     private string? Context()
     {
-        lock (_recent) return _recent.Count == 0 ? null : string.Join("\n", _recent);
+        lock (_recent){
+            var prefix=string.IsNullOrWhiteSpace(_game)?null:DialogueProfile.Rdr2(_game)?"Dialogue in Red Dead Redemption 2, a Western set in 1899. Arthur Morgan, Dutch van der Linde and John Marston are character names.":"Video game dialogue. Game: "+_game;
+            return prefix==null?(_recent.Count==0?null:string.Join("\n",_recent)):prefix+(_recent.Count==0?"":"\nPrevious dialogue:\n"+string.Join("\n",_recent));
+        }
     }
 
     private void Shown(string text)
@@ -140,7 +147,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private async Task<string[]> RequestAsync(List<string> sentences, string? context, CancellationToken cancellationToken)
     {
         // Oyun konuşması: "siz" değil "sen" (DeepL Türkçede desteklemiyorsa yok sayar).
-        var body = new TranslateRequest(sentences, "EN", "AR", context, "default", true);
+        var body = new TranslateRequest(sentences, "EN", "AR", context, "default", true,_modelType);
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(BaseUri(_key), "translate"))
         {
             Content = JsonContent.Create(body, DeepLJson.Default.TranslateRequest),
@@ -150,6 +157,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         ThrowIfFailed(response);
         var reply = await response.Content.ReadFromJsonAsync(DeepLJson.Default.TranslateResponse, cancellationToken).ConfigureAwait(false);
         if (reply?.Translations is not { } list || list.Count != sentences.Count) throw new DeepLException(OnlineKeyState.Unreachable);
+        ActualModelType=list.Select(t=>t.ModelTypeUsed).FirstOrDefault(x=>!string.IsNullOrWhiteSpace(x));
         return [.. list.Select(t => t.Text)];
     }
 
@@ -182,7 +190,8 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         throw new DeepLException(response.StatusCode switch
         {
             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => OnlineKeyState.Invalid,
-            (HttpStatusCode)456 => OnlineKeyState.QuotaExceeded,
+            (HttpStatusCode)456 or HttpStatusCode.TooManyRequests => OnlineKeyState.QuotaExceeded,
+            HttpStatusCode.BadRequest=>OnlineKeyState.ModelRejected,
             _ => OnlineKeyState.Unreachable,
         });
     }
@@ -199,11 +208,12 @@ internal sealed record TranslateRequest(
     [property: JsonPropertyName("target_lang")] string TargetLang,
     [property: JsonPropertyName("context"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Context,
     [property: JsonPropertyName("formality")] string Formality,
-    [property: JsonPropertyName("preserve_formatting")] bool PreserveFormatting);
+    [property: JsonPropertyName("preserve_formatting")] bool PreserveFormatting,
+    [property: JsonPropertyName("model_type"),JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] string? ModelType=null);
 
 internal sealed record TranslateResponse([property: JsonPropertyName("translations")] IReadOnlyList<TranslatedText>? Translations);
 
-internal sealed record TranslatedText([property: JsonPropertyName("text")] string Text);
+internal sealed record TranslatedText([property: JsonPropertyName("text")] string Text,[property:JsonPropertyName("model_type_used")] string? ModelTypeUsed=null);
 
 internal sealed record UsageResponse(
     [property: JsonPropertyName("character_count")] long CharacterCount,

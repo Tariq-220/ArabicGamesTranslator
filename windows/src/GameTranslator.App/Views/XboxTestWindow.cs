@@ -39,6 +39,8 @@ public sealed class XboxTestWindow : Window
     private readonly Slider readRight = new() { Minimum=60,Maximum=100,Value=90,TickFrequency=1,IsSnapToTickEnabled=true,Width=220 };
     private readonly PasswordBox key = new() { Width = 320, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
     private readonly ComboBox engineChoice = new() { MinWidth = 350, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)) };
+    private bool testingKey;
+    private readonly ComboBox deepLMode=new(){MinWidth=350,MinHeight=48};
     private readonly Button engineHelp=new(){Content="كيف تحصل على API؟ ↗",MinHeight=48,Padding=new Thickness(14,8,14,8),Margin=new Thickness(8,0,0,0)};
     private readonly ComboBox cloudModel=new(){MinWidth=350,MinHeight=48,FlowDirection=FlowDirection.LeftToRight};
     private AiProvider CloudProvider => engineChoice.SelectedIndex==8?AiProvider.OpenAi:engineChoice.SelectedIndex==9?AiProvider.Claude:AiProvider.Gemini;
@@ -80,7 +82,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Label("فعّل الترجمة الإنجليزية داخل اللعبة. أبقِ نافذة البث ظاهرة وغير مصغّرة."));
         root.Children.Add(Label("المحركات السحابية ترسل النص المقروء للمزوّد؛ اختر نافذة اللعبة لتجنّب قراءة إشعاراتك. QuickMT المحلي لا يحتاج خدمة ترجمة سحابية."));
         var pick = Row(); pick.Children.Add(windows); pick.Children.Add(Button("تحديث النوافذ", RefreshWindows)); root.Children.Add(pick);
-        root.Children.Add(Label("اختر نافذة جلسة الريموت بلاي. عند ظهور صورة سوداء جرّب التقاط الشاشة كاملة."));
+        root.Children.Add(Label("اختر نافذة جلسة الريموت بلاي. عند ظهور صورة سوداء جرّب التقاط الشاشة كاملة. عند اللعب على التلفزيون تصغر هذه الواجهة تلقائيًا؛ أبقِ نافذة البث ظاهرة."));
         var crop = Row(); crop.Children.Add(Label("بداية منطقة القراءة من أعلى الصورة (%)")); crop.Children.Add(top); root.Children.Add(crop);
         top.Value = controller.Settings.Region.Top * 100;
         readLeft.Value=controller.Settings.Region.Left*100;readRight.Value=controller.Settings.Region.Right*100;
@@ -89,15 +91,16 @@ public sealed class XboxTestWindow : Window
         var regionLabel=Label("");root.Children.Add(regionLabel);
         void ApplyCrop(){controller.Settings=controller.Settings with {Region=new CropRegion(top.Value/100,.97,readLeft.Value/100,readRight.Value/100)};regionLabel.Text=$"منطقة الحوار: أعلى {(int)top.Value}% · يسار {(int)readLeft.Value}% · يمين {(int)readRight.Value}%";}
         top.ValueChanged+=(_,_)=>ApplyCrop();readLeft.ValueChanged+=(_,_)=>ApplyCrop();readRight.ValueChanged+=(_,_)=>ApplyCrop();ApplyCrop();
-        root.Children.Add(Button("الحوار فقط — استبعاد أزرار اليمين",()=>{top.Value=70;readLeft.Value=12;readRight.Value=78;ApplyCrop();status.Text="ضُيقت القراءة لوسط أسفل الفيديو. إذا انقص آخر الحوار، ارفع نهاية اليمين تدريجيًا.";}));
+        var dialogueOnly=Button("الحوار فقط — استبعاد أزرار اليمين",()=>{controller.Stop();top.Value=70;readLeft.Value=12;readRight.Value=78;ApplyCrop();status.Text="ضُيقت القراءة للحوار. اضغط بدء الترجمة؛ إذا انقص آخر الحوار ارفع نهاية اليمين تدريجيًا.";});root.Children.Add(dialogueOnly);
         root.Children.Add(Button("استعادة منطقة القراءة الواسعة",()=>{top.Value=62;readLeft.Value=10;readRight.Value=90;ApplyCrop();}));
-        var latest = new CheckBox { Content="تقليل ازدحام الطلبات — قد يتخطى سطرًا قديمًا (فعّله قبل بدء الترجمة)", Margin=new Thickness(4), Foreground=Brushes.White };
+        var latest = new CheckBox { IsChecked=controller.PreferLatestDialogue,Content="تقليل الازدحام — تجاوز السطر القديم",MinHeight=44, Margin=new Thickness(4), Foreground=Brushes.White };
         latest.Checked+=(_,_)=>controller.PreferLatestDialogue=true;
         latest.Unchecked+=(_,_)=>controller.PreferLatestDialogue=false;
         root.Children.Add(latest);
-        var fastCapture=new CheckBox{Content="التقاط أسرع: فاصل 40ms بدل 80ms — تجريبي وقد يزيد حمل اللابتوب",Foreground=Brushes.White,MinHeight=44,Margin=new Thickness(4)};
-        fastCapture.Checked+=(_,_)=>DesktopCaptureStreamSession.SamplingIntervalMs=40;
-        fastCapture.Unchecked+=(_,_)=>DesktopCaptureStreamSession.SamplingIntervalMs=80;
+        var fastCapture=new CheckBox{IsChecked=controller.FastCaptureEnabled,Content="التقاط أسرع (40ms) — حمل أعلى",Foreground=Brushes.White,MinHeight=44,Margin=new Thickness(4)};
+        fastCapture.Checked+=(_,_)=>{controller.FastCaptureEnabled=true;DesktopCaptureStreamSession.SamplingIntervalMs=40;};
+        fastCapture.Unchecked+=(_,_)=>{controller.FastCaptureEnabled=false;DesktopCaptureStreamSession.SamplingIntervalMs=80;};
+        DesktopCaptureStreamSession.SamplingIntervalMs=controller.FastCaptureEnabled?40:80;
         root.Children.Add(fastCapture);
         root.Children.Add(Label("هذا يغيّر فاصل قراءة الإطارات فقط، ولا يسرّع Remote Play أو محرك الترجمة. اتركه مطفأً إذا ارتفع الحمل."));
         root.Children.Add(recordComparison);root.Children.Add(logState);
@@ -114,8 +117,12 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Label("اسم اللعبة للسياق — غيّره قبل بدء القراءة"));
         var gameName=new InputBox{Text=LiveServices.DialogueGame,MaxLength=100,Foreground=Brushes.White,Background=new SolidColorBrush(Color.FromRgb(34,50,71)),FlowDirection=FlowDirection.LeftToRight};
         gameName.TextChanged+=(_,_)=>{LiveServices.DialogueGame=gameName.Text;controller.DialogueGame=gameName.Text;};root.Children.Add(gameName);
-        engineChoice.Items.Add("Gemini 3.8 Flash — سياق الحوار / low");engineChoice.Items.Add("DeepL — مفتاح الخدمة الخاص بك");engineChoice.Items.Add("QuickMT — محلي على اللابتوب");engineChoice.Items.Add("Jisr فصحى — محلي");engineChoice.Items.Add("Jisr سعودي — محلي");engineChoice.Items.Add("Gemini 3.5 Flash-Lite — تجربة خفيفة للمقارنة");engineChoice.Items.Add("HY-MT 1.8B — محلي Q4_K_M / تجريبي");engineChoice.Items.Add("Google — إنترنت بدون مفتاح / تجريبي");engineChoice.Items.Add("OpenAI — مفتاح مستقل / اختباري");engineChoice.Items.Add("Claude — مفتاح مستقل / اختباري");engineChoice.SelectedIndex=Math.Clamp(controller.ArabicEngineChoice,0,9);LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;
+        engineChoice.Items.Add("Gemini — اختر نموذج Flash من القائمة أدناه");engineChoice.Items.Add("DeepL — مفتاح الخدمة الخاص بك");engineChoice.Items.Add("QuickMT — محلي على اللابتوب");engineChoice.Items.Add("Jisr فصحى — محلي");engineChoice.Items.Add("Jisr سعودي — محلي");engineChoice.Items.Add("Gemini — اختيار Flash-Lite");engineChoice.Items.Add("HY-MT 1.8B — محلي Q4_K_M / تجريبي");engineChoice.Items.Add("Google — إنترنت بدون مفتاح / تجريبي");engineChoice.Items.Add("OpenAI — مفتاح مستقل / اختباري");engineChoice.Items.Add("Claude — مفتاح مستقل / اختباري");engineChoice.SelectedIndex=Math.Clamp(controller.ArabicEngineChoice,0,9);LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;
         engineChoice.SelectionChanged+=(_,_)=>ChooseEngine();var engineRow=new WrapPanel();engineRow.Children.Add(engineChoice);engineRow.Children.Add(engineHelp);engineHelp.Click+=(_,_)=>OpenEnginePage();root.Children.Add(engineRow);root.Children.Add(cloudModel);
+        foreach(var label in new[]{"DeepL: تلقائي — إعداد الخدمة الحالي","DeepL: أسرع — latency_optimized","DeepL: تفضيل الجودة — prefer_quality_optimized"})deepLMode.Items.Add(label);
+        deepLMode.SelectedIndex=Math.Clamp(controller.DeepLModeChoice,0,2);
+        void ApplyDeepLMode(){LiveServices.DeepLModelType=deepLMode.SelectedIndex==1?"latency_optimized":deepLMode.SelectedIndex==2?"prefer_quality_optimized":null;}
+        ApplyDeepLMode();deepLMode.SelectionChanged+=(_,_)=>{controller.Stop();controller.DeepLModeChoice=deepLMode.SelectedIndex;ApplyDeepLMode();};root.Children.Add(deepLMode);
         cloudModel.SelectionChanged+=(_,_)=>{if(SelectedCloudModel is {} model){controller.Stop();SecureStore.Default.Save("arabic-cloud-model:"+CloudProvider.Id(),model);if(CloudProvider==AiProvider.Gemini)LiveServices.GeminiModel=model;}};
         RefreshCloudModels();root.Children.Add(Label("Google بدون مفتاح يحتاج إنترنت ويرسل النص إلى Google؛ ليس Google Cloud API الرسمي. تصحيح قراءة وأسماء RDR2 مفعّل عند اختيار اسم اللعبة المطابق."));
         root.Children.Add(Button("تشغيل النموذج المحلي المختار — أول مرة تنزيل",StartLocalModel));
@@ -143,6 +150,10 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Label("القياس من وصول الإطار للبرنامج إلى تجهيز الترجمة؛ لا يشمل تأخر بث Xbox أو زمن عرض التلفزيون."));
         root.Children.Add(Label("PS5: اختر نافذة PS Remote Play أو chiaki-ng. اتصال حساب Microsoft/Sony يتم في التطبيق الرسمي؛ لا ندعي اختبار جهاز PS5 فعلي هنا."));
         // Keep the session controls visible while setup options live in four calm cards.
+        root.Children.Remove(latest);root.Children.Remove(fastCapture);root.Children.Remove(dialogueOnly);
+        var quickReading=new StackPanel();quickReading.Children.Add(Label("قراءة الحوار والسرعة",17));
+        var quickRow=new WrapPanel();quickRow.Children.Add(latest);quickRow.Children.Add(fastCapture);quickReading.Children.Add(quickRow);quickReading.Children.Add(dialogueOnly);
+        root.Children.Insert(root.Children.IndexOf(pick)+1,Card(quickReading));
         var items=root.Children.Cast<UIElement>().ToList();
         int Section(string prefix)=>items.FindIndex(x=>x is TextBlock t&&t.Text.StartsWith(prefix,StringComparison.Ordinal));
         int sourceAt=Section("1 ·"),engineAt=Section("2 ·"),screenAt=Section("3 ·"),styleAt=Section("4 ·");
@@ -172,7 +183,7 @@ public sealed class XboxTestWindow : Window
                 if(n==cropAt){
                     var advanced=new StackPanel();
                     for(int a=cropAt;a<controlsAt;a++)advanced.Children.Add(items[a]);
-                    content.Children.Add(new Expander{Header="ضبط القراءة والسرعة والسجل — خيارات متقدمة",Content=advanced,Foreground=Brushes.White,Margin=new Thickness(4,14,4,8)});
+                    content.Children.Add(new Expander{Header="تعديل منطقة القراءة يدويًا والسجل — خيارات متقدمة",Content=advanced,Foreground=Brushes.White,Margin=new Thickness(4,14,4,8)});
                     n=controlsAt;continue;
                 }
                 if(items[n]!=controls)content.Children.Add(items[n]);
@@ -219,8 +230,9 @@ public sealed class XboxTestWindow : Window
                     DesktopWindowName = target, Region = new CropRegion(top.Value / 100, 0.97, readLeft.Value/100, readRight.Value/100),
                     DubbingEnabled = false, Engine = engineChoice.SelectedIndex==1 ? TranslationEngine.DeepL : TranslationEngine.Gemini
                 };
-                comparisonSession=Guid.NewGuid().ToString("N");comparisonEngine=(engineChoice.SelectedItem?.ToString()??"unknown")+(cloudModel.Visibility==Visibility.Visible?" / "+SelectedCloudModel:"");comparisonGame=LiveServices.DialogueGame;comparisonLatest=controller.PreferLatestDialogue;
+                comparisonSession=Guid.NewGuid().ToString("N");comparisonEngine=(engineChoice.SelectedItem?.ToString()??"unknown")+(engineChoice.SelectedIndex==1?" / "+(LiveServices.DeepLModelType??"automatic"):(cloudModel.Visibility==Visibility.Visible?" / "+SelectedCloudModel:""));comparisonGame=LiveServices.DialogueGame;comparisonLatest=controller.PreferLatestDialogue;
                 await controller.StartAsync();
+                if(!controller.DesktopOverlayEnabled){WindowState=WindowState.Minimized;}
             }
             catch (Exception e) { controller.Stop(); status.Text = "تعذر بدء القراءة: " + e.Message; }
             finally { start.IsEnabled = true; }
@@ -289,7 +301,11 @@ public sealed class XboxTestWindow : Window
         try{System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(launcher,LocalModel){UseShellExecute=true,WorkingDirectory=System.IO.Path.GetDirectoryName(launcher)!});status.Text="انتظر Ready في نافذة الخادم. أول تشغيل يحتاج Python وتنزيل النموذج. بعدها اضغط حفظ واختبار لفحص المحرك المحلي.";}
         catch{status.Text="ملفات تشغيل النموذج غير موجودة بجانب البرنامج. فك حزمة التحديث كاملة في مجلد البرنامج.";}
     }
-    private async void SaveKey()
+    private async void SaveKey(){
+        if(testingKey)return;testingKey=true;engineChoice.IsEnabled=false;cloudModel.IsEnabled=false;deepLMode.IsEnabled=false;key.IsEnabled=false;
+        try{await SaveKeyCore();}finally{testingKey=false;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
+    }
+    private async Task SaveKeyCore()
     {
         if(engineChoice.SelectedIndex>=8){
             try {
@@ -309,6 +325,12 @@ public sealed class XboxTestWindow : Window
             var result = engineChoice.SelectedIndex==1 ? (string.IsNullOrWhiteSpace(key.Password)?await controller.CheckDeepLKeyAsync():await controller.SetDeepLKeyAsync(key.Password)) : (string.IsNullOrWhiteSpace(key.Password)?await controller.TestSavedGeminiKeyAsync():await controller.SetGeminiKeyAsync(key.Password,persistUnverified:true));
             bool saved=result.State==OnlineKeyState.Valid;
             if(saved)key.Clear();
+            if(saved&&engineChoice.SelectedIndex==1){
+                try{var watch=System.Diagnostics.Stopwatch.StartNew();var sample=await controller.TestSavedDeepLTranslationAsync();watch.Stop();status.Text="مفتاح DeepL محفوظ. اختبار الوضع المختار: "+watch.ElapsedMilliseconds+" ms\n"+sample;}
+                catch(TranslatorException error){status.Text="المفتاح محفوظ لكن اختبار وضع DeepL فشل: "+error.Status+". إذا كان الوضع غير مدعوم اختر تلقائيًا وأعد الاختبار.";}
+                catch{status.Text="مفتاح DeepL محفوظ؛ تعذر اختبار الترجمة الآن. جرّب الوضع التلقائي أو أعد المحاولة لاحقًا.";}
+                return;
+            }
             status.Text=saved ? "المفتاح محفوظ محليًا بتشفير Windows. اختر النافذة ثم ابدأ الترجمة." : (controller.HasGeminiKey && engineChoice.SelectedIndex!=1?"المفتاح محفوظ. نتيجة الاتصال: ":"نتيجة الاختبار: ")+result.State+(engineChoice.SelectedIndex!=1?"\n"+LiveServices.LastKeyCheckDetail:"");
         }
         catch { status.Text = "تعذر الاتصال بالمحرك المختار. المفتاح ما زال في الخانة."; }
@@ -388,6 +410,7 @@ public sealed class XboxTestWindow : Window
     private void RefreshCloudModels()
     {
         engineHelp.Content=IsLocalModel?"تنزيل / تشغيل النموذج":engineChoice.SelectedIndex==7?"بدون مفتاح — التفاصيل ↗":"كيف تحصل على API؟ ↗";
+        deepLMode.Visibility=engineChoice.SelectedIndex==1?Visibility.Visible:Visibility.Collapsed;
         cloudModel.Items.Clear();
         cloudModel.Visibility=engineChoice.SelectedIndex is 0 or 5 or 8 or 9?Visibility.Visible:Visibility.Collapsed;
         if(cloudModel.Visibility!=Visibility.Visible)return;

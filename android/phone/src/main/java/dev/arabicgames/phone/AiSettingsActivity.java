@@ -8,7 +8,7 @@ import android.widget.*;
 
 public final class AiSettingsActivity extends Activity {
  private final String[] providers={AiPreferences.LOCAL,AiPreferences.GEMINI,AiPreferences.OPENAI,AiPreferences.DEEPL,AiPreferences.LAN,AiPreferences.GOOGLE};
- private Spinner provider;private EditText model,game,key,address;private CheckBox consent;private TextView feedback;
+ private Spinner provider,modelChoice;private EditText model,game,key,address;private CheckBox consent;private TextView feedback;
  private String editingProvider;
  private final java.util.Map<String,String> keyDrafts=new java.util.HashMap<>(),modelDrafts=new java.util.HashMap<>();
  private CheckBox fast;
@@ -25,9 +25,9 @@ public final class AiSettingsActivity extends Activity {
   root.addView(Ui.text(this,"محرك الترجمة",26));
   root.addView(Ui.text(this,"المحلي بلا إنترنت. Gemini وOpenAI وDeepL تترجم نص الحوار مع السياق؛ لا نرسل صور اللعبة. تحتاج مفتاح API خاصًا بالخدمة، وقد تُحتسب تكلفة حسب حسابك. الترجمة تحتاج تجربة فعلية للمقارنة.",15));
   root.addView(Ui.text(this,"المحرك",16));provider=new Spinner(this);
-  provider.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"محلي — بدون إنترنت","Gemini — سحابي","OpenAI — سحابي","DeepL — ترجمة متخصصة","QuickMT / Jisr على الكمبيوتر","Google — إنترنت بدون مفتاح"}));LinearLayout engineRow=new LinearLayout(this);engineRow.setOrientation(LinearLayout.HORIZONTAL);engineRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+  provider.setAdapter(optionAdapter(new String[]{"محلي — بدون إنترنت","Gemini — سحابي","OpenAI — سحابي","DeepL — ترجمة متخصصة","QuickMT / Jisr على الكمبيوتر","Google — إنترنت بدون مفتاح"}));LinearLayout engineRow=new LinearLayout(this);engineRow.setOrientation(LinearLayout.HORIZONTAL);engineRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
   engineRow.addView(provider,new LinearLayout.LayoutParams(0,-2,1));
-  Ui.button(this,engineRow,"كيف تحصل على API؟ ↗",false,()->{
+  Button apiLink=Ui.button(this,engineRow,"API ↗",false,()->{
    String selected=providers[provider.getSelectedItemPosition()];String url;
    if(AiPreferences.GEMINI.equals(selected))url="https://aistudio.google.com/apikey";
    else if(AiPreferences.OPENAI.equals(selected))url="https://platform.openai.com/api-keys";
@@ -35,10 +35,13 @@ public final class AiSettingsActivity extends Activity {
    else {feedback.setText("المحرك المختار لا يحتاج مفتاح خدمة سحابية. QuickMT عبر الكمبيوتر يحتاج رمز خادمك المحلي.");return;}
    try{startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(android.content.ActivityNotFoundException e){feedback.setText("ثبّت متصفحًا لفتح صفحة المفتاح.");}
   });
+  apiLink.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));apiLink.setMinWidth(Ui.dp(this,76));
   root.addView(engineRow);
   address=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);address.setHint("عنوان خادم كمبيوترك: http://192.168.0.10:8790");address.setText(AiPreferences.prefs(this).getString("lanAddress",""));address.setVisibility(View.GONE);
   root.addView(Ui.text(this,"QuickMT وJisr يحتاجان تشغيل الخادم المرفق على الكمبيوتر؛ ليست نماذج مدمجة بالجوال. الاتصال المحلي HTTP لشبكتك المنزلية الموثوقة فقط؛ رمز الربط هو خانة المفتاح.",13));
-  root.addView(Ui.text(this,"اسم النموذج — اترك الافتراضي أول تجربة",15));model=field(root,InputType.TYPE_CLASS_TEXT);
+  root.addView(Ui.text(this,"اختر النموذج من القائمة — لا تحتاج كتابة اسمه",15));
+  modelChoice=new Spinner(this);modelChoice.setTag("model-choice");modelChoice.setMinimumHeight(Ui.dp(this,52));modelChoice.setBackground(Ui.background(this,Ui.CARD));root.addView(modelChoice,new LinearLayout.LayoutParams(-1,-2));
+  model=field(root,InputType.TYPE_CLASS_TEXT);model.setHint("اسم نموذج مخصص — خيار متقدم فقط");model.setVisibility(View.GONE);
   root.addView(Ui.text(this,"اسم اللعبة للسياق",15));game=field(root,InputType.TYPE_CLASS_TEXT);game.setText(AiPreferences.prefs(this).getString("game","Red Dead Redemption 2"));
   root.addView(Ui.text(this,"مفتاح API — داخل التطبيق فقط، وليس في المحادثة",15));key=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
   key.setTag("api-key");model.setTag("api-model");provider.setTag("api-provider");key.setSaveEnabled(false);key.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
@@ -46,7 +49,7 @@ public final class AiSettingsActivity extends Activity {
   fast=new CheckBox(this);fast.setText("وضع أسرع لـGemini: سياق سطر واحد بدل ثلاثة؛ قد تقل دقة ربط الحوار. سرعة الخدمة غير مضمونة.");fast.setTextColor(Ui.TEXT);fast.setChecked(AiPreferences.prefs(this).getBoolean("geminiFast",false));root.addView(fast);
   if(retained!=null){game.setText(retained.game);address.setText(retained.address);consent.setChecked(retained.consent);fast.setChecked(retained.fast);}
   Ui.button(this,root,"تجربة Gemini Flash لجودة الحوار",false,()->{
-   provider.setSelection(1);provider.post(()->{model.setText("gemini-3.8-flash");modelDrafts.put(AiPreferences.GEMINI,"gemini-3.8-flash");fast.setChecked(false);feedback.setText("إعداد تجربة: Gemini 3.8 Flash مع سياق 3 سطور وتفكير low. يحتاج مفتاحك وموافقتك؛ التكلفة والسرعة قد تختلف. احفظ أو استخدم للجلسة، ثم قارن المشهد نفسه.");});
+   provider.setSelection(1);provider.post(()->{model.setText("gemini-3.8-flash");modelDrafts.put(AiPreferences.GEMINI,"gemini-3.8-flash");showModelChoices(AiPreferences.GEMINI,"gemini-3.8-flash");fast.setChecked(false);feedback.setText("إعداد تجربة: Gemini 3.8 Flash مع سياق 3 سطور وتفكير low. يحتاج مفتاحك وموافقتك؛ التكلفة والسرعة قد تختلف. احفظ أو استخدم للجلسة، ثم قارن المشهد نفسه.");});
   });
   feedback=Ui.text(this,"المفتاح يُحفظ مشفّرًا على الجهاز. لا يُرسل إلى الشاشة. لا يوجد تبديل صامت إلى المحلي عند فشل AI.",14);root.addView(feedback);
   provider.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){
@@ -56,7 +59,7 @@ public final class AiSettingsActivity extends Activity {
     if(editingProvider!=null){keyDrafts.put(editingProvider,key.getText().toString());modelDrafts.put(editingProvider,model.getText().toString());}
     editingProvider=p;boolean online=position!=0,needsKey=online&&!AiPreferences.GOOGLE.equals(p);model.setEnabled(needsKey&&!AiPreferences.DEEPL.equals(p));key.setEnabled(needsKey);consent.setEnabled(online);
     address.setVisibility(AiPreferences.LAN.equals(p)?View.VISIBLE:View.GONE);
-    model.setText(modelDrafts.getOrDefault(p,AiPreferences.prefs(AiSettingsActivity.this).getString(p+".model",AiPreferences.defaultModel(p))));key.setText(keyDrafts.getOrDefault(p,""));
+    model.setText(modelDrafts.getOrDefault(p,AiPreferences.prefs(AiSettingsActivity.this).getString(p+".model",AiPreferences.defaultModel(p))));key.setText(keyDrafts.getOrDefault(p,""));showModelChoices(p,model.getText().toString());
     boolean stored=!AiPreferences.prefs(AiSettingsActivity.this).getString(p+".key","").isEmpty();
     key.setHint(stored?"مفتاح محفوظ — اتركه فارغًا للاحتفاظ به":"أدخل مفتاح الخدمة المختارة");
     feedback.setText(AiPreferences.GOOGLE.equals(p)?"Google يرسل النص عبر الإنترنت بدون مفتاح، وليس Google Cloud API الرسمي. يحتاج موافقتك وقد يتوقف أو يحدد الطلبات. لا يُرسل سياق الحوارات السابقة.":AiPreferences.sessionOnly(p)?"المفتاح يعمل لهذه الجلسة فقط، وسيحتاج إدخالًا بعد إنهاء عملية التطبيق.":stored?"يوجد مفتاح محفوظ لـ"+AiPreferences.label(p)+". الخانة الفارغة لا تعني أنه انحذف؛ الصق مفتاحًا جديدًا لاستبداله.":online?"لا يوجد مفتاح محفوظ لـ"+AiPreferences.label(p)+". الصق المفتاح وفعّل الموافقة ثم احفظ.":"المحلي لا يحتاج مفتاح API.");
@@ -90,6 +93,33 @@ public final class AiSettingsActivity extends Activity {
   Ui.button(this,root,"حذف المفاتيح والرجوع للمحلي",false,()->{AiPreferences.clear(this);keyDrafts.clear();modelDrafts.clear();key.setText("");CaptureService.translationChanged();provider.setSelection(0);consent.setChecked(false);feedback.setText("حُذفت مفاتيح الخدمات من التطبيق وعاد المحرك إلى المحلي.");});
   Ui.button(this,root,"رجوع دون حفظ",false,this::finish);
   ScrollView scroll=new ScrollView(this);scroll.addView(root);PhoneInsets.fit(scroll);setContentView(scroll);
+ }
+ private ArrayAdapter<String> optionAdapter(String[] values){
+  return new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,values){
+   private View style(View view){TextView t=(TextView)view;t.setTextColor(Ui.TEXT);t.setBackgroundColor(Ui.CARD);t.setTextSize(15);t.setMinHeight(Ui.dp(AiSettingsActivity.this,48));t.setPadding(Ui.dp(AiSettingsActivity.this,10),Ui.dp(AiSettingsActivity.this,8),Ui.dp(AiSettingsActivity.this,10),Ui.dp(AiSettingsActivity.this,8));return t;}
+   public View getView(int n,View old,ViewGroup parent){return style(super.getView(n,old,parent));}
+   public View getDropDownView(int n,View old,ViewGroup parent){return style(super.getDropDownView(n,old,parent));}
+  };
+ }
+ private void showModelChoices(String p,String desired){
+  final String[] ids=ModelChoices.forProvider(p);boolean custom=ModelChoices.customAllowed(p);
+  String[] labels=new String[ids.length+(custom?1:0)];System.arraycopy(ids,0,labels,0,ids.length);
+  if(AiPreferences.DEEPL.equals(p)){labels[0]="DeepL — تلقائي";labels[1]="DeepL — أسرع (latency)";labels[2]="DeepL — تفضيل الجودة";}
+  if(AiPreferences.LOCAL.equals(p))labels[0]="النموذج المحلي المدمج";
+  if(custom)labels[ids.length]="نموذج مخصص… (متقدم)";
+  int selected=-1;for(int i=0;i<ids.length;i++)if(ids[i].equals(desired))selected=i;
+  if(selected<0)selected=custom?ids.length:0;
+  modelChoice.setOnItemSelectedListener(null);modelChoice.setAdapter(optionAdapter(labels));modelChoice.setSelection(selected);
+  modelChoice.setEnabled(ids.length>1||custom);model.setVisibility(selected==ids.length&&custom?View.VISIBLE:View.GONE);
+  if(selected<ids.length)model.setText(ids[selected]);
+  modelChoice.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+   public void onNothingSelected(AdapterView<?> view){}
+   public void onItemSelected(AdapterView<?> view,View row,int n,long id){
+    if(!p.equals(editingProvider))return;
+    if(n<ids.length){model.setText(ids[n]);modelDrafts.put(p,ids[n]);model.setVisibility(View.GONE);}
+    else{model.setVisibility(View.VISIBLE);model.requestFocus();}
+   }
+  });
  }
  @Override public Object onRetainNonConfigurationInstance(){
   if(editingProvider!=null){keyDrafts.put(editingProvider,key.getText().toString());modelDrafts.put(editingProvider,model.getText().toString());}

@@ -971,7 +971,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     // --- İç işleyiş ---
 
     /// <summary>Okuma hattını güncel dillerle (yeniden) kurar.</summary>
-    public bool PreferLatestDialogue { get; set; }
+    public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
+    public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public string DialogueGame { get; set; }="Red Dead Redemption 2";
 
     private void MakePipeline()
@@ -1051,6 +1052,12 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     /// <summary>Gemini anahtarını dener; geçerliyse kaydeder ve Gemini'yi aktif model yapar.</summary>
     public bool PreferPlayStation {get=>store.Load<bool>("PreferPlayStation");set=>store.Save("PreferPlayStation",value);}
+    public int DeepLModeChoice {get=>store.Load<int>("DeepLModeChoice");set=>store.Save("DeepLModeChoice",value);}
+    public async Task<string> TestSavedDeepLTranslationAsync(){
+        var key=store.Load<string>(StoreKeys.DeepLKey)??throw new InvalidOperationException("No saved DeepL key");
+        var translator=services.MakeOnlineTranslator(key,null)??throw new InvalidOperationException("DeepL unavailable");
+        return await translator.TranslateAsync("We need to get above the clouds. Use the burner.");
+    }
     public bool DesktopOverlayEnabled {get=>store.Load<bool>("DesktopOverlayEnabled");set=>store.Save("DesktopOverlayEnabled",value);}
     public bool ReadingRecoveryApplied {get=>store.Load<bool>("ReadingRecoveryV1");set=>store.Save("ReadingRecoveryV1",value);}
     public int ArabicEngineChoice { get => store.Load<int>("ArabicEngineChoice"); set => store.Save("ArabicEngineChoice",value); }

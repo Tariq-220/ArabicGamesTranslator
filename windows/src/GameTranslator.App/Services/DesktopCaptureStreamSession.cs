@@ -58,6 +58,10 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
             {
                 try
                 {
+                    // A full-monitor capture must not feed the translator's own settings/status back into OCR.
+                    if(targetWindowTitle?.StartsWith("monitor:",StringComparison.OrdinalIgnoreCase)==true&&WindowCaptureService.SetupUiIsForeground()){
+                        await Task.Delay(80,token);continue;
+                    }
                     Frame? frame = null;
 
                     // 1. Belirli bir fiziksel monitör seçilmişse o monitörün koordinatlarını yakala

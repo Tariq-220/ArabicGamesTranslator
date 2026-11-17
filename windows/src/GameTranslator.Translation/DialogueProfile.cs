@@ -4,8 +4,13 @@ using GameTranslator.Core;
 namespace GameTranslator.Translation;
 /// <summary>Conservative RDR2-only corrections reviewed from the supplied comparison log.</summary>
 public static class DialogueProfile {
+ public static bool IsInterfaceText(string text)=>Regex.IsMatch(text,@"SessionState|\bStreaming[.,]?\s+Reason\b|^Ready\s+.{0,12}[{|=]|^ms\s|^Comparison\s*[-–]|^Compa\s+iso\s*[-–]",RegexOptions.IgnoreCase)
+  ||(!Regex.IsMatch(text,@"[.!?]")&&Regex.IsMatch(text,@"^PHOTO\b",RegexOptions.IgnoreCase)&&Regex.IsMatch(text,@"\b(?:SELECT|BACK|BACH|MODE)\b",RegexOptions.IgnoreCase))
+  ||Regex.IsMatch(text,@"^(?:[O0]\s+)?(?:RETRY\s*CHECKPOINT|CANCEL MISSION)(?:\s+[O0])?(?:\s+CANCEL MISSION\s*[O0]?)?$",RegexOptions.IgnoreCase);
+
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
  public static Reading DialogueOnly(Reading reading,TextBox area,string game){
+  reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)));
   if(!Rdr2(game))return reading;
   return new Reading(reading.Lines.Where(line=>{
    if(line.Box is not {} relative)return true;

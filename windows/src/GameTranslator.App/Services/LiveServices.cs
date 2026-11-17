@@ -17,26 +17,12 @@ namespace GameTranslator.App.Services;
 public sealed class LiveServices : IAppServices
 {
     public static string? GeminiModel { get; set; }
+    public static string? DeepLModelType {get;set;}
     public static string DialogueGame { get; set; } = "Red Dead Redemption 2";
     public static string LastKeyCheckDetail { get; private set; } = "";
-    private sealed class KeyCheckHandler : HttpClientHandler
-    {
-        public string Detail { get; private set; } = "";
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            try { var response=await base.SendAsync(request,cancellationToken);Detail=$"HTTP {(int)response.StatusCode}";return response; }
-            catch (OperationCanceledException) { Detail="انتهت مهلة اختبار الاتصال (25 ثانية)";throw; }
-            catch (HttpRequestException error) { Detail=error.HttpRequestError switch {
-                HttpRequestError.NameResolutionError=>"تعذر DNS: لم يُعثر على عنوان خدمة Google",
-                HttpRequestError.SecureConnectionError=>"تعذر TLS: تحقق من وقت Windows وشهادة الاتصال أو برنامج فحص HTTPS",
-                HttpRequestError.ProxyTunnelError=>"تعذر الاتصال عبر البروكسي",
-                HttpRequestError.ConnectionError=>"تعذر فتح اتصال بخدمة Google",
-                _=>"تعذر طلب الشبكة ("+error.HttpRequestError+")"};throw; }
-        }
-    }
     public ITranslationModel Translation { get; } = new MarianModel();
 
-    public ITextTranslator? MakeOnlineTranslator(string key, ITextTranslator? fallback) => new DeepLTranslator(key, fallback: null);
+    public ITextTranslator? MakeOnlineTranslator(string key, ITextTranslator? fallback) => new DeepLTranslator(key, fallback: null, modelType:DeepLModelType,game:DialogueGame);
 
     public Task<OnlineKeyCheck> CheckOnlineKeyAsync(string key) => DeepLTranslator.CheckAsync(key);
 
@@ -45,10 +31,17 @@ public sealed class LiveServices : IAppServices
 
     public async Task<OnlineKeyCheck> CheckGeminiKeyAsync(string key)
     {
-        using var handler=new KeyCheckHandler();using var client=new HttpClient(handler){Timeout=AiTranslator.CloudTestTimeout};
-        var result = await AiTranslator.TestAsync(AiProvider.Gemini, key, model: GeminiModel,http:client);
-        LastKeyCheckDetail=handler.Detail;
-        if(result.State==OnlineKeyState.Unreachable&&handler.Detail=="HTTP 200")LastKeyCheckDetail="وصل رد من Google لكنه لم يتضمن ترجمة قابلة للقراءة؛ قد يكون الرد ناقصًا أو محجوبًا.";
+        var result=await GeminiConnectionProbe.CheckAsync(key,GeminiModel);
+        var model=AiProvider.Gemini.Model(GeminiModel).Id;
+        var detail=result.HttpStatus switch {
+            503=>"HTTP 503 — خدمة Google غير متاحة مؤقتًا؛ ليست رسالة رفض مفتاح. جرت محاولة ثانية واحدة. جرّب لاحقًا أو اختر Flash-Lite بنفس المفتاح.",
+            429=>"HTTP 429 — حد الطلبات أو الحصة؛ تغيير المفتاح داخل المشروع نفسه لا يزيدها.",
+            404=>"HTTP 404 — النموذج غير موجود أو غير متاح لهذا المشروع.",
+            200 when result.State==OnlineKeyState.Unreachable=>"HTTP 200 — وصل رد لكنه بلا ترجمة قابلة للقراءة؛ قد يكون محجوبًا أو بلغ حد الإخراج.",
+            {} code=>"HTTP "+code,
+            _=>result.TransportError switch {"NameResolutionError"=>"تعذر DNS لخدمة Google","SecureConnectionError"=>"تعذر TLS؛ تحقق من وقت Windows والشهادة","ProxyTunnelError"=>"تعذر الاتصال عبر البروكسي","Timeout"=>"انتهت مهلة الاختبار (25 ثانية)",_=>"تعذر فتح اتصال بخدمة Google"}
+        };
+        LastKeyCheckDetail=model+"\n"+detail;
         return new OnlineKeyCheck(result.State);
     }
     public IDubbingModel? Dubbing { get; } = PocketDubbingModel.EngineBundled ? new PocketDubbingModel() : null;

@@ -14,20 +14,22 @@ final class AiRequest {
     for(String line:context){int divider=line.lastIndexOf(" → ");english.add(divider<0?line:line.substring(0,divider));}
     body.put("context",String.join("\n",english));
    }
+   if("latency_optimized".equals(c.model)||"prefer_quality_optimized".equals(c.model))body.put("model_type",c.model);
    return body;
   }
   boolean fast=c.fast&&AiPreferences.GEMINI.equals(c.provider);
   List<String> previous=fast&&context.size()>1?context.subList(context.size()-1,context.size()):context;
   JSONObject input=new JSONObject().put("game",c.game).put("previous_dialogue_context_only",new JSONArray(previous)).put("current_subtitle",source);
   if(AiPreferences.OPENAI.equals(c.provider)){
-   return new JSONObject().put("model",c.model).put("messages",new JSONArray()
-    .put(new JSONObject().put("role","developer").put("content",INSTRUCTION))
+   JSONObject request=new JSONObject().put("model",c.model).put("messages",new JSONArray()
+    .put(new JSONObject().put("role",c.model.startsWith("gpt-4o")?"system":"developer").put("content",INSTRUCTION))
     .put(new JSONObject().put("role","user").put("content",input.toString())))
-    .put("max_completion_tokens",512).put("reasoning_effort","none");
+    .put("max_completion_tokens",512);
+   if(!c.model.startsWith("gpt-4o"))request.put("reasoning_effort","none");return request;
   }
   JSONObject generation=new JSONObject().put("maxOutputTokens",fast?512:1024);
-  if(c.model.equals("gemini-3.8-flash"))generation.put("thinkingConfig",new JSONObject().put("thinkingLevel","low"));
-  if(fast&&(c.model.equals("gemini-3.5-flash-lite")||c.model.equals("gemini-3.6-flash")||c.model.equals("gemini-3.1-flash-lite")))generation.put("thinkingConfig",new JSONObject().put("thinkingLevel","minimal"));
+  if(c.model.equals("gemini-3.8-flash")||c.model.equals("gemini-3.6-flash"))generation.put("thinkingConfig",new JSONObject().put("thinkingLevel","low"));
+  if(fast&&(c.model.equals("gemini-3.5-flash-lite")||c.model.equals("gemini-3.1-flash-lite")))generation.put("thinkingConfig",new JSONObject().put("thinkingLevel","minimal"));
   return new JSONObject().put("systemInstruction",new JSONObject().put("parts",new JSONArray().put(new JSONObject().put("text",INSTRUCTION))))
    .put("contents",new JSONArray().put(new JSONObject().put("role","user").put("parts",new JSONArray().put(new JSONObject().put("text",input.toString())))))
    .put("generationConfig",generation);

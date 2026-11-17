@@ -219,6 +219,12 @@ public static class WindowCaptureService
         public uint bmiColors;
     }
 
+    [DllImport("user32.dll")]private static extern IntPtr GetForegroundWindow();
+    public static bool SetupUiIsForeground(){
+        var window=GetForegroundWindow();GetWindowThreadProcessId(window,out var pid);if(pid==Environment.ProcessId)return true;
+        try{using var process=System.Diagnostics.Process.GetProcessById((int)pid);return process.ProcessName.Equals("explorer",StringComparison.OrdinalIgnoreCase);}catch{return false;}
+    }
+
     public static void MakeInvisibleBackground(IntPtr hWnd)
     {
         try

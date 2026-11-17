@@ -13,7 +13,7 @@ final class AiPreferences {
  static final String LOCAL="local",GEMINI="gemini",OPENAI="openai",DEEPL="deepl",LAN="lan";
  private static volatile Config session;
  static SharedPreferences prefs(Context c){return c.getSharedPreferences("translation",Context.MODE_PRIVATE);}
- static String defaultModel(String provider){return GOOGLE.equals(provider)?"google-gtx":LAN.equals(provider)?"quickmt":DEEPL.equals(provider)?"auto":OPENAI.equals(provider)?"gpt-5.4-mini":"gemini-3.5-flash-lite";}
+ static String defaultModel(String provider){return LOCAL.equals(provider)?"local":GOOGLE.equals(provider)?"google-gtx":LAN.equals(provider)?"quickmt":DEEPL.equals(provider)?"auto":OPENAI.equals(provider)?"gpt-5.4-mini":"gemini-3.5-flash-lite";}
  static String label(String provider){return GOOGLE.equals(provider)?"Google — بدون مفتاح":LAN.equals(provider)?"نموذج على الكمبيوتر":DEEPL.equals(provider)?"DeepL":OPENAI.equals(provider)?"OpenAI":GEMINI.equals(provider)?"Gemini":"محلي";}
  static String provider(Context c){Config active=session;return active!=null?active.provider:prefs(c).getString("provider",LOCAL);}
  static boolean cloud(Context c){Config active=session;return active!=null?active.cloud():!LOCAL.equals(provider(c))&&prefs(c).getBoolean("consent",false);}
