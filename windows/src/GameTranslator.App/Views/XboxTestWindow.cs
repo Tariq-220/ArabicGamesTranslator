@@ -122,7 +122,7 @@ public sealed class XboxTestWindow : Window
         overlay = (text, ms, box) => {
             DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style, box);
             if(recordComparison.IsChecked==true && controller.IsRunning && text==controller.LastTranslation && !string.IsNullOrWhiteSpace(controller.LastSource)) {
-                var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,text,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest));
+                var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,text,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest,controller.LastLineMetrics?.Origin==LineOrigin.Pack?"reviewed_dictionary":"engine_or_cache",ArabicRelease.Version));
                 logState.Text=comparison.Error ?? (queued?"السجل مفعّل — يحفظ السطور المعروضة وأوقاتها محليًا. لا يشمل زمن البث والتلفزيون.":"ازدحم السجل؛ لم يُحفظ هذا السطر.");
             }
         };
@@ -256,7 +256,7 @@ public sealed class XboxTestWindow : Window
         source.Text = controller.LastSource;
         translated.Text = controller.LastTranslation;
         if (controller.LastLineMetrics is { } m)
-            timing.Text = $"القراءة: {m.OcrMs} ms | الترجمة: {m.TranslationMs} ms | الإجمالي داخل البرنامج: {m.TotalMs} ms";
+            timing.Text = m.Origin==LineOrigin.Pack ? $"ترجمة من قاموس المراجعة — بدون طلب للمحرك | الإجمالي: {m.TotalMs} ms" : $"القراءة: {m.OcrMs} ms | الترجمة: {m.TranslationMs} ms | الإجمالي داخل البرنامج: {m.TotalMs} ms";
         status.Text = controller.OcrMissing ? "حزمة قراءة الإنجليزية مفقودة: ثبّت English من إعدادات لغات Windows."
             : controller.IsRunning ? $"حالة البث: {controller.SessionState} | "+(controller.TranslatorStatus switch {
                 TranslatorStatus.ServiceUnreachable=>"تعذر الاتصال بخدمة الترجمة أو انتهت المهلة؛ المفتاح لم يُحذف.",

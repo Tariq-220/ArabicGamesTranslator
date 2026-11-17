@@ -985,6 +985,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (reader is null) return;
         var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         var gameProfile=DialogueGame;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        built.GuardDamagedRereads=settings.SourceLanguage=="en";
+        if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>DialogueProfile.Reviewed(text,gameProfile);
         built.PendingLineLimit = PreferLatestDialogue ? 1 : SubtitlePipeline.MaxWaiting;
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });

@@ -146,6 +146,9 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     /// (kilit tutulurken çağrılır).
     /// </summary>
     public Func<string,string>? SourceFilter { get; set; }
+    public bool GuardDamagedRereads {get;set;}
+    public Func<string,string?>? ReviewedLookup {get;set;}
+    private readonly RereadGuard rereadGuard=new();
     public Action<string>? Log { get; set; }
     /// <summary>Paket isabetinde satırın geldiği paket (günlük için; bilinmiyorsa null).</summary>
     public Func<string?>? PackName { get; set; }
@@ -209,7 +212,9 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                 Write($"ilk yazı: oturum başından {now() - sessionStart} ms sonra {SubtitleLog.Excerpt(reading.Text)}");
             }
             currentRead = new ReadInfo(captured, ocrMs, reading.Confidence);
-            var action = stabilizer.Feed(reading.Text);
+            var guardedText=GuardDamagedRereads?rereadGuard.Filter(reading.Text,now()):reading.Text;
+            if(GuardDamagedRereads&&guardedText!=reading.Text)return;
+            var action = stabilizer.Feed(guardedText);
             // Ekranda duran kötü yeniden okuma her karede not edilir; günlüğe bir kez yazılır.
             if (stabilizer.Note is { } note && note != lastNote)
             {
@@ -482,6 +487,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         var request = new Request(++lastRequested, source, box, session) { Read = read ?? currentRead ?? new ReadInfo(now(), null, null) };
         lineOnScreen = request.Number;
         lastSent = (source, ReadingScore(source), now());
+        if(ReviewedLookup?.Invoke(source) is { } reviewed)return ShowPacked(request,new PackMatch(reviewed,[]));
         if (PackLookup?.Invoke(source) is { } packed) return ShowPacked(request, packed);
         var missed = PackMissed;
         if (inFlight is not { } current)
@@ -760,7 +766,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             lastReading = Reading.Empty;
             lastReadMs = null;
             currentRead = null;
-            schedule.Reset();
+            schedule.Reset();rereadGuard.Reset();
             if (stabilizer.Reset() == StabilizerAction.Clear) sender.Clear();
         }
     }

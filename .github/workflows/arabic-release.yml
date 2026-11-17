@@ -33,7 +33,9 @@ jobs:
           if($LASTEXITCODE -eq 0){throw 'This version is already published; bump release/version.json first'}
           $global:LASTEXITCODE=0
       - name: Regression tests
-        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests"
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests"
+      - name: Reading guard regression tests
+        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~RereadGuardTests|FullyQualifiedName~ReadSchedulerTests|FullyQualifiedName~ReviewedLookup|FullyQualifiedName~RereadGuardPrevents"
       - name: Publish Windows application
         run: dotnet publish windows/src/GameTranslator.App/GameTranslator.App.csproj -c Release -r win-x64 --self-contained true -o publish -p:EnableWindowsTargeting=true
       - name: Download verified runtime dependencies
@@ -46,5 +48,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $info=Get-Content release/version.json -Raw|ConvertFrom-Json
-          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes "Windows release with corresponding AGPL source, update integrity checks, and retained settings."
+          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes-file release/NOTES.md
           if($LASTEXITCODE -ne 0){throw 'Release upload failed'}

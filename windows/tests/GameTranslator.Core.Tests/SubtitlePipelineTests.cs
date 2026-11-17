@@ -110,6 +110,27 @@ public class SubtitlePipelineTests
         [.. runs.SelectMany(run => Enumerable.Repeat(run.Text, run.Count))];
 
     [Fact]
+    public async Task ReviewedLookupDoesNotDelayUnlistedDialogueOrCallEngineForReviewedLine()
+    {
+        var clock=new TestClock();var translator=new FakeTranslator();var sender=new FakeSender();
+        var pipeline=new SubtitlePipeline(new FakeReader("Mount your horse","Mount your horse","Run!"),translator,sender,clock:clock.Read);
+        pipeline.ReviewedLookup=text=>text=="Mount your horse"?"اركب حصانك.":null;
+        var origins=new List<LineOrigin>();pipeline.MetricsReady+=m=>origins.Add(m.Origin);
+        await Run(pipeline,3,clock:clock);
+        Assert.Equal(["Run!"],translator.Requested);
+        Assert.Equal(["اركب حصانك.","TR: Run!"],sender.Sent);
+        Assert.Equal([LineOrigin.Pack,LineOrigin.Engine],origins);
+    }
+    [Fact]
+    public async Task RereadGuardPreventsEngineRequestForJoinedWordArtifact()
+    {
+        var clock=new TestClock();var translator=new FakeTranslator();var good="Well, it's a nice fresh day for flying, sir.";
+        var pipeline=new SubtitlePipeline(new FakeReader(good,"Well, it's anicefreshdayfornying,sir."),translator,new FakeSender(),clock:clock.Read){GuardDamagedRereads=true};
+        await Run(pipeline,2,clock:clock);
+        Assert.Equal([good],translator.Requested);
+    }
+
+    [Fact]
     public async Task ButtonPromptsAreNotTranslated()
     {
         var sender = new FakeSender();
