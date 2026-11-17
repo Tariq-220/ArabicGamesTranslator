@@ -230,7 +230,9 @@ public sealed class XboxTestWindow : Window
             if (windows.SelectedItem is not ComboBoxItem { Tag: string target }) { status.Text = "اختر نافذة البث أولًا."; return; }
             if((engineChoice.SelectedIndex==0||engineChoice.SelectedIndex==5)&&!controller.HasGeminiKey || engineChoice.SelectedIndex==1&&!controller.HasDeepLKey){status.Text="أدخل مفتاح المحرك المختار واحفظه أولًا؛ لن نستبدله بمترجم آخر تلقائيًا.";return;}
             if(engineChoice.SelectedIndex>=8 && string.IsNullOrWhiteSpace(SecureStore.Default.Load<string>(ProviderKeyId))){status.Text="أدخل مفتاح هذا المزوّد واحفظه أولًا.";return;}
+            try {
             if(IsLocalModel){try{controller.SessionTranslator=LocalTranslator();}catch{status.Text="شغّل النموذج المحلي أولًا وانتظر Ready، ثم ابدأ القراءة.";return;}}else controller.SessionTranslator=engineChoice.SelectedIndex==10?new AzureTranslator(SecureStore.Default.Load<string>(ProviderKeyId)!,azureRegion.Text):engineChoice.SelectedIndex>=8?new AiTranslator(CloudProvider,SecureStore.Default.Load<string>(ProviderKeyId)!,SelectedCloudModel,null,game:LiveServices.DialogueGame):engineChoice.SelectedIndex==7?new GoogleGtxTranslator():null;
+            } catch(ArgumentException){status.Text="راجع إعداد المحرك ومنطقة Azure قبل بدء الترجمة.";return;}
             start.IsEnabled = false;
             try
             {
