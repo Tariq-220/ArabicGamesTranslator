@@ -19,6 +19,11 @@ namespace GameTranslator.App.Services;
 /// </summary>
 public static class ScreenRenderer
 {
+    private static IEnumerable<FrameworkElement> LogicalElements(DependencyObject root)
+    {
+        if(root is FrameworkElement element)yield return element;
+        foreach(var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())foreach(var item in LogicalElements(child))yield return item;
+    }
     public static void RunArabic(Application app,string folder)
     {
         Directory.CreateDirectory(folder);app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
@@ -30,6 +35,11 @@ public static class ScreenRenderer
                 var grid=(System.Windows.Controls.Grid)window.Content;
                 var tabs=grid.Children.OfType<System.Windows.Controls.TabControl>().Single();tabs.SelectedIndex=selected;
                 window.Show();window.UpdateLayout();
+                if(selected==0){
+                    var toggle=LogicalElements(grid).OfType<System.Windows.Controls.CheckBox>().Single(x=>Equals(x.Tag,"desktop-overlay"));
+                    if(!toggle.IsVisible||toggle.IsChecked==true||DesktopSubtitleOverlay.IsOverlayEnabled)throw new InvalidOperationException("Desktop overlay must be visible as an option and disabled for TV reading.");
+                    if(!LogicalElements(grid).OfType<System.Windows.Controls.Button>().Any(x=>Equals(x.Tag,"reading-recovery")&&x.IsVisible))throw new InvalidOperationException("Reading recovery button is missing.");
+                }
                 var visual=(FrameworkElement)window.Content;
                 var bitmap=new RenderTargetBitmap((int)visual.ActualWidth,(int)visual.ActualHeight,96,96,PixelFormats.Pbgra32);
                 bitmap.Render(visual);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));

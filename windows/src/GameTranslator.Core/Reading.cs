@@ -144,7 +144,7 @@ public static class ButtonPrompts
     /// <summary>Her zaman kumanda düğmesi olan simgeler ve adlar (yazı tanıma bazen köşeli parantezle okur).</summary>
     private static readonly HashSet<string> Buttons = new(StringComparer.OrdinalIgnoreCase)
     {
-        "R1", "R2", "R3", "L1", "L2", "L3", "OPTIONS", "TOUCHPAD",
+        "R1", "R2", "R3", "L1", "L2", "L3", "LB", "RB", "LT", "RT", "OPTIONS", "TOUCHPAD",
         "✕", "×", "⨯", "✖", "○", "◯", "●", "□", "▢", "◻", "■", "△", "▲", "⨂",
     };
 

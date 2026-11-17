@@ -5,6 +5,18 @@ namespace GameTranslator.Translation;
 /// <summary>Conservative RDR2-only corrections reviewed from the supplied comparison log.</summary>
 public static class DialogueProfile {
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
+ public static Reading DialogueOnly(Reading reading,TextBox area,string game){
+  if(!Rdr2(game))return reading;
+  return new Reading(reading.Lines.Where(line=>{
+   if(line.Box is not {} relative)return true;
+   var box=relative.PlacedIn(area);
+   if((box.Left+box.Right)/2<.70)return true;
+   var words=Regex.Matches(line.Text,"[A-Za-z]+").Select(m=>m.Value.ToLowerInvariant()).ToArray();
+   var prompts=new HashSet<string>{"greet","antagonize","rob","a","b","x","y","lb","rb","lt","rt"};
+   // Only the known interaction labels at the right edge; dialogue containing these words survives.
+   return !words.Any(w=>w is "greet" or "antagonize" or "rob")||!words.All(prompts.Contains);
+  }));
+ }
  public static string English(string text,string game){
   if(!Rdr2(game))return text;
   var fixes=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){["Itrank you..."]="Thank you...",["VII hold them off."]="I'll hold them off.",["rm coming with you."]="I'm coming with you.",["1 did."]="I did.",["1 do."]="I do."};

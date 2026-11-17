@@ -52,6 +52,7 @@ public sealed class XboxTestWindow : Window
     public XboxTestWindow(AppController controller, bool preview=false)
     {
         this.controller = controller;
+        if(!controller.ReadingRecoveryApplied){controller.Settings=controller.Settings with{Region=new CropRegion(.62,.98,.12,.78)};controller.DesktopOverlayEnabled=false;controller.ReadingRecoveryApplied=true;}
         start.MinHeight=48;windows.MinHeight=48;engineChoice.MinHeight=48;key.MinHeight=48;recordComparison.MinHeight=44;
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/GameTranslator;component/Theme/ArabicTestStyles.xaml",UriKind.Relative) });
         Icon=System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/GameTranslator;component/Assets/GameTranslator.ico"));
@@ -103,10 +104,12 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Button("فتح مجلد سجل المقارنة",()=>{var folder=System.IO.Path.GetDirectoryName(comparison.FilePath)!;System.IO.Directory.CreateDirectory(folder);System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe",folder){UseShellExecute=true});}));
         root.Children.Add(Label("لريد ديد 2: ابدأ من 62% إلى 97%، ثم ارفع البداية لتقليل مساحة القراءة إذا كانت الترجمة واضحة."));
         var controls = Row(); controls.Children.Add(start); controls.Children.Add(Button("اختبار الحروف العربية", () => controller.SendTestSubtitle()));
-        var show = new CheckBox { Content = "إظهار العربية فوق نافذة اللعب", IsChecked = true, Margin = new Thickness(10), VerticalAlignment = VerticalAlignment.Center };
-        show.Checked += (_, _) => DesktopSubtitleOverlay.IsOverlayEnabled = true;
-        show.Unchecked += (_, _) => DesktopSubtitleOverlay.IsOverlayEnabled = false;
-        controls.Children.Add(show); root.Children.Add(controls);
+        var show = new CheckBox { Content = "إظهار العربية على الكمبيوتر — اتركه مطفأً عند اللعب على التلفزيون", Tag="desktop-overlay", IsChecked = controller.DesktopOverlayEnabled, Margin = new Thickness(10), VerticalAlignment = VerticalAlignment.Center };
+        show.Checked += (_, _) => {controller.DesktopOverlayEnabled=true;DesktopSubtitleOverlay.IsOverlayEnabled = true;};
+        show.Unchecked += (_, _) => {controller.DesktopOverlayEnabled=false;DesktopSubtitleOverlay.IsOverlayEnabled = false;};
+        root.Children.Insert(root.Children.IndexOf(pick)+1,show);
+        var recover=Button("إصلاح القراءة — استعادة الحوار واستبعاد الأزرار",()=>{controller.Stop();show.IsChecked=false;top.Value=62;readLeft.Value=12;readRight.Value=78;ApplyCrop();source.Text="";translated.Text="";DesktopSubtitleOverlay.Clear();status.Text="استُعيدت قراءة الحوار. اختر نافذة اللعبة ثم اضغط بدء الترجمة؛ مفاتيحك ونماذجك محفوظة.";});recover.Tag="reading-recovery";
+        root.Children.Insert(root.Children.IndexOf(pick)+2,recover);root.Children.Add(controls);
         root.Children.Add(Label("2 · محرك الترجمة — لا يوجد رجوع صامت إلى مترجم أضعف عند الخطأ"));
         root.Children.Add(Label("اسم اللعبة للسياق — غيّره قبل بدء القراءة"));
         var gameName=new InputBox{Text=LiveServices.DialogueGame,MaxLength=100,Foreground=Brushes.White,Background=new SolidColorBrush(Color.FromRgb(34,50,71)),FlowDirection=FlowDirection.LeftToRight};
@@ -125,7 +128,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(connectionInfo);root.Children.Add(Button("نسخ عنوان الكمبيوتر",()=>Clipboard.SetText(controller.ComputerAddress??"")));
         root.Children.Add(Button("اكتشاف الشاشات وربط LG webOS",ShowTvConnections));
         root.Children.Add(Button("Monitor / شاشة ثانية — QR للجوال والتابلت",ShowSecondScreen));
-        root.Children.Add(Button("Monitor — إظهار العربية على شاشة الكمبيوتر",()=>{DesktopSubtitleOverlay.IsOverlayEnabled=true;status.Text="الترجمة ستظهر فوق نافذة اللعب على اللابتوب. للشاشة المنفصلة امسح QR من الجوال أو التابلت.";}));
+        root.Children.Add(Button("Monitor — إظهار العربية على شاشة الكمبيوتر",()=>{show.IsChecked=true;DesktopSubtitleOverlay.IsOverlayEnabled=true;status.Text="الترجمة ستظهر فوق نافذة اللعب على اللابتوب. للشاشة المنفصلة امسح QR من الجوال أو التابلت.";}));
         root.Children.Add(Label("4 · شكل النص على اللابتوب — إعدادات شاشة TCL تعدل من ريموت الشاشة"));
         var font=new Slider {Minimum=18,Maximum=48,Value=24,Width=240,IsSnapToTickEnabled=true,TickFrequency=1};
         var background=new Slider {Minimum=0,Maximum=100,Value=65,Width=240,IsSnapToTickEnabled=true,TickFrequency=5};
@@ -188,7 +191,7 @@ public sealed class XboxTestWindow : Window
         live.Children.Add(new Expander{Header="النص المقروء والترجمة — تفاصيل الجلسة",Content=livePreview,IsExpanded=false,Foreground=Brushes.White});
         Grid.SetRow(live,3);shell.Children.Add(live);
         Content=shell;
-        DesktopSubtitleOverlay.IsOverlayEnabled = true;
+        DesktopSubtitleOverlay.IsOverlayEnabled = controller.DesktopOverlayEnabled;
         if(!preview)DesktopSubtitleOverlay.Initialize();
         overlay = (text, ms, box) => {
             DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style, box);
@@ -241,7 +244,7 @@ public sealed class XboxTestWindow : Window
             updateLabel.Text="جارٍ فحص إصدارات GitHub…";
             var client=new GitHubUpdateClient(ArabicRelease.Repository);
             var release=await client.CheckAsync(Version.Parse(ArabicRelease.Version),operation.Token);
-            if(release==null){updateLabel.Text="أنت على أحدث إصدار منشور — "+ArabicRelease.Version;return;}
+            if(release==null){updateLabel.Text="لا يوجد تحديث أحدث من نسختك — "+ArabicRelease.Version;return;}
             var folder=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"ArabicGamesLauncher","downloads",release.Version+"-"+Guid.NewGuid().ToString("N"));
             var zip=System.IO.Path.Combine(folder,"update.zip");
             updateLabel.Text="يتوفر "+release.Version+"؛ جارٍ التنزيل التلقائي…";

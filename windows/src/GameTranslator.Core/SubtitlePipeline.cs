@@ -146,6 +146,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     /// (kilit tutulurken çağrılır).
     /// </summary>
     public Func<string,string>? SourceFilter { get; set; }
+    public Func<Reading,TextBox,Reading>? ReadingFilter { get; set; }
     public bool GuardDamagedRereads {get;set;}
     public Func<string,string?>? ReviewedLookup {get;set;}
     private readonly RereadGuard rereadGuard=new();
@@ -199,7 +200,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         // Yazı tanımanın uydurduğu sözcük çöpleri ("ou$3e") de çevirmene gitmez.
         // Alandaki menü ve köşe göstergeleri de altyazı değildir; yalnız altyazı bloğu çevrilir ve kutusu ona göre olur.
         var area = new TextBox(region.Left, region.Top, region.Right, region.Bottom);
-        var reading = raw.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area);
+        var filtered=ReadingFilter?.Invoke(raw,area)??raw;
+        var reading = filtered.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area);
 
         if(SourceFilter is { } filter)reading=new Reading(reading.Lines.Select(line=>line with {Text=filter(line.Text)}));
         Action? after = null;

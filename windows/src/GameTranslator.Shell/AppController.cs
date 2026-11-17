@@ -984,7 +984,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         OcrMissing = reader is null || !services.HasOcrLanguage(settings.SourceLanguage);
         if (reader is null) return;
         var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
-        var gameProfile=DialogueGame;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>DialogueProfile.DialogueOnly(reading,area,gameProfile);built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>DialogueProfile.Reviewed(text,gameProfile);
         built.PendingLineLimit = PreferLatestDialogue ? 1 : SubtitlePipeline.MaxWaiting;
@@ -1051,6 +1051,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     /// <summary>Gemini anahtarını dener; geçerliyse kaydeder ve Gemini'yi aktif model yapar.</summary>
     public bool PreferPlayStation {get=>store.Load<bool>("PreferPlayStation");set=>store.Save("PreferPlayStation",value);}
+    public bool DesktopOverlayEnabled {get=>store.Load<bool>("DesktopOverlayEnabled");set=>store.Save("DesktopOverlayEnabled",value);}
+    public bool ReadingRecoveryApplied {get=>store.Load<bool>("ReadingRecoveryV1");set=>store.Save("ReadingRecoveryV1",value);}
     public int ArabicEngineChoice { get => store.Load<int>("ArabicEngineChoice"); set => store.Save("ArabicEngineChoice",value); }
     public Task<OnlineKeyCheck> TestSavedGeminiKeyAsync() => store.Load<string>(StoreKeys.GeminiKey) is { Length: >0 } key
         ? services.CheckGeminiKeyAsync(key) : Task.FromResult(new OnlineKeyCheck(OnlineKeyState.Invalid));
