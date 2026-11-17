@@ -29,12 +29,29 @@ public static class ScreenRenderer
         Directory.CreateDirectory(folder);app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
         ThemeManager.Apply(app.Resources,true);
         try {
-            for(int selected=0;selected<4;selected++){
+            for(int variant=0;variant<8;variant++){
+                int selected=variant%4;
                 var controller=Demo(OnboardingStep.Done);
-                var window=new XboxTestWindow(controller,preview:true){Width=960,Height=850,Left=-10000,Top=-10000,ShowActivated=false};
+                controller.Settings=controller.Settings with{Style=controller.Settings.Style with{FontSize=22,Background=40,BottomPercent=11}};
+                var window=new XboxTestWindow(controller,preview:true){Width=variant<4?960:700,Height=variant<4?850:700,Left=-10000,Top=-10000,ShowActivated=false};
                 var grid=(System.Windows.Controls.Grid)window.Content;
                 var tabs=grid.Children.OfType<System.Windows.Controls.TabControl>().Single();tabs.SelectedIndex=selected;
                 window.Show();window.UpdateLayout();
+                if(controller.Settings.Style.FontSize!=22||controller.Settings.Style.Background!=40||controller.Settings.Style.BottomPercent!=11)throw new InvalidOperationException("Saved subtitle style was overwritten on startup.");
+                if(selected==1){
+                    var engines=LogicalElements(grid).OfType<System.Windows.Controls.ComboBox>().Single(x=>Equals(x.Tag,"engine-choice"));
+                    var credentials=LogicalElements(grid).Single(x=>Equals(x.Tag,"engine-credentials"));
+                    var launcher=LogicalElements(grid).Single(x=>Equals(x.Tag,"local-launcher"));
+                    engines.SelectedIndex=2;window.UpdateLayout();
+                    if(credentials.Visibility!=Visibility.Collapsed||launcher.Visibility!=Visibility.Visible)throw new InvalidOperationException("Local engine credential controls are incorrect.");
+                    engines.SelectedIndex=10;window.UpdateLayout();
+                    if(credentials.Visibility!=Visibility.Visible||launcher.Visibility!=Visibility.Collapsed)throw new InvalidOperationException("Azure credential controls are incorrect.");
+                    if(!LogicalElements(grid).Any(x=>Equals(x.Tag,"azure-region")&&x.IsVisible))throw new InvalidOperationException("Azure region is not accessible.");
+                }
+                foreach(var element in LogicalElements(grid).Where(x=>x.IsVisible&&(Equals(x.Tag,"capture-window")||Equals(x.Tag,"engine-choice")||Equals(x.Tag,"engine-test")))){
+                    var bounds=element.TransformToAncestor(grid).TransformBounds(new Rect(element.RenderSize));
+                    if(bounds.Left < -1 || bounds.Right > grid.ActualWidth+1)throw new InvalidOperationException("Horizontal clipping: "+element.Tag);
+                }
                 if(selected==0){
                     var toggle=LogicalElements(grid).OfType<System.Windows.Controls.CheckBox>().Single(x=>Equals(x.Tag,"desktop-overlay"));
                     if(!toggle.IsVisible||toggle.IsChecked==true||DesktopSubtitleOverlay.IsOverlayEnabled)throw new InvalidOperationException("Desktop overlay must be visible as an option and disabled for TV reading.");
@@ -43,7 +60,7 @@ public static class ScreenRenderer
                 var visual=(FrameworkElement)window.Content;
                 var bitmap=new RenderTargetBitmap((int)visual.ActualWidth,(int)visual.ActualHeight,96,96,PixelFormats.Pbgra32);
                 bitmap.Render(visual);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                using(var file=File.Create(Path.Combine(folder,$"arabic-{selected+1}.png")))encoder.Save(file);
+                using(var file=File.Create(Path.Combine(folder,$"arabic-{variant+1}.png")))encoder.Save(file);
                 window.Close();
             }
             app.Shutdown(0);

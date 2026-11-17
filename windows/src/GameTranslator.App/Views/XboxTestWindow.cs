@@ -28,7 +28,7 @@ public sealed class XboxTestWindow : Window
     private string comparisonSession=Guid.NewGuid().ToString("N"), comparisonEngine="", comparisonGame="";
     private bool comparisonLatest;
     private readonly TextBlock logState=Label("السجل مفعّل محليًا؛ لا يُرسل تلقائيًا. المقارنة قد تشمل نتائج الذاكرة المؤقتة.");
-    private readonly ComboBox windows = new() { MinWidth = 400, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
+    private readonly ComboBox windows = new() { MinWidth = 300, Width=480,MaxWidth=480,Tag="capture-window", Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
     private readonly TextBlock status = Label("جاهز — افتح جلسة Xbox Remote Play أولًا.");
     private readonly TextBlock source = Label("النص الإنجليزي سيظهر هنا.");
     private readonly TextBlock translated = Label("الترجمة العربية ستظهر هنا.", 24);
@@ -45,7 +45,12 @@ public sealed class XboxTestWindow : Window
     private readonly ComboBox cloudModel=new(){MinWidth=350,MinHeight=48,FlowDirection=FlowDirection.LeftToRight};
     private AiProvider CloudProvider => engineChoice.SelectedIndex==8?AiProvider.OpenAi:engineChoice.SelectedIndex==9?AiProvider.Claude:AiProvider.Gemini;
     private string? SelectedCloudModel => cloudModel.SelectedItem as string;
-    private string ProviderKeyId => "arabic-cloud-key:"+CloudProvider.Id();
+    private string ProviderKeyId => engineChoice.SelectedIndex==10?"arabic-cloud-key:azure":"arabic-cloud-key:"+CloudProvider.Id();
+    private readonly InputBox azureRegion=new(){MinHeight=48,FlowDirection=FlowDirection.LeftToRight,MaxLength=64,Tag="azure-region"};
+    private readonly StackPanel credentialPanel=new(){Tag="engine-credentials"};
+    private readonly TextBlock engineHint=Label("");
+    private readonly Button localLauncher=new(){Content="تنزيل / تشغيل النموذج المحلي",MinHeight=48,Margin=new Thickness(4),Tag="local-launcher"};
+    private readonly Button testEngine=new(){Content="حفظ واختبار المحرك",MinHeight=48,Margin=new Thickness(4),Tag="engine-test"};
     private bool resetWindowPreference;
     private readonly TextBlock consoleHelp=Label("");
     private readonly TextBlock connectionInfo = Label("", 16);
@@ -74,15 +79,16 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(updateLabel);root.Children.Add(updateButton);
         updateButton.Click+=async(_,_)=>{if(readyInstaller!=null)InstallReadyUpdate();else await CheckForUpdate();};
         if(!preview)Loaded+=async(_,_)=>await CheckForUpdate();
-        root.Children.Add(Label("1 · افتح Remote Play ثم اختر نافذة اللعبة — Xbox أو PS5"));
-        root.Children.Add(Button("Xbox — فتح مصدر اللعبة",()=>{controller.Stop();controller.PreferPlayStation=false;resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();OpenUrl("https://www.xbox.com/remoteplay");}));
-        root.Children.Add(Button("PS5 — تشغيل Remote Play واختيار نافذته",LaunchPlayStation));
-        root.Children.Add(consoleHelp);UpdateConsoleHelp();
-        root.Children.Add(Button("خطوات ربط PS5 الرسمية",()=>OpenUrl("https://remoteplay.dl.playstation.net/remoteplay/lang/en/ps5_win.html")));
-        root.Children.Add(Label("فعّل الترجمة الإنجليزية داخل اللعبة. أبقِ نافذة البث ظاهرة وغير مصغّرة."));
-        root.Children.Add(Label("المحركات السحابية ترسل النص المقروء للمزوّد؛ اختر نافذة اللعبة لتجنّب قراءة إشعاراتك. QuickMT المحلي لا يحتاج خدمة ترجمة سحابية."));
+        root.Children.Add(Label("1 · مصدر اللعبة — Xbox أو PS5"));
+        var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح مصدر اللعبة",()=>{controller.Stop();controller.PreferPlayStation=false;resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();OpenUrl("https://www.xbox.com/remoteplay");}));
+        consoleActions.Children.Add(Button("PS5 — تشغيل Remote Play",LaunchPlayStation));root.Children.Add(consoleActions);
+        var consoleDetails=new StackPanel();consoleDetails.Children.Add(consoleHelp);UpdateConsoleHelp();
+        consoleDetails.Children.Add(Button("خطوات ربط PS5 الرسمية",()=>OpenUrl("https://remoteplay.dl.playstation.net/remoteplay/lang/en/ps5_win.html")));
+        root.Children.Add(Label("فعّل النص الإنجليزي في اللعبة، وافتح البث ثم اختر نافذته."));
+        consoleDetails.Children.Add(Label("المحركات السحابية ترسل النص المقروء للمزوّد؛ اختر نافذة اللعبة لتجنّب قراءة إشعاراتك. QuickMT المحلي لا يحتاج خدمة ترجمة سحابية."));
         var pick = Row(); pick.Children.Add(windows); pick.Children.Add(Button("تحديث النوافذ", RefreshWindows)); root.Children.Add(pick);
-        root.Children.Add(Label("اختر نافذة جلسة الريموت بلاي. عند ظهور صورة سوداء جرّب التقاط الشاشة كاملة. عند اللعب على التلفزيون تصغر هذه الواجهة تلقائيًا؛ أبقِ نافذة البث ظاهرة."));
+        consoleDetails.Children.Add(Label("عند ظهور صورة سوداء جرّب التقاط الشاشة كاملة. عند اللعب على التلفزيون تصغر هذه الواجهة تلقائيًا؛ أبقِ نافذة البث ظاهرة."));
+        root.Children.Add(new Expander{Header="تفاصيل ربط الكونسول والخصوصية",Content=consoleDetails,Foreground=Brushes.White,Margin=new Thickness(4,8,4,8)});
         var crop = Row(); crop.Children.Add(Label("بداية منطقة القراءة من أعلى الصورة (%)")); crop.Children.Add(top); root.Children.Add(crop);
         top.Value = controller.Settings.Region.Top * 100;
         readLeft.Value=controller.Settings.Region.Left*100;readRight.Value=controller.Settings.Region.Right*100;
@@ -93,11 +99,11 @@ public sealed class XboxTestWindow : Window
         top.ValueChanged+=(_,_)=>ApplyCrop();readLeft.ValueChanged+=(_,_)=>ApplyCrop();readRight.ValueChanged+=(_,_)=>ApplyCrop();ApplyCrop();
         var dialogueOnly=Button("الحوار فقط — استبعاد أزرار اليمين",()=>{controller.Stop();top.Value=70;readLeft.Value=12;readRight.Value=78;ApplyCrop();status.Text="ضُيقت القراءة للحوار. اضغط بدء الترجمة؛ إذا انقص آخر الحوار ارفع نهاية اليمين تدريجيًا.";});root.Children.Add(dialogueOnly);
         root.Children.Add(Button("استعادة منطقة القراءة الواسعة",()=>{top.Value=62;readLeft.Value=10;readRight.Value=90;ApplyCrop();}));
-        var latest = new CheckBox { IsChecked=controller.PreferLatestDialogue,Content="تقليل الازدحام — تجاوز السطر القديم",MinHeight=44, Margin=new Thickness(4), Foreground=Brushes.White };
+        var latest = new CheckBox { IsChecked=controller.PreferLatestDialogue,Content="تقليل الازدحام — تجاوز السطر القديم",MaxWidth=350,Tag="latest-only",MinHeight=44, Margin=new Thickness(4), Foreground=Brushes.White };
         latest.Checked+=(_,_)=>controller.PreferLatestDialogue=true;
         latest.Unchecked+=(_,_)=>controller.PreferLatestDialogue=false;
         root.Children.Add(latest);
-        var fastCapture=new CheckBox{IsChecked=controller.FastCaptureEnabled,Content="التقاط أسرع (40ms) — حمل أعلى",Foreground=Brushes.White,MinHeight=44,Margin=new Thickness(4)};
+        var fastCapture=new CheckBox{IsChecked=controller.FastCaptureEnabled,Content="التقاط أسرع (40ms) — حمل أعلى",MaxWidth=300,Tag="fast-capture",Foreground=Brushes.White,MinHeight=44,Margin=new Thickness(4)};
         fastCapture.Checked+=(_,_)=>{controller.FastCaptureEnabled=true;DesktopCaptureStreamSession.SamplingIntervalMs=40;};
         fastCapture.Unchecked+=(_,_)=>{controller.FastCaptureEnabled=false;DesktopCaptureStreamSession.SamplingIntervalMs=80;};
         DesktopCaptureStreamSession.SamplingIntervalMs=controller.FastCaptureEnabled?40:80;
@@ -115,34 +121,38 @@ public sealed class XboxTestWindow : Window
         root.Children.Insert(root.Children.IndexOf(pick)+2,recover);root.Children.Add(controls);
         root.Children.Add(Label("2 · محرك الترجمة — لا يوجد رجوع صامت إلى مترجم أضعف عند الخطأ"));
         root.Children.Add(Label("اسم اللعبة للسياق — غيّره قبل بدء القراءة"));
+        LiveServices.DialogueGame=controller.DialogueGame;
         var gameName=new InputBox{Text=LiveServices.DialogueGame,MaxLength=100,Foreground=Brushes.White,Background=new SolidColorBrush(Color.FromRgb(34,50,71)),FlowDirection=FlowDirection.LeftToRight};
         gameName.TextChanged+=(_,_)=>{LiveServices.DialogueGame=gameName.Text;controller.DialogueGame=gameName.Text;};root.Children.Add(gameName);
-        engineChoice.Items.Add("Gemini — اختر نموذج Flash من القائمة أدناه");engineChoice.Items.Add("DeepL — مفتاح الخدمة الخاص بك");engineChoice.Items.Add("QuickMT — محلي على اللابتوب");engineChoice.Items.Add("Jisr فصحى — محلي");engineChoice.Items.Add("Jisr سعودي — محلي");engineChoice.Items.Add("Gemini — اختيار Flash-Lite");engineChoice.Items.Add("HY-MT 1.8B — محلي Q4_K_M / تجريبي");engineChoice.Items.Add("Google — إنترنت بدون مفتاح / تجريبي");engineChoice.Items.Add("OpenAI — مفتاح مستقل / اختباري");engineChoice.Items.Add("Claude — مفتاح مستقل / اختباري");engineChoice.SelectedIndex=Math.Clamp(controller.ArabicEngineChoice,0,9);LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;
+        engineChoice.Items.Add("Gemini — اختر نموذج Flash من القائمة أدناه");engineChoice.Items.Add("DeepL — مفتاح الخدمة الخاص بك");engineChoice.Items.Add("QuickMT — محلي على اللابتوب");engineChoice.Items.Add("Jisr فصحى — محلي");engineChoice.Items.Add("Jisr سعودي — محلي");engineChoice.Items.Add("Gemini — اختيار Flash-Lite");engineChoice.Items.Add("HY-MT 1.8B — محلي Q4_K_M / تجريبي");engineChoice.Items.Add("Google — إنترنت بدون مفتاح / تجريبي");engineChoice.Items.Add("OpenAI — مفتاح مستقل / اختباري");engineChoice.Items.Add("Claude — مفتاح مستقل / اختباري");engineChoice.Items.Add("Microsoft Azure — ترجمة سحابية / للمقارنة");engineChoice.SelectedIndex=Math.Clamp(controller.ArabicEngineChoice,0,10);engineChoice.Tag="engine-choice";LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;
         engineChoice.SelectionChanged+=(_,_)=>ChooseEngine();var engineRow=new WrapPanel();engineRow.Children.Add(engineChoice);engineRow.Children.Add(engineHelp);engineHelp.Click+=(_,_)=>OpenEnginePage();root.Children.Add(engineRow);root.Children.Add(cloudModel);
         foreach(var label in new[]{"DeepL: تلقائي — إعداد الخدمة الحالي","DeepL: أسرع — latency_optimized","DeepL: تفضيل الجودة — prefer_quality_optimized"})deepLMode.Items.Add(label);
         deepLMode.SelectedIndex=Math.Clamp(controller.DeepLModeChoice,0,2);
         void ApplyDeepLMode(){LiveServices.DeepLModelType=deepLMode.SelectedIndex==1?"latency_optimized":deepLMode.SelectedIndex==2?"prefer_quality_optimized":null;}
         ApplyDeepLMode();deepLMode.SelectionChanged+=(_,_)=>{controller.Stop();controller.DeepLModeChoice=deepLMode.SelectedIndex;ApplyDeepLMode();};root.Children.Add(deepLMode);
         cloudModel.SelectionChanged+=(_,_)=>{if(SelectedCloudModel is {} model){controller.Stop();SecureStore.Default.Save("arabic-cloud-model:"+CloudProvider.Id(),model);if(CloudProvider==AiProvider.Gemini)LiveServices.GeminiModel=model;}};
-        RefreshCloudModels();root.Children.Add(Label("Google بدون مفتاح يحتاج إنترنت ويرسل النص إلى Google؛ ليس Google Cloud API الرسمي. تصحيح قراءة وأسماء RDR2 مفعّل عند اختيار اسم اللعبة المطابق."));
-        root.Children.Add(Button("تشغيل النموذج المحلي المختار — أول مرة تنزيل",StartLocalModel));
-        var keys = Row(); keys.Children.Add(key); keys.Children.Add(Button("حفظ واختبار مفتاح المحرك المختار", SaveKey)); root.Children.Add(keys);
+        root.Children.Add(engineHint);
+        localLauncher.Click+=(_,_)=>StartLocalModel();root.Children.Add(localLauncher);
+        credentialPanel.Children.Add(Label("مفتاح API — اتركه فارغًا للاحتفاظ بالمفتاح المحفوظ"));credentialPanel.Children.Add(key);
+        azureRegion.Text=SecureStore.Default.Load<string>("arabic-azure-region")??"";
+        var regionGroup=new StackPanel{Tag="azure-region-group"};regionGroup.Children.Add(Label("منطقة مورد Azure مثل eastus — اتركها فارغة للمورد العالمي"));regionGroup.Children.Add(azureRegion);credentialPanel.Children.Add(regionGroup);
+        root.Children.Add(credentialPanel);testEngine.Click+=(_,_)=>SaveKey();root.Children.Add(testEngine);RefreshCloudModels();
         
-        root.Children.Add(Label("المفتاح من حسابك لدى المزوّد. وجود API لا يعني اشتراكًا مجانيًا أو حصة غير محدودة."));
-        root.Children.Add(Label("Gemini: بعد الحفظ تبقى الخانة فارغة لحماية المفتاح. اضغط حفظ واختبار لإعادة فحص المفتاح المحفوظ."));
-        root.Children.Add(Label("3 · ربط الشاشة: فعّل مصدر كمبيوتر في تطبيق TCL وأدخل هذا العنوان. اللابتوب يبقى شغالًا؛ الجوال يمكن إقفاله."));
+        root.Children.Add(Label("المفتاح يُحفظ بتشفير Windows؛ الخانة الفارغة لا تعني حذفه. الاختبار يرسل جملة قصيرة وقد يحتسبها المزوّد ضمن حصتك."));
+        root.Children.Add(Label("3 · ربط الشاشة — من تطبيق TCL اختر اكتشاف الجوال أو الكمبيوتر وحدد هذا اللابتوب. لا تحتاج كتابة العنوان؛ اللابتوب يبقى يعمل."));
         connectionInfo.Text=$"عنوان الكمبيوتر: {controller.ComputerAddress ?? "غير متصل"} | المنفذ: {controller.ServerPort}";
         root.Children.Add(connectionInfo);root.Children.Add(Button("نسخ عنوان الكمبيوتر",()=>Clipboard.SetText(controller.ComputerAddress??"")));
         root.Children.Add(Button("اكتشاف الشاشات وربط LG webOS",ShowTvConnections));
         root.Children.Add(Button("Monitor / شاشة ثانية — QR للجوال والتابلت",ShowSecondScreen));
         root.Children.Add(Button("Monitor — إظهار العربية على شاشة الكمبيوتر",()=>{show.IsChecked=true;DesktopSubtitleOverlay.IsOverlayEnabled=true;status.Text="الترجمة ستظهر فوق نافذة اللعب على اللابتوب. للشاشة المنفصلة امسح QR من الجوال أو التابلت.";}));
         root.Children.Add(Label("4 · شكل النص على اللابتوب — إعدادات شاشة TCL تعدل من ريموت الشاشة"));
-        var font=new Slider {Minimum=18,Maximum=48,Value=24,Width=240,IsSnapToTickEnabled=true,TickFrequency=1};
-        var background=new Slider {Minimum=0,Maximum=100,Value=65,Width=240,IsSnapToTickEnabled=true,TickFrequency=5};
-        var position=new Slider {Minimum=2,Maximum=25,Value=7,Width=240,IsSnapToTickEnabled=true,TickFrequency=1};
+        var font=new Slider {Minimum=14,Maximum=48,Value=Math.Clamp(controller.Settings.Style.FontSize,14,48),Width=240,IsSnapToTickEnabled=true,TickFrequency=1};
+        var background=new Slider {Minimum=0,Maximum=100,Value=Math.Clamp(controller.Settings.Style.Background,0,100),Width=240,IsSnapToTickEnabled=true,TickFrequency=5};
+        var position=new Slider {Minimum=2,Maximum=25,Value=Math.Clamp(controller.Settings.Style.BottomPercent,2,25),Width=240,IsSnapToTickEnabled=true,TickFrequency=1};
         TextBlock fontLabel=Label(""),backgroundLabel=Label(""),positionLabel=Label("");
         void ApplyStyle(){controller.Settings=controller.Settings with {Style=controller.Settings.Style with {FontSize=(int)font.Value,Background=(int)background.Value,BottomPercent=(int)position.Value,Placement=SubtitlePlacement.Fixed}};fontLabel.Text=$"حجم الخط: {(int)font.Value}";backgroundLabel.Text=$"الخلفية: {(int)background.Value}%";positionLabel.Text=$"ارتفاع النص عن الأسفل: {(int)position.Value}%";}
         font.ValueChanged+=(_,_)=>ApplyStyle();background.ValueChanged+=(_,_)=>ApplyStyle();position.ValueChanged+=(_,_)=>ApplyStyle();
+        var presets=Row();presets.Children.Add(Button("خط صغير",()=>font.Value=20));presets.Children.Add(Button("خط متوسط",()=>font.Value=26));root.Children.Add(presets);
         root.Children.Add(fontLabel);root.Children.Add(font);root.Children.Add(backgroundLabel);root.Children.Add(background);root.Children.Add(positionLabel);root.Children.Add(position);ApplyStyle();
         root.Children.Add(status); root.Children.Add(timing);
         source.FlowDirection = FlowDirection.LeftToRight;
@@ -161,15 +171,15 @@ public sealed class XboxTestWindow : Window
         var cropAt=items.IndexOf(crop);var controlsAt=items.IndexOf(controls);
         root.Children.Clear();controls.Children.Remove(start);
         foreach(var child in items.OfType<Border>())if(child.Child==source||child.Child==translated)child.Child=null;
-        var shell=new Grid{Margin=new Thickness(22)};
+        var shell=new Grid{Margin=new Thickness(16)};
         shell.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
         shell.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
         shell.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});
         shell.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
         var heading=new StackPanel{Margin=new Thickness(10)};
-        heading.Children.Add(Label("ArabicGames · ترجمة الألعاب بالعربية",27));
-        heading.Children.Add(Label("اختر مصدر اللعبة، ثم المحرك، ثم الشاشة. العربية تبقى أمامك أثناء اللعب.",15));
-        var ambient=new Border{CornerRadius=new CornerRadius(18),Padding=new Thickness(10),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
+        heading.Children.Add(Label("ArabicGames · ترجمة الألعاب",24));
+        heading.Children.Add(Label("المصدر ← المحرك ← الشاشة. ابدأ الترجمة من الزر الثابت بالأعلى.",14));
+        var ambient=new Border{CornerRadius=new CornerRadius(18),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
         shell.Children.Add(ambient);
         var actions=new WrapPanel{Margin=new Thickness(0,0,0,10)};
         actions.Children.Add(start);actions.Children.Add(Button("اختبار العربية",()=>controller.SendTestSubtitle()));
@@ -188,7 +198,7 @@ public sealed class XboxTestWindow : Window
                 }
                 if(items[n]!=controls)content.Children.Add(items[n]);
             }
-            tabs.Items.Add(new TabItem{Header=title,MinHeight=44,Padding=new Thickness(18,8,18,8),Content=new ScrollViewer{Content=content,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly}});
+            tabs.Items.Add(new TabItem{Header=title,MinHeight=44,Padding=new Thickness(10,8,10,8),Content=new ScrollViewer{Content=content,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly}});
         }
         AddTab("① مصدر اللعبة",sourceAt,engineAt);
         AddTab("② محرك الترجمة",engineAt,screenAt);
@@ -199,7 +209,7 @@ public sealed class XboxTestWindow : Window
         live.Children.Add(status);live.Children.Add(timing);live.Children.Add(updateLabel);
         var livePreview=new StackPanel();livePreview.Children.Add(Card(source));livePreview.Children.Add(Card(translated));
         // Source and translated were inside cards in the former flat list.
-        live.Children.Add(new Expander{Header="النص المقروء والترجمة — تفاصيل الجلسة",Content=livePreview,IsExpanded=false,Foreground=Brushes.White});
+        live.Children.Add(new Expander{Header="النص المقروء والترجمة — تفاصيل الجلسة",Content=new ScrollViewer{Content=livePreview,MaxHeight=170,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly},IsExpanded=false,Foreground=Brushes.White});
         Grid.SetRow(live,3);shell.Children.Add(live);
         Content=shell;
         DesktopSubtitleOverlay.IsOverlayEnabled = controller.DesktopOverlayEnabled;
@@ -220,7 +230,7 @@ public sealed class XboxTestWindow : Window
             if (windows.SelectedItem is not ComboBoxItem { Tag: string target }) { status.Text = "اختر نافذة البث أولًا."; return; }
             if((engineChoice.SelectedIndex==0||engineChoice.SelectedIndex==5)&&!controller.HasGeminiKey || engineChoice.SelectedIndex==1&&!controller.HasDeepLKey){status.Text="أدخل مفتاح المحرك المختار واحفظه أولًا؛ لن نستبدله بمترجم آخر تلقائيًا.";return;}
             if(engineChoice.SelectedIndex>=8 && string.IsNullOrWhiteSpace(SecureStore.Default.Load<string>(ProviderKeyId))){status.Text="أدخل مفتاح هذا المزوّد واحفظه أولًا.";return;}
-            if(IsLocalModel){try{controller.SessionTranslator=LocalTranslator();}catch{status.Text="شغّل النموذج المحلي أولًا وانتظر Ready، ثم ابدأ القراءة.";return;}}else controller.SessionTranslator=engineChoice.SelectedIndex>=8?new AiTranslator(CloudProvider,SecureStore.Default.Load<string>(ProviderKeyId)!,SelectedCloudModel,null,game:LiveServices.DialogueGame):engineChoice.SelectedIndex==7?new GoogleGtxTranslator():null;
+            if(IsLocalModel){try{controller.SessionTranslator=LocalTranslator();}catch{status.Text="شغّل النموذج المحلي أولًا وانتظر Ready، ثم ابدأ القراءة.";return;}}else controller.SessionTranslator=engineChoice.SelectedIndex==10?new AzureTranslator(SecureStore.Default.Load<string>(ProviderKeyId)!,azureRegion.Text):engineChoice.SelectedIndex>=8?new AiTranslator(CloudProvider,SecureStore.Default.Load<string>(ProviderKeyId)!,SelectedCloudModel,null,game:LiveServices.DialogueGame):engineChoice.SelectedIndex==7?new GoogleGtxTranslator():null;
             start.IsEnabled = false;
             try
             {
@@ -302,11 +312,24 @@ public sealed class XboxTestWindow : Window
         catch{status.Text="ملفات تشغيل النموذج غير موجودة بجانب البرنامج. فك حزمة التحديث كاملة في مجلد البرنامج.";}
     }
     private async void SaveKey(){
-        if(testingKey)return;testingKey=true;engineChoice.IsEnabled=false;cloudModel.IsEnabled=false;deepLMode.IsEnabled=false;key.IsEnabled=false;
-        try{await SaveKeyCore();}finally{testingKey=false;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
+        if(testingKey)return;testingKey=true;start.IsEnabled=false;testEngine.IsEnabled=false;azureRegion.IsEnabled=false;engineChoice.IsEnabled=false;cloudModel.IsEnabled=false;deepLMode.IsEnabled=false;key.IsEnabled=false;
+        try{await SaveKeyCore();}finally{testingKey=false;start.IsEnabled=true;testEngine.IsEnabled=true;azureRegion.IsEnabled=true;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
     }
     private async Task SaveKeyCore()
     {
+        if(engineChoice.SelectedIndex==10){
+            try {
+                var value=string.IsNullOrWhiteSpace(key.Password)?SecureStore.Default.Load<string>(ProviderKeyId):key.Password.Trim();
+                if(string.IsNullOrWhiteSpace(value)){status.Text="أدخل مفتاح مورد Azure Translator مرة واحدة.";return;}
+                var translator=new AzureTranslator(value,azureRegion.Text);
+                SecureStore.Default.Save(ProviderKeyId,value);SecureStore.Default.Save("arabic-azure-region",azureRegion.Text.Trim());key.Clear();
+                status.Text="مفتاح Azure محفوظ؛ جارٍ اختبار الترجمة…";
+                var watch=System.Diagnostics.Stopwatch.StartNew();var sample=await translator.TranslateAsync("Keep going. Through the palms.");watch.Stop();
+                status.Text=$"Azure جاهز — استجابة الاختبار {watch.ElapsedMilliseconds} ms\n{sample}";
+            }catch(TranslatorException error){status.Text="المفتاح محفوظ. Azure: "+error.Status+". عند الرفض تأكد من مفتاح مورد Translator ومنطقته؛ عند الحصة أو تعذر الخدمة أعد المحاولة لاحقًا.";}
+             catch(ArgumentException){status.Text="تحقق من المفتاح ومنطقة Azure: حروف إنجليزية وأرقام وشرطة فقط، أو فارغة للمورد العالمي.";}
+             catch{status.Text="تعذر حفظ أو اختبار Azure. لا تعاود إدخال المفتاح إن كان محفوظًا.";}return;
+        }
         if(engineChoice.SelectedIndex>=8){
             try {
                 var value=string.IsNullOrWhiteSpace(key.Password)?SecureStore.Default.Load<string>(ProviderKeyId):key.Password.Trim();
@@ -388,7 +411,7 @@ public sealed class XboxTestWindow : Window
         if (controller.LastLineMetrics is { } m)
             timing.Text = m.Origin==LineOrigin.Pack ? $"ترجمة من قاموس المراجعة — بدون طلب للمحرك | الإجمالي: {m.TotalMs} ms" : $"القراءة: {m.OcrMs} ms | الترجمة: {m.TranslationMs} ms | الإجمالي داخل البرنامج: {m.TotalMs} ms";
         status.Text = controller.OcrMissing ? "حزمة قراءة الإنجليزية مفقودة: ثبّت English من إعدادات لغات Windows."
-            : controller.IsRunning ? $"حالة البث: {controller.SessionState} | "+(controller.TranslatorStatus switch {
+            : controller.IsRunning ? "الترجمة تعمل — "+(controller.TranslatorStatus switch {
                 TranslatorStatus.ServiceUnreachable=>"تعذر الاتصال بخدمة الترجمة أو انتهت المهلة؛ المفتاح لم يُحذف.",
                 TranslatorStatus.KeyRejected=>"خدمة الترجمة رفضت المفتاح.",
                 TranslatorStatus.QuotaExceeded=>"وصلت إلى حد الطلبات أو انتهت حصة الخدمة. لا تحتاج تنزيل نموذج.",
@@ -403,12 +426,24 @@ public sealed class XboxTestWindow : Window
         void Page(string title,string text){tabs.Items.Add(new TabItem{Header=title,Content=new ScrollViewer{Content=Label(text,17),VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});}
         Page("Xbox","1. Xbox: الإعدادات ← الأجهزة والاتصالات ← الميزات البعيدة، ثم فعّلها.\n2. افتح Xbox Remote Play في المتصفح أو تطبيق Xbox الرسمي بنفس الحساب؛ لا تحتاج كتابة عنوان الكونسول هنا.\n3. ابدأ البث ثم اختر نافذته من تحديث النوافذ.\n4. للعب بأقل تأخير، العب على HDMI مباشرة واترك البث للقراءة فقط.\nربط Microsoft بالكود داخل مترجمنا لم يُدمج بعد؛ لا تدخل كلمة المرور فيه.");
         Page("PS5","1. PS5: الإعدادات ← النظام ← اللعب عن بُعد ← تمكين اللعب عن بُعد.\n2. اضغط زر PS5 لتشغيل PS Remote Play. أكمل تسجيل Sony والاقتران في تطبيقه الرسمي.\n3. إذا فصل اتصال البث يد التحكم، جرّب حساب PSN ثانيًا مضافًا للكونسول للبث واترك حساب اللعب لليد.\n4. اختر نافذة PS Remote Play أو chiaki-ng، وفعّل الترجمة الإنجليزية داخل اللعبة.\nلاختبار النص: اختبار العربية ثم ابدأ الترجمة أثناء حوار.");
-        Page("الشاشة","TCL / Google TV: ثبّت تطبيق الشاشة 0.3.2، افتحه على نفس الشبكة، وسيبحث عن الكمبيوتر. إذا تعددت الأجهزة تختار واحدًا.\nLG webOS: ثبّت حزمة LG عبر Developer Mode وwebOS Dev Manager مرة واحدة؛ بعدها استخدم اكتشاف الشاشات ووافق على الاقتران. دعم HDMI يختلف حسب موديل LG.\nMonitor: العربية فوق نافذة اللعبة على الكمبيوتر، أو امسح QR من جوال/تابلت لعرض النص بجانب شاشة الكونسول. الباركود لا يجعل شاشة HDMI العادية تعرض طبقة ترجمة.\nعند عدم الاتصال: اسمح للتطبيق في جدار حماية Windows على الشبكة الخاصة، وأوقف عزل أجهزة Wi-Fi في الراوتر إن كان مفعّلًا.");
+        Page("الشاشة","TCL / Google TV: ثبّت تطبيق الشاشة 0.3.3، افتحه على نفس الشبكة، وسيبحث عن الكمبيوتر. إذا تعددت الأجهزة تختار واحدًا.\nLG webOS: ثبّت حزمة LG عبر Developer Mode وwebOS Dev Manager مرة واحدة؛ بعدها استخدم اكتشاف الشاشات ووافق على الاقتران. دعم HDMI يختلف حسب موديل LG.\nMonitor: العربية فوق نافذة اللعبة على الكمبيوتر، أو امسح QR من جوال/تابلت لعرض النص بجانب شاشة الكونسول. الباركود لا يجعل شاشة HDMI العادية تعرض طبقة ترجمة.\nعند عدم الاتصال: اسمح للتطبيق في جدار حماية Windows على الشبكة الخاصة، وأوقف عزل أجهزة Wi-Fi في الراوتر إن كان مفعّلًا.");
         Page("المحرك والسرعة","1. ابدأ بـ QuickMT المحلي: اختره ثم تشغيل النموذج، وانتظر Ready، ثم حفظ واختبار. لا يحتاج API.\n2. Gemini / OpenAI / Claude / DeepL: اختر المزوّد ثم الحصول على المفتاح. المفتاح لكل مزوّد مستقل، ولا تستعمل اشتراك تطبيق المحادثة بدل رصيد API.\n3. اختر النموذج ثم حفظ واختبار. الخانة الفارغة بعد الحفظ تستخدم المفتاح المحفوظ؛ لا تحتاج إدخاله كل مرة.\n4. 429: الحصة أو معدل الطلبات؛ 503: الخدمة غير متاحة مؤقتًا. تغيير المفتاح داخل المشروع نفسه لا يزيد الحصة.\n5. للحوار فقط: استبعد أزرار اليمين. فعّل تقليل ازدحام الطلبات قبل البدء، وجرّب التقاط 40ms إذا كان حمل اللابتوب مناسبًا.\n6. قارن المشهد نفسه بمحركين من سجل المقارنة؛ زمن البرنامج لا يشمل تأخير البث أو التلفزيون. اختيار نموذج جديد لا يضمن جودة أعلى.");
         new Window{Title="التفعيل خطوة بخطوة",Owner=this,Width=760,Height=630,Content=tabs,Background=Background,Foreground=Foreground,FlowDirection=FlowDirection.RightToLeft}.ShowDialog();
     }
     private void RefreshCloudModels()
     {
+        credentialPanel.Visibility=IsLocalModel||engineChoice.SelectedIndex==7?Visibility.Collapsed:Visibility.Visible;
+        localLauncher.Visibility=IsLocalModel?Visibility.Visible:Visibility.Collapsed;
+        foreach(var element in credentialPanel.Children.OfType<FrameworkElement>())if(Equals(element.Tag,"azure-region-group"))element.Visibility=engineChoice.SelectedIndex==10?Visibility.Visible:Visibility.Collapsed;
+        testEngine.Content=IsLocalModel?"اختبار النموذج المحلي":engineChoice.SelectedIndex==7?"اختبار Google بدون مفتاح":"حفظ واختبار المحرك";
+        engineHint.Text=engineChoice.SelectedIndex switch{
+            2=>"QuickMT: نقطة المقارنة المحلية الأسرع في سجلك السابق. اختبر نفس الحوارات؛ ليس مضمونًا أن يترجم كل تعبير بدقة.",
+            3 or 4=>"Jisr: محلي وخفيف؛ قارن اللهجة والمعنى على المشهد نفسه.",
+            6=>"HY-MT: محلي وتجريبي، أثقل على المعالج. لا يُنصح به كخيار سرعة لهذا اللابتوب دون قياس.",
+            1=>"DeepL: جرّب تلقائيًا أولًا؛ يمكنك مقارنة وضع السرعة ووضع الجودة. اسم اللعبة والحوار السابق يساعدان في السياق.",
+            7=>"Google بدون مفتاح: خدمة إنترنت تجريبية، وليست Google Cloud API الرسمي. يرسل نص الحوار فقط وقد يحدد الطلبات.",
+            10=>"Azure: خيار رسمي جديد للمقارنة؛ يحتاج مفتاح مورد Translator ومنطقته إن كان إقليميًا. لا يوجد إثبات أنه أدق من DeepL على لعبتك بعد.",
+            _=>"AI: يرسل نص الحوار وسياقه للمزوّد. اختر النموذج ثم اختبر؛ حصة API مستقلة عن اشتراك تطبيق المحادثة. لا نبدّل المحرك تلقائيًا عند الخطأ."};
         engineHelp.Content=IsLocalModel?"تنزيل / تشغيل النموذج":engineChoice.SelectedIndex==7?"بدون مفتاح — التفاصيل ↗":"كيف تحصل على API؟ ↗";
         deepLMode.Visibility=engineChoice.SelectedIndex==1?Visibility.Visible:Visibility.Collapsed;
         cloudModel.Items.Clear();
@@ -425,6 +460,7 @@ public sealed class XboxTestWindow : Window
     {
         var url=engineChoice.SelectedIndex switch {
             1=>"https://www.deepl.com/your-account/keys",
+            10=>"https://learn.microsoft.com/azure/ai-services/translator/create-translator-resource",
             8=>"https://platform.openai.com/api-keys",
             9=>"https://platform.claude.com/settings/keys",
             2=>"https://huggingface.co/quickmt",
@@ -467,7 +503,7 @@ public sealed class XboxTestWindow : Window
         var window=new Window{Title="شاشة ثانية",Owner=this,Width=470,Height=550,Content=content,Background=Background,Foreground=Foreground,FlowDirection=FlowDirection.RightToLeft};window.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/GameTranslator;component/Theme/ArabicTestStyles.xaml",UriKind.Relative)});window.ShowDialog();
     }
     private static TextBlock Label(string text, double size = 14) => new() { Text = text, FontSize = size, Margin = new Thickness(4, 6, 4, 6), TextWrapping = TextWrapping.Wrap };
-    private static StackPanel Row() => new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 5) };
+    private static WrapPanel Row() => new() { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 5, 0, 5) };
     private static Button Button(string text, Action action)
     {
         var b = new Button { MinHeight=48, FontSize=16, Content = text, Foreground = Brushes.White, Padding = new Thickness(12, 7, 12, 7), Margin = new Thickness(4) };

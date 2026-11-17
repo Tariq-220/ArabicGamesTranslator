@@ -119,7 +119,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private string? Context()
     {
         lock (_recent){
-            var prefix=string.IsNullOrWhiteSpace(_game)?null:DialogueProfile.Rdr2(_game)?"Dialogue in Red Dead Redemption 2, a Western set in 1899. Arthur Morgan, Dutch van der Linde and John Marston are character names.":"Video game dialogue. Game: "+_game;
+            var prefix=string.IsNullOrWhiteSpace(_game)?null:DialogueContext.ForGame(_game);
             return prefix==null?(_recent.Count==0?null:string.Join("\n",_recent)):prefix+(_recent.Count==0?"":"\nPrevious dialogue:\n"+string.Join("\n",_recent));
         }
     }

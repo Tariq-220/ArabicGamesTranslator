@@ -9,6 +9,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="MinHeight" Value="42"/>
         <Setter Property="FontSize" Value="15"/>
+        <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center"/></DataTemplate></Setter.Value></Setter>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="Template">
             <Setter.Value><ControlTemplate TargetType="Button">
@@ -86,7 +87,7 @@
             </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
-    <Style TargetType="CheckBox"><Setter Property="Foreground" Value="#F4F7FA"/><Setter Property="FontSize" Value="15"/><Setter Property="Padding" Value="6"/></Style>
+    <Style TargetType="CheckBox"><Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap"/></DataTemplate></Setter.Value></Setter><Setter Property="Foreground" Value="#F4F7FA"/><Setter Property="FontSize" Value="15"/><Setter Property="Padding" Value="6"/></Style>
     <Style TargetType="TabItem">
         <Setter Property="Foreground" Value="#C5D0E2"/><Setter Property="Background" Value="#1D293B"/>
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">

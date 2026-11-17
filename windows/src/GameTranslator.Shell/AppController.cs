@@ -973,7 +973,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     /// <summary>Okuma hattını güncel dillerle (yeniden) kurar.</summary>
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
-    public string DialogueGame { get; set; }="Red Dead Redemption 2";
+    public string DialogueGame {get=>store.Load<string>("DialogueGame")??"Red Dead Redemption 2";set=>store.Save("DialogueGame",value);}
 
     private void MakePipeline()
     {
