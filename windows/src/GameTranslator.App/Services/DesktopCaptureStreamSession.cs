@@ -11,6 +11,8 @@ namespace GameTranslator.App.Services;
 /// </summary>
 public sealed class DesktopCaptureStreamSession : IStreamSession
 {
+    private static int samplingInterval=80;
+    public static int SamplingIntervalMs {get=>Volatile.Read(ref samplingInterval);set=>Volatile.Write(ref samplingInterval,Math.Clamp(value,40,160));}
     public event Action<Frame>? FrameReceived;
     public event Action<SessionState>? StateChanged;
 #pragma warning disable CS0067
@@ -104,7 +106,7 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
 
                 try
                 {
-                    await Task.Delay(80, token); // OCR sampling; avoids copying the desktop at 60 FPS.
+                    await Task.Delay(SamplingIntervalMs, token); // OCR sampling; avoids copying the desktop at 60 FPS.
                 }
                 catch (OperationCanceledException)
                 {

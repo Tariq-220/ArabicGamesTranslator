@@ -1050,6 +1050,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool HasGeminiKey => store.Load<string>(StoreKeys.GeminiKey) is { Length: > 0 };
 
     /// <summary>Gemini anahtarını dener; geçerliyse kaydeder ve Gemini'yi aktif model yapar.</summary>
+    public bool PreferPlayStation {get=>store.Load<bool>("PreferPlayStation");set=>store.Save("PreferPlayStation",value);}
     public int ArabicEngineChoice { get => store.Load<int>("ArabicEngineChoice"); set => store.Save("ArabicEngineChoice",value); }
     public Task<OnlineKeyCheck> TestSavedGeminiKeyAsync() => store.Load<string>(StoreKeys.GeminiKey) is { Length: >0 } key
         ? services.CheckGeminiKeyAsync(key) : Task.FromResult(new OnlineKeyCheck(OnlineKeyState.Invalid));

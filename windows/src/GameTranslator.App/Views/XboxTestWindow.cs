@@ -38,6 +38,8 @@ public sealed class XboxTestWindow : Window
     private readonly Slider readRight = new() { Minimum=60,Maximum=100,Value=90,TickFrequency=1,IsSnapToTickEnabled=true,Width=220 };
     private readonly PasswordBox key = new() { Width = 320, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
     private readonly ComboBox engineChoice = new() { MinWidth = 350, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)) };
+    private bool resetWindowPreference;
+    private readonly TextBlock consoleHelp=Label("");
     private readonly TextBlock connectionInfo = Label("", 16);
     private readonly Action<string, int, GameTranslator.Core.TextBox?> overlay;
 
@@ -62,8 +64,10 @@ public sealed class XboxTestWindow : Window
         updateButton.Click+=async(_,_)=>{if(readyInstaller!=null)InstallReadyUpdate();else await CheckForUpdate();};
         Loaded+=async(_,_)=>await CheckForUpdate();
         root.Children.Add(Label("1 · افتح Remote Play ثم اختر نافذة اللعبة — Xbox أو PS5"));
-        root.Children.Add(Button("فتح Xbox Remote Play الرسمي", () => OpenUrl("https://www.xbox.com/remoteplay")));
-        root.Children.Add(Button("دليل PS5 / تنزيل PS Remote Play", () => OpenUrl("https://www.playstation.com/en-us/remote-play/")));
+        root.Children.Add(Button("Xbox — فتح مصدر اللعبة",()=>{controller.Stop();controller.PreferPlayStation=false;resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();OpenUrl("https://www.xbox.com/remoteplay");}));
+        root.Children.Add(Button("PS5 — تشغيل Remote Play واختيار نافذته",LaunchPlayStation));
+        root.Children.Add(consoleHelp);UpdateConsoleHelp();
+        root.Children.Add(Button("خطوات ربط PS5 الرسمية",()=>OpenUrl("https://remoteplay.dl.playstation.net/remoteplay/lang/en/ps5_win.html")));
         root.Children.Add(Label("فعّل الترجمة الإنجليزية داخل اللعبة. أبقِ نافذة البث ظاهرة وغير مصغّرة."));
         root.Children.Add(Label("النسخة التجريبية تستخدم الإنترنت لترجمة النصوص المقروءة. لا تتصل بحساب Xbox ولا تطلب كلمة مروره."));
         var pick = Row(); pick.Children.Add(windows); pick.Children.Add(Button("تحديث النوافذ", RefreshWindows)); root.Children.Add(pick);
@@ -82,6 +86,11 @@ public sealed class XboxTestWindow : Window
         latest.Checked+=(_,_)=>controller.PreferLatestDialogue=true;
         latest.Unchecked+=(_,_)=>controller.PreferLatestDialogue=false;
         root.Children.Add(latest);
+        var fastCapture=new CheckBox{Content="التقاط أسرع: فاصل 40ms بدل 80ms — تجريبي وقد يزيد حمل اللابتوب",Foreground=Brushes.White,MinHeight=44,Margin=new Thickness(4)};
+        fastCapture.Checked+=(_,_)=>DesktopCaptureStreamSession.SamplingIntervalMs=40;
+        fastCapture.Unchecked+=(_,_)=>DesktopCaptureStreamSession.SamplingIntervalMs=80;
+        root.Children.Add(fastCapture);
+        root.Children.Add(Label("هذا يغيّر فاصل قراءة الإطارات فقط، ولا يسرّع Remote Play أو محرك الترجمة. اتركه مطفأً إذا ارتفع الحمل."));
         root.Children.Add(recordComparison);root.Children.Add(logState);
         root.Children.Add(Button("فتح مجلد سجل المقارنة",()=>{var folder=System.IO.Path.GetDirectoryName(comparison.FilePath)!;System.IO.Directory.CreateDirectory(folder);System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe",folder){UseShellExecute=true});}));
         root.Children.Add(Label("لريد ديد 2: ابدأ من 62% إلى 97%، ثم ارفع البداية لتقليل مساحة القراءة إذا كانت الترجمة واضحة."));
@@ -122,7 +131,7 @@ public sealed class XboxTestWindow : Window
         overlay = (text, ms, box) => {
             DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style, box);
             if(recordComparison.IsChecked==true && controller.IsRunning && text==controller.LastTranslation && !string.IsNullOrWhiteSpace(controller.LastSource)) {
-                var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,text,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest,controller.LastLineMetrics?.Origin==LineOrigin.Pack?"reviewed_dictionary":"engine_or_cache",ArabicRelease.Version));
+                var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,text,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest,controller.LastLineMetrics?.Origin==LineOrigin.Pack?"reviewed_dictionary":"engine_or_cache",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox"));
                 logState.Text=comparison.Error ?? (queued?"السجل مفعّل — يحفظ السطور المعروضة وأوقاتها محليًا. لا يشمل زمن البث والتلفزيون.":"ازدحم السجل؛ لم يُحفظ هذا السطر.");
             }
         };
@@ -229,20 +238,44 @@ public sealed class XboxTestWindow : Window
         }
         catch { status.Text = "تعذر الاتصال بالمحرك المختار. المفتاح ما زال في الخانة."; }
     }
+    private void UpdateConsoleHelp()
+    {
+        consoleHelp.Text=controller.PreferPlayStation
+            ? "مصدر PS5: فعّل Settings > System > Remote Play > Enable Remote Play في الجهاز. افتح PS Remote Play على Windows وسجّل الدخول بحسابك الرسمي، ثم اختر PS5 وانتظر الفيديو. اضغط تحديث النوافذ إذا لم تُحدّد نافذته. ربط التلفزيون والمحركات كما هما؛ هذا ليس اتصالًا أصليًا داخل المترجم."
+            : "مصدر Xbox: افتح جلسة Remote Play الرسمية واختر نافذة الفيديو. العب على HDMI مباشرة واجعل البث للقراءة فقط إذا رغبت.";
+    }
+    private void LaunchPlayStation()
+    {
+        controller.Stop();controller.PreferPlayStation=true;resetWindowPreference=true;UpdateConsoleHelp();
+        var paths=new[]{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}
+            .Select(root=>System.IO.Path.Combine(root,"Sony","PS Remote Play","RemotePlay.exe"));
+        var installed=paths.FirstOrDefault(System.IO.File.Exists);
+        try {
+            if(installed!=null)System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(installed){UseShellExecute=true});
+            else OpenUrl("https://www.playstation.com/en-us/remote-play/");
+        }catch{status.Text="افتح PS Remote Play يدويًا ثم اضغط تحديث النوافذ.";}
+        RefreshWindows();
+        var retry=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(2)};
+        retry.Tick+=(_,_)=>{retry.Stop();if(!controller.IsRunning)RefreshWindows();};retry.Start();
+    }
     private void RefreshWindows()
     {
-        var old = (windows.SelectedItem as ComboBoxItem)?.Tag as string ?? controller.Settings.DesktopWindowName;
-        windows.Items.Clear();
-        foreach (var title in WindowCaptureService.GetTopLevelWindowTitles())
-        {
-            var item = new ComboBoxItem { Content = title, Tag = "window:" + title };
-            windows.Items.Add(item);
-            if ((string)item.Tag == old || old is null && title.Contains("Xbox", StringComparison.OrdinalIgnoreCase)) windows.SelectedItem = item;
+        var old=resetWindowPreference?null:(windows.SelectedItem as ComboBoxItem)?.Tag as string??controller.Settings.DesktopWindowName;
+        resetWindowPreference=false;windows.Items.Clear();
+        var titles=WindowCaptureService.GetTopLevelWindowTitles();string? detected=null;
+        if(controller.PreferPlayStation)foreach(var processName in new[]{"RemotePlay","chiaki","chiaki-ng"}){
+            foreach(var process in System.Diagnostics.Process.GetProcessesByName(processName)){
+                using(process){try{if(!string.IsNullOrWhiteSpace(process.MainWindowTitle)){detected=process.MainWindowTitle;break;}}catch{}}
+            }
+            if(detected!=null)break;
         }
-        foreach (var monitor in WindowCaptureService.GetDisplayMonitors())
-        {
-            var item = new ComboBoxItem { Content = "الشاشة كاملة: " + monitor.Name, Tag = "monitor:" + monitor.Index };
-            windows.Items.Add(item); if ((string)item.Tag == old) windows.SelectedItem = item;
+        var preferred=ConsoleWindowSelection.Pick(titles,controller.PreferPlayStation,detected);
+        foreach(var title in titles){
+            var item=new ComboBoxItem{Content=title,Tag="window:"+title};windows.Items.Add(item);
+            if((string)item.Tag==old||old==null&&title==preferred)windows.SelectedItem=item;
+        }
+        foreach(var monitor in WindowCaptureService.GetDisplayMonitors()){
+            var item=new ComboBoxItem{Content="الشاشة كاملة: "+monitor.Name,Tag="monitor:"+monitor.Index};windows.Items.Add(item);if((string)item.Tag==old)windows.SelectedItem=item;
         }
     }
     private void Changed(object? sender, PropertyChangedEventArgs e)
