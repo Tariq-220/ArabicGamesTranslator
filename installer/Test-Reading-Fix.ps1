@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Package)
+﻿param([Parameter(Mandatory)][string]$Package)
 $ErrorActionPreference='Stop'
 $root=Join-Path $env:RUNNER_TEMP ('reading-fix-test-'+[Guid]::NewGuid().ToString('N'))
 try{

@@ -1,4 +1,4 @@
-param([string]$BasePath,[string]$InstallRoot=(Join-Path $env:LOCALAPPDATA 'ArabicGamesLauncher'),[switch]$TestMode)
+﻿param([string]$BasePath,[string]$InstallRoot=(Join-Path $env:LOCALAPPDATA 'ArabicGamesLauncher'),[switch]$TestMode)
 $ErrorActionPreference='Stop'
 $allowed=@('GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.deps.json','GameTranslator.runtimeconfig.json')
 try {
