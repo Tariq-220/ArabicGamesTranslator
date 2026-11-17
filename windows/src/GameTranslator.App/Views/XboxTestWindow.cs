@@ -39,6 +39,7 @@ public sealed class XboxTestWindow : Window
     private readonly Slider readRight = new() { Minimum=60,Maximum=100,Value=90,TickFrequency=1,IsSnapToTickEnabled=true,Width=220 };
     private readonly PasswordBox key = new() { Width = 320, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
     private readonly ComboBox engineChoice = new() { MinWidth = 350, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)) };
+    private readonly Button engineHelp=new(){Content="كيف تحصل على API؟ ↗",MinHeight=48,Padding=new Thickness(14,8,14,8),Margin=new Thickness(8,0,0,0)};
     private readonly ComboBox cloudModel=new(){MinWidth=350,MinHeight=48,FlowDirection=FlowDirection.LeftToRight};
     private AiProvider CloudProvider => engineChoice.SelectedIndex==8?AiProvider.OpenAi:engineChoice.SelectedIndex==9?AiProvider.Claude:AiProvider.Gemini;
     private string? SelectedCloudModel => cloudModel.SelectedItem as string;
@@ -110,12 +111,12 @@ public sealed class XboxTestWindow : Window
         var gameName=new InputBox{Text=LiveServices.DialogueGame,MaxLength=100,Foreground=Brushes.White,Background=new SolidColorBrush(Color.FromRgb(34,50,71)),FlowDirection=FlowDirection.LeftToRight};
         gameName.TextChanged+=(_,_)=>{LiveServices.DialogueGame=gameName.Text;controller.DialogueGame=gameName.Text;};root.Children.Add(gameName);
         engineChoice.Items.Add("Gemini 3.8 Flash — سياق الحوار / low");engineChoice.Items.Add("DeepL — مفتاح الخدمة الخاص بك");engineChoice.Items.Add("QuickMT — محلي على اللابتوب");engineChoice.Items.Add("Jisr فصحى — محلي");engineChoice.Items.Add("Jisr سعودي — محلي");engineChoice.Items.Add("Gemini 3.5 Flash-Lite — تجربة خفيفة للمقارنة");engineChoice.Items.Add("HY-MT 1.8B — محلي Q4_K_M / تجريبي");engineChoice.Items.Add("Google — إنترنت بدون مفتاح / تجريبي");engineChoice.Items.Add("OpenAI — مفتاح مستقل / اختباري");engineChoice.Items.Add("Claude — مفتاح مستقل / اختباري");engineChoice.SelectedIndex=Math.Clamp(controller.ArabicEngineChoice,0,9);LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;
-        engineChoice.SelectionChanged+=(_,_)=>ChooseEngine();root.Children.Add(engineChoice);root.Children.Add(cloudModel);
+        engineChoice.SelectionChanged+=(_,_)=>ChooseEngine();var engineRow=new WrapPanel();engineRow.Children.Add(engineChoice);engineRow.Children.Add(engineHelp);engineHelp.Click+=(_,_)=>OpenEnginePage();root.Children.Add(engineRow);root.Children.Add(cloudModel);
         cloudModel.SelectionChanged+=(_,_)=>{if(SelectedCloudModel is {} model){controller.Stop();SecureStore.Default.Save("arabic-cloud-model:"+CloudProvider.Id(),model);if(CloudProvider==AiProvider.Gemini)LiveServices.GeminiModel=model;}};
         RefreshCloudModels();root.Children.Add(Label("Google بدون مفتاح يحتاج إنترنت ويرسل النص إلى Google؛ ليس Google Cloud API الرسمي. تصحيح قراءة وأسماء RDR2 مفعّل عند اختيار اسم اللعبة المطابق."));
         root.Children.Add(Button("تشغيل النموذج المحلي المختار — أول مرة تنزيل",StartLocalModel));
         var keys = Row(); keys.Children.Add(key); keys.Children.Add(Button("حفظ واختبار مفتاح المحرك المختار", SaveKey)); root.Children.Add(keys);
-        root.Children.Add(Button("الحصول على مفتاح المحرك المختار / صفحة التنزيل",OpenEnginePage));
+        
         root.Children.Add(Label("المفتاح من حسابك لدى المزوّد. وجود API لا يعني اشتراكًا مجانيًا أو حصة غير محدودة."));
         root.Children.Add(Label("Gemini: بعد الحفظ تبقى الخانة فارغة لحماية المفتاح. اضغط حفظ واختبار لإعادة فحص المفتاح المحفوظ."));
         root.Children.Add(Label("3 · ربط الشاشة: فعّل مصدر كمبيوتر في تطبيق TCL وأدخل هذا العنوان. اللابتوب يبقى شغالًا؛ الجوال يمكن إقفاله."));
@@ -382,6 +383,7 @@ public sealed class XboxTestWindow : Window
     }
     private void RefreshCloudModels()
     {
+        engineHelp.Content=IsLocalModel?"تنزيل / تشغيل النموذج":engineChoice.SelectedIndex==7?"بدون مفتاح — التفاصيل ↗":"كيف تحصل على API؟ ↗";
         cloudModel.Items.Clear();
         cloudModel.Visibility=engineChoice.SelectedIndex is 0 or 5 or 8 or 9?Visibility.Visible:Visibility.Collapsed;
         if(cloudModel.Visibility!=Visibility.Visible)return;

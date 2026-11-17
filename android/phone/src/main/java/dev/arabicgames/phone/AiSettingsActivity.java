@@ -25,12 +25,9 @@ public final class AiSettingsActivity extends Activity {
   root.addView(Ui.text(this,"محرك الترجمة",26));
   root.addView(Ui.text(this,"المحلي بلا إنترنت. Gemini وOpenAI وDeepL تترجم نص الحوار مع السياق؛ لا نرسل صور اللعبة. تحتاج مفتاح API خاصًا بالخدمة، وقد تُحتسب تكلفة حسب حسابك. الترجمة تحتاج تجربة فعلية للمقارنة.",15));
   root.addView(Ui.text(this,"المحرك",16));provider=new Spinner(this);
-  provider.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"محلي — بدون إنترنت","Gemini — سحابي","OpenAI — سحابي","DeepL — ترجمة متخصصة","QuickMT / Jisr على الكمبيوتر","Google — إنترنت بدون مفتاح"}));root.addView(provider);
-  address=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);address.setHint("عنوان خادم كمبيوترك: http://192.168.0.10:8790");address.setText(AiPreferences.prefs(this).getString("lanAddress",""));address.setVisibility(View.GONE);
-  root.addView(Ui.text(this,"QuickMT وJisr يحتاجان تشغيل الخادم المرفق على الكمبيوتر؛ ليست نماذج مدمجة بالجوال. الاتصال المحلي HTTP لشبكتك المنزلية الموثوقة فقط؛ رمز الربط هو خانة المفتاح.",13));
-  root.addView(Ui.text(this,"اسم النموذج — اترك الافتراضي أول تجربة",15));model=field(root,InputType.TYPE_CLASS_TEXT);
-  root.addView(Ui.text(this,"اسم اللعبة للسياق",15));game=field(root,InputType.TYPE_CLASS_TEXT);game.setText(AiPreferences.prefs(this).getString("game","Red Dead Redemption 2"));
-  Ui.button(this,root,"الحصول على مفتاح API للمحرك المختار",false,()->{
+  provider.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"محلي — بدون إنترنت","Gemini — سحابي","OpenAI — سحابي","DeepL — ترجمة متخصصة","QuickMT / Jisr على الكمبيوتر","Google — إنترنت بدون مفتاح"}));LinearLayout engineRow=new LinearLayout(this);engineRow.setOrientation(LinearLayout.HORIZONTAL);engineRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+  engineRow.addView(provider,new LinearLayout.LayoutParams(0,-2,1));
+  Ui.button(this,engineRow,"كيف تحصل على API؟ ↗",false,()->{
    String selected=providers[provider.getSelectedItemPosition()];String url;
    if(AiPreferences.GEMINI.equals(selected))url="https://aistudio.google.com/apikey";
    else if(AiPreferences.OPENAI.equals(selected))url="https://platform.openai.com/api-keys";
@@ -38,6 +35,11 @@ public final class AiSettingsActivity extends Activity {
    else {feedback.setText("المحرك المختار لا يحتاج مفتاح خدمة سحابية. QuickMT عبر الكمبيوتر يحتاج رمز خادمك المحلي.");return;}
    try{startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,android.net.Uri.parse(url)));}catch(android.content.ActivityNotFoundException e){feedback.setText("ثبّت متصفحًا لفتح صفحة المفتاح.");}
   });
+  root.addView(engineRow);
+  address=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);address.setHint("عنوان خادم كمبيوترك: http://192.168.0.10:8790");address.setText(AiPreferences.prefs(this).getString("lanAddress",""));address.setVisibility(View.GONE);
+  root.addView(Ui.text(this,"QuickMT وJisr يحتاجان تشغيل الخادم المرفق على الكمبيوتر؛ ليست نماذج مدمجة بالجوال. الاتصال المحلي HTTP لشبكتك المنزلية الموثوقة فقط؛ رمز الربط هو خانة المفتاح.",13));
+  root.addView(Ui.text(this,"اسم النموذج — اترك الافتراضي أول تجربة",15));model=field(root,InputType.TYPE_CLASS_TEXT);
+  root.addView(Ui.text(this,"اسم اللعبة للسياق",15));game=field(root,InputType.TYPE_CLASS_TEXT);game.setText(AiPreferences.prefs(this).getString("game","Red Dead Redemption 2"));
   root.addView(Ui.text(this,"مفتاح API — داخل التطبيق فقط، وليس في المحادثة",15));key=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
   key.setTag("api-key");model.setTag("api-model");provider.setTag("api-provider");key.setSaveEnabled(false);key.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
   consent=new CheckBox(this);consent.setText("أوافق على إرسال نص الحوار والسياق إلى الخدمة المختارة وتطبيق تكلفتها وسياساتها.");consent.setTextColor(Ui.TEXT);consent.setChecked(AiPreferences.cloud(this));root.addView(consent);

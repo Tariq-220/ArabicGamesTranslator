@@ -63,7 +63,20 @@ public final class MainActivity extends Activity {
   button(connectionPanel,"خروج من التطبيق",this::finish);
   button(panel,"حجم وخلفية الترجمة",this::subtitleSettings);
   panelWindow=new PanelScroll(this);panelWindow.addView(panel);int w=Math.min(dp(340),(int)(getResources().getDisplayMetrics().widthPixels*.46));FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(w,-2,Gravity.TOP|Gravity.RIGHT);pp.setMargins(dp(16),dp(16),dp(16),dp(16));root.addView(panelWindow,pp);
-  setContentView(root);host.requestFocus();
+  // Main panel stays small; setup and diagnostics are behind one explicit button.
+  List<View> oldPanel=new ArrayList<>();for(int n=0;n<panel.getChildCount();n++)oldPanel.add(panel.getChildAt(n));
+  panel.removeAllViews();panel.addView(oldPanel.get(0));panel.addView(status);panel.addView(received);
+  LinearLayout settings=column();settings.setTag("tv-settings");settings.setVisibility(View.GONE);
+  for(View view:oldPanel){
+   if(view==oldPanel.get(0)||view==status||view==received||view==actions)continue;
+   if(view instanceof Button&&"إعدادات الربط ▾".contentEquals(((Button)view).getText()))continue;
+   settings.addView(view);
+  }
+  connectionPanel.setVisibility(View.VISIBLE);
+  button(panel,"عرض اللعبة / إخفاء اللوحة",()->{tune();hidePanel();});
+  button(panel,"الإعدادات: الربط والخط والصوت",()->settings.setVisibility(settings.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
+  button(settings,"اختبار الحروف العربية",()->testLocal("اختبار العربية — الحروف متصلة فوق اللعبة"));panel.addView(settings);
+  setContentView(root);panel.requestFocus();
   if(!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
   if(host.getText().toString().isEmpty())discoverDesktop();
   if(!inputs.isEmpty()&&!getPreferences(0).getString("hdmi","").isEmpty())tune();
@@ -100,7 +113,7 @@ public final class MainActivity extends Activity {
    try{
     conn=(HttpURLConnection)new URL("http://"+address+":8787/events"+(pair==null?"":"?code="+pair+"&receiver="+receiverId)).openConnection();connection=conn;conn.setConnectTimeout(4000);conn.setReadTimeout(45000);conn.setRequestProperty("Accept","text/event-stream");
     int result=conn.getResponseCode();if(result==403){post(generation,()->{status.setText("رمز الربط غير صحيح؛ حدّثه من إعدادات الربط.");connectionPanel.setVisibility(View.VISIBLE);});return;}
-    if(result!=200)throw new IOException("HTTP "+result);retry=1000;post(generation,()->{status.setText("✓ متصل بالجوال. السطور المترجمة ستظهر فوق اللعبة.");connectionPanel.setVisibility(View.GONE);});
+    if(result!=200)throw new IOException("HTTP "+result);retry=1000;post(generation,()->{status.setText("✓ متصل بالجوال. السطور المترجمة ستظهر فوق اللعبة.");connectionPanel.setVisibility(View.VISIBLE);});
     try(BufferedReader lines=new BufferedReader(new InputStreamReader(conn.getInputStream(),StandardCharsets.UTF_8))){String event="",data="",line;
      while(!destroyed&&generation==session&&(line=lines.readLine())!=null){
       if(line.startsWith("event: "))event=line.substring(7);else if(line.startsWith("data: "))data=line.substring(6);else if(line.isEmpty()){
