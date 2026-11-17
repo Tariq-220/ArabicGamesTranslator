@@ -40,6 +40,16 @@ jobs:
         run: python scripts/package-ipk.py --version auto --out-dir tv/packages
       - name: Publish Windows application
         run: dotnet publish windows/src/GameTranslator.App/GameTranslator.App.csproj -c Release -r win-x64 --self-contained true -o publish -p:EnableWindowsTargeting=true
+      - name: Render and smoke-test Arabic setup screens
+        shell: pwsh
+        run: |
+          $p=Start-Process publish/GameTranslator.exe -ArgumentList '--render-arabic', 'ui-preview' -Wait -PassThru
+          if($p.ExitCode -ne 0){if(Test-Path ui-preview/errors.txt){Get-Content ui-preview/errors.txt};throw 'Arabic UI failed to render'}
+          if((Get-ChildItem ui-preview/arabic-*.png).Count -ne 4){throw 'Missing Arabic UI previews'}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arabic-ui-preview
+          path: ui-preview
       - name: Download verified runtime dependencies
         run: python release/bootstrap_runtime.py --target bundled-runtime
       - name: Package release and source

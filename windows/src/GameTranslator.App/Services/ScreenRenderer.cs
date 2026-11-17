@@ -19,6 +19,27 @@ namespace GameTranslator.App.Services;
 /// </summary>
 public static class ScreenRenderer
 {
+    public static void RunArabic(Application app,string folder)
+    {
+        Directory.CreateDirectory(folder);app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
+        ThemeManager.Apply(app.Resources,true);
+        try {
+            for(int selected=0;selected<4;selected++){
+                var controller=Demo(OnboardingStep.Done);
+                var window=new XboxTestWindow(controller,preview:true){Width=960,Height=850,Left=-10000,Top=-10000,ShowActivated=false};
+                var grid=(System.Windows.Controls.Grid)window.Content;
+                var tabs=grid.Children.OfType<System.Windows.Controls.TabControl>().Single();tabs.SelectedIndex=selected;
+                window.Show();window.UpdateLayout();
+                var visual=(FrameworkElement)window.Content;
+                var bitmap=new RenderTargetBitmap((int)visual.ActualWidth,(int)visual.ActualHeight,96,96,PixelFormats.Pbgra32);
+                bitmap.Render(visual);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                using(var file=File.Create(Path.Combine(folder,$"arabic-{selected+1}.png")))encoder.Save(file);
+                window.Close();
+            }
+            app.Shutdown(0);
+        }catch(Exception error){File.WriteAllText(Path.Combine(folder,"errors.txt"),error.ToString());app.Shutdown(1);}
+    }
+
     public static void Run(Application app, string folder)
     {
         Directory.CreateDirectory(folder);

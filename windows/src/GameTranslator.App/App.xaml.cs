@@ -17,7 +17,7 @@ public partial class App : Application
         // İndirilen dosyalardaki Windows Smart App Control (0xc0e90002) ve Zone.Identifier engellerini otomatik kaldır
         StartupGuard.UnblockFiles(AppContext.BaseDirectory);
 
-        var renderFolder = e.Args is ["--render-screens", var folder] ? folder : null;
+        var renderFolder = e.Args is ["--render-screens" or "--render-arabic", var folder] ? folder : null;
         // Eksik bir DLL, onu kullanan yöntem derlenirken hata verir. Bu yüzden denetim ve yakalama burada, uygulamanın
         // kendi türlerine dokunan kod ise ayrı yöntemde (Start) durur.
         var missing = StartupGuard.MissingFiles(AppContext.BaseDirectory);
@@ -42,7 +42,8 @@ public partial class App : Application
     {
         if (renderFolder is not null)
         {
-            ScreenRenderer.Run(this, renderFolder);
+            if(Environment.GetCommandLineArgs().Contains("--render-arabic"))ScreenRenderer.RunArabic(this,renderFolder);
+            else ScreenRenderer.Run(this, renderFolder);
             return;
         }
         RemotePlayDiagnostics.Start();

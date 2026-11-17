@@ -48,7 +48,7 @@ public sealed class XboxTestWindow : Window
     private readonly TextBlock connectionInfo = Label("", 16);
     private readonly Action<string, int, GameTranslator.Core.TextBox?> overlay;
 
-    public XboxTestWindow(AppController controller)
+    public XboxTestWindow(AppController controller, bool preview=false)
     {
         this.controller = controller;
         start.MinHeight=48;windows.MinHeight=48;engineChoice.MinHeight=48;key.MinHeight=48;recordComparison.MinHeight=44;
@@ -68,7 +68,7 @@ public sealed class XboxTestWindow : Window
             "ربط TCL باللابتوب",MessageBoxButton.OK,MessageBoxImage.Information)));
         root.Children.Add(updateLabel);root.Children.Add(updateButton);
         updateButton.Click+=async(_,_)=>{if(readyInstaller!=null)InstallReadyUpdate();else await CheckForUpdate();};
-        Loaded+=async(_,_)=>await CheckForUpdate();
+        if(!preview)Loaded+=async(_,_)=>await CheckForUpdate();
         root.Children.Add(Label("1 · افتح Remote Play ثم اختر نافذة اللعبة — Xbox أو PS5"));
         root.Children.Add(Button("Xbox — فتح مصدر اللعبة",()=>{controller.Stop();controller.PreferPlayStation=false;resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();OpenUrl("https://www.xbox.com/remoteplay");}));
         root.Children.Add(Button("PS5 — تشغيل Remote Play واختيار نافذته",LaunchPlayStation));
@@ -187,7 +187,7 @@ public sealed class XboxTestWindow : Window
         Grid.SetRow(live,3);shell.Children.Add(live);
         Content=shell;
         DesktopSubtitleOverlay.IsOverlayEnabled = true;
-        DesktopSubtitleOverlay.Initialize();
+        if(!preview)DesktopSubtitleOverlay.Initialize();
         overlay = (text, ms, box) => {
             DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style, box);
             if(recordComparison.IsChecked==true && controller.IsRunning && text==controller.LastTranslation && !string.IsNullOrWhiteSpace(controller.LastSource)) {
@@ -297,11 +297,11 @@ public sealed class XboxTestWindow : Window
         }
         if(engineChoice.SelectedIndex==7){status.Text="جارٍ اختبار Google بدون مفتاح…";try{status.Text="Google: "+await new GoogleGtxTranslator().TranslateAsync("Keep going.");}catch{status.Text="تعذر اختبار Google. تحقق من الإنترنت أو جرّب لاحقًا.";}return;}
         if(IsLocalModel){try{var sample=await LocalTranslator().TranslateAsync("Keep going. Through the palms.");status.Text="اختبار محلي: "+sample;}catch(Exception error){status.Text=LocalError(error);}return;}
-        if (string.IsNullOrWhiteSpace(key.Password) && !(engineChoice.SelectedIndex!=1 && controller.HasGeminiKey)) { status.Text = "أدخل المفتاح مرة واحدة؛ لا يوجد مفتاح محفوظ لهذا المحرك."; return; }
+        if (string.IsNullOrWhiteSpace(key.Password) && !(engineChoice.SelectedIndex==1?controller.HasDeepLKey:controller.HasGeminiKey)) { status.Text = "أدخل المفتاح مرة واحدة؛ لا يوجد مفتاح محفوظ لهذا المحرك."; return; }
         status.Text = "جارٍ اختبار المفتاح؛ قد يستغرق الطلب الأول حتى 25 ثانية…";
         try
         {
-            var result = engineChoice.SelectedIndex==1 ? await controller.SetDeepLKeyAsync(key.Password) : (string.IsNullOrWhiteSpace(key.Password)?await controller.TestSavedGeminiKeyAsync():await controller.SetGeminiKeyAsync(key.Password,persistUnverified:true));
+            var result = engineChoice.SelectedIndex==1 ? (string.IsNullOrWhiteSpace(key.Password)?await controller.CheckDeepLKeyAsync():await controller.SetDeepLKeyAsync(key.Password)) : (string.IsNullOrWhiteSpace(key.Password)?await controller.TestSavedGeminiKeyAsync():await controller.SetGeminiKeyAsync(key.Password,persistUnverified:true));
             bool saved=result.State==OnlineKeyState.Valid;
             if(saved)key.Clear();
             status.Text=saved ? "المفتاح محفوظ محليًا بتشفير Windows. اختر النافذة ثم ابدأ الترجمة." : (controller.HasGeminiKey && engineChoice.SelectedIndex!=1?"المفتاح محفوظ. نتيجة الاتصال: ":"نتيجة الاختبار: ")+result.State+(engineChoice.SelectedIndex!=1?"\n"+LiveServices.LastKeyCheckDetail:"");
