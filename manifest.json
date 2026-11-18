@@ -9,9 +9,9 @@
       "path": "phone/0.4.11/ArabicGames-Phone-0.4.11-arm64.apk",
       "name": "ArabicGames-Phone-0.4.11-arm64.apk",
       "bytes": 46240713,
-      "sha256": "2f48fb19d1ae006ceffe75266535bc74b42cd44c5cff6c99ed1f41544f7ce559",
+      "sha256": "2a46684617e3bbdb4e0def4089adb1fa217cf1a626d64ab25ea79fe4fa3f7dd4",
       "certificate_sha256": "8bfb9b64929ed8a0565eaf89ab61469ef91370ce968e5a99873fa437d62e02ca",
-      "source": "9d2fb0d883d0d49c193c100bbbb2a9175875eb9f"
+      "source": "b2884a970ee1c76aa0dee7ae1eb22e1cb1e32832"
     },
     {
       "platform": "tv",
