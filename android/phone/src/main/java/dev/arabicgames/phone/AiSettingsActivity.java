@@ -42,6 +42,7 @@ public final class AiSettingsActivity extends Activity {
   root.addView(engineRow);
   address=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);address.setHint("عنوان خادم كمبيوترك: http://192.168.0.10:8790");address.setText(AiPreferences.prefs(this).getString("lanAddress",""));address.setVisibility(View.GONE);
   root.addView(Ui.text(this,"اختر «على الجوال» للتشغيل المحلي، أو «على الكمبيوتر» لاستخدام خادم اللابتوب. الاتصال بالخادم المنزلي يحتاج رمز الربط فقط.",13));
+  Ui.button(this,root,"التحكم بالتأخير وسرعة القراءة المحلية",false,()->startActivity(new android.content.Intent(this,TimingActivity.class)));
   Ui.button(this,root,"تنزيل / إدارة QuickMT وجسر على الجوال",false,()->startActivity(new android.content.Intent(this,LocalModelsActivity.class)));
   root.addView(Ui.text(this,"اختر النموذج من القائمة — لا تحتاج كتابة اسمه",15));
   modelChoice=new Spinner(this);modelChoice.setTag("model-choice");modelChoice.setMinimumHeight(Ui.dp(this,52));modelChoice.setBackground(Ui.background(this,Ui.CARD));root.addView(modelChoice,new LinearLayout.LayoutParams(-1,-2));

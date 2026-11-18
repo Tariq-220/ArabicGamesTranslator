@@ -20,10 +20,11 @@ public final class XboxActivity extends Activity {
  private View darkCover;private float previousBrightness;private int previousSystemUi;
  private String script,audioScript;private boolean phoneMuted=true;
  private final dev.arabicgames.ReadingSession reading=new dev.arabicgames.ReadingSession();
- private boolean pending,resumed,destroyed;private int requestId;private long audioAt;
+ private boolean pending,resumed,destroyed;private int requestId;private long audioAt,pendingAt;
  private final Handler ui=new Handler(Looper.getMainLooper());
  private final Runnable poll=new Runnable(){public void run(){
   if(destroyed||!resumed)return;
+  if(pending&&SystemClock.elapsedRealtime()-pendingAt>=3000){pending=false;requestId++;PipelineMetrics.captureTimeouts.incrementAndGet();Status.message="تأخرت قراءة فيديو Xbox؛ أُعيد طلب إطار حديث.";}
   String connection=Status.clients>0?"شاشات متصلة: "+Status.clients:"لا توجد شاشة متصلة";
   status.setText(connection+" · "+(reading.requested()?CaptureService.directState():"اضغط بدء الترجمة")+"\n"+Status.message);
   String arabic=Status.arabic;
@@ -31,7 +32,7 @@ public final class XboxActivity extends Activity {
   caption.setVisibility(arabic.isEmpty()?View.GONE:View.VISIBLE);
   if(SystemClock.elapsedRealtime()-audioAt>700){applyAudio();audioAt=SystemClock.elapsedRealtime();}
   if(reading.active()&&!pending&&CaptureService.acceptsDirect()&&isXbox(browser.getUrl())){
-   pending=true;final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
+   pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
     if(callbackId!=requestId)return;pending=false;if(!reading.accepts(generation)||destroyed)return;
     try{
      Object raw=new JSONTokener(value).nextValue();if(!(raw instanceof String))return;JSONObject frame=new JSONObject((String)raw);
@@ -43,7 +44,7 @@ public final class XboxActivity extends Activity {
     }catch(Exception e){Status.message="لم تصل صورة فيديو صالحة. افتح تفاصيل الترجمة من القائمة.";}
    });
   }
-  ui.postDelayed(this,200);
+  ui.postDelayed(this,(AiPreferences.NATIVE.equals(AiPreferences.provider(XboxActivity.this))||AiPreferences.LOCAL.equals(AiPreferences.provider(XboxActivity.this)))?LocalTiming.interval(XboxActivity.this):200);
  }};
  private static boolean isXbox(String url){try{Uri u=Uri.parse(url);String h=u.getHost();return "https".equals(u.getScheme())&&h!=null&&(h.equals("xbox.com")||h.endsWith(".xbox.com"));}catch(Exception e){return false;}}
  @Override public void onCreate(Bundle saved){super.onCreate(saved);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().setStatusBarColor(Ui.BG);getWindow().setNavigationBarColor(Ui.BG);

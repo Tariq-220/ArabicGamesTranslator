@@ -35,7 +35,8 @@ public final class CaptureService extends Service {
  private PowerManager.WakeLock wake;
  private final AtomicBoolean busy=new AtomicBoolean();
  private final LatestLocalQueue localQueue=new LatestLocalQueue();private volatile long lastLocalOcr;
- private boolean localOcrAllowed(){return !localQueue.working()||SystemClock.elapsedRealtime()-lastLocalOcr>=350;}
+ private boolean isLocal(){return engine!=null&&(AiPreferences.NATIVE.equals(engine.provider)||AiPreferences.LOCAL.equals(engine.provider));}
+ private boolean localOcrAllowed(){return SystemClock.elapsedRealtime()-lastLocalOcr>=(isLocal()?LocalTiming.interval(this):200);}
  private final SubtitleGate gate=new SubtitleGate();
  private AiPreferences.Config engine;
  private volatile LocalModels.Session localSession;private int localLoadEpoch=-1,modelGeneration;
@@ -109,7 +110,7 @@ public final class CaptureService extends Service {
   Image image=null;Bitmap cropped=null;
   long now=SystemClock.elapsedRealtime();
   try {
-   image=from.acquireLatestImage();if(image==null||closed||!ready||!localOcrAllowed()||now-sampled<300||!busy.compareAndSet(false,true))return;
+   image=from.acquireLatestImage();if(image==null||closed||!ready||!localOcrAllowed()||now-sampled<(isLocal()?LocalTiming.interval(this):300)||!busy.compareAndSet(false,true))return;
    sampled=now;int generation=epoch;
    Image.Plane p=image.getPlanes()[0];ByteBuffer buffer=p.getBuffer();int paddedWidth=p.getRowStride()/p.getPixelStride();
    Bitmap full=Bitmap.createBitmap(paddedWidth,image.getHeight(),Bitmap.Config.ARGB_8888);full.copyPixelsFromBuffer(buffer);
@@ -137,7 +138,7 @@ public final class CaptureService extends Service {
   Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
  }
  private void loadTranslationSettings(){try{engine=AiPreferences.read(this);}catch(Exception e){engine=new AiPreferences.Config(AiPreferences.provider(this),"","","",AiPreferences.cloud(this));Status.message="تعذر قراءة مفتاح AI. افتح إعدادات المحرك وأعد إدخاله.";}}
- static String directState(){CaptureService s=current;if(s==null||s.closed)return "خدمة الربط متوقفة";if(!s.directActive)return "اختر وضع Xbox المباشر";if(!s.ready)return s.modelDownloading?"تجهيز نموذج العربية…":"نموذج العربية غير جاهز داخل جلسة القراءة";return s.busy.get()?"معالجة إطار":"جاهز لقراءة الفيديو";}
+ static String directState(){CaptureService s=current;if(s==null||s.closed)return "خدمة الربط متوقفة";if(!s.directActive)return "اختر وضع Xbox المباشر";if(!s.ready)return s.modelDownloading?"تجهيز نموذج العربية…":"نموذج العربية غير جاهز داخل جلسة القراءة";return s.localQueue.working()?"النموذج المحلي يترجم — قراءة الحوار مستمرة":s.busy.get()?"معالجة إطار":"جاهز لقراءة الفيديو";}
  private void ensureModel(){
   if(engine!=null&&AiPreferences.NATIVE.equals(engine.provider)){
    if(closed||ready||localLoadEpoch==modelGeneration)return;
@@ -164,7 +165,7 @@ public final class CaptureService extends Service {
  }
  static void directJpeg(byte[] jpeg){directJpeg(jpeg,false,0);}
  static void directJpeg(byte[] jpeg,boolean cropFull,int rotation){
-  CaptureService s=current;if(s==null||s.closed||!s.directActive||!s.ready||!s.busy.compareAndSet(false,true))return;
+  CaptureService s=current;if(s==null||s.closed||!s.directActive||!s.ready||!s.localOcrAllowed()||!s.busy.compareAndSet(false,true))return;
   int generation=s.epoch;long now=SystemClock.elapsedRealtime();
   s.frames.post(()->{
    Bitmap full=null,crop=null;
@@ -180,12 +181,12 @@ public final class CaptureService extends Service {
  }
  private void processBitmap(Bitmap bitmap,long now,int generation){
    if(apiTestActive||projection!=null&&Status.translatorUiVisible){bitmap.recycle();busy.set(false);return;}
-   lastLocalOcr=SystemClock.elapsedRealtime();Status.framesRead++;
+   lastLocalOcr=SystemClock.elapsedRealtime();Status.framesRead++;PipelineMetrics.ocr.incrementAndGet();
    recognizer.process(InputImage.fromBitmap(bitmap,0))
     .addOnSuccessListener(result->{
      int bitmapWidth=bitmap.getWidth();bitmap.recycle();if(closed||generation!=epoch){busy.set(false);return;}
      String observed=ReadingRegion.sourceLimit(SubtitleGate.normalize(dialogueText(result,bitmapWidth)));Status.observedOcr=observed;String cleaned=getSharedPreferences("reading",0).getBoolean("dialogueOnly",true)?CaptionNoise.clean(this,observed,AiPreferences.game(this)):observed;String text=DialogueProfile.english(cleaned,AiPreferences.game(this));long readDone=SystemClock.elapsedRealtime();
-     if(text.isEmpty()){
+     if(text.isEmpty()){PipelineMetrics.empty.incrementAndGet();if(!observed.isEmpty()&&cleaned.isEmpty())PipelineMetrics.filtered.incrementAndGet();
       if(readDone-lastText>1200){localQueue.reset();gate.absent();lease.clear();if(!Status.arabic.isEmpty()){Status.arabic="";if(server!=null)server.clear();}}
       if(!observed.isEmpty()&&cleaned.isEmpty())Status.message="تم تجاهل قوائم Xbox أو أسماء الطاقم. خيار الحوار فقط من قائمة الجلسة.";else if(readDone-started>10000&&readDone-lastText>10000)Status.message="لم يظهر نص: فعّل ترجمة اللعبة الإنجليزية. قد يكون البث أسود أو محميًا من الالتقاط؛ لا يمكن قراءة محتوى محمي.";
       busy.set(false);return;
@@ -197,11 +198,11 @@ public final class CaptureService extends Service {
      if(reviewed!=null){localQueue.reset();Status.source=text;publish(text,reviewed,now,readDone,readDone,generation,"تصحيحك المعتمد — بدون طلب محرك");return;}
      String packed=GameNames.same(pack.game,AiPreferences.game(this))?pack.find(text):null;
      if(packed!=null&&!gate.alreadyShown(text)){localQueue.reset();Status.source=text;publish(text,packed,now,readDone,readDone,generation,"حزمة عربية: "+pack.game);return;}
-     if(!gate.accept(text,readDone)){busy.set(false);return;}
+     if(!gate.accept(text,readDone,isLocal()?LocalTiming.settle(this):180)){busy.set(false);return;}
      Status.source=text;String known=gate.cached(text);
      if(known!=null){localQueue.reset();publish(text,known,now,readDone,readDone,generation,"ذاكرة الترجمة — "+(engine!=null&&engine.cloud()?engine.label():"محلي"));return;}
      if(engine!=null&&(AiPreferences.NATIVE.equals(engine.provider)||AiPreferences.LOCAL.equals(engine.provider))){
-      if(readDone>=cloudRetryAfter)localQueue.offer(text,generation,now,readDone);busy.set(false);drainLocalQueue();return;
+      if(readDone>=cloudRetryAfter){if(localQueue.offer(text,generation,now,readDone))PipelineMetrics.queued.incrementAndGet();}busy.set(false);drainLocalQueue();return;
      }
      if(engine!=null&&(engine.cloud()||AiPreferences.NATIVE.equals(engine.provider))){
       if(readDone<cloudRetryAfter){busy.set(false);return;}
@@ -215,20 +216,20 @@ public final class CaptureService extends Service {
          if(!closed&&generation==epoch&&finished-now>4500){gate.remember(text,arabic);busy.set(false);Status.message="تأخرت ترجمة AI؛ حُفظت للسطر المتكرر دون عرض سطر قديم.";return;}
          publish(text,arabic,now,readDone,finished,generation,selected.label());
         });
-       }catch(Exception error){ui.post(()->{if(!closed&&generation==epoch){gate.retry();int failures=Math.min(4,cloudFailures++);long cooldown=error instanceof AiClient.Failure?AiClient.retryDelay((AiClient.Failure)error,failures):1000;cloudRetryAfter=SystemClock.elapsedRealtime()+cooldown;Status.message=AiPreferences.NATIVE.equals(selected.provider)?"تعذرت ترجمة السطر محليًا؛ أعد المحاولة أو اختر نموذجًا آخر.":error.getMessage()+" اختر المحلي من إعدادات المحرك إذا لزم.";}busy.set(false);});}
+       }catch(Exception error){PipelineMetrics.failures.incrementAndGet();ui.post(()->{if(!closed&&generation==epoch){gate.retry();int failures=Math.min(4,cloudFailures++);long cooldown=error instanceof AiClient.Failure?AiClient.retryDelay((AiClient.Failure)error,failures):1000;cloudRetryAfter=SystemClock.elapsedRealtime()+cooldown;Status.message=AiPreferences.NATIVE.equals(selected.provider)?"تعذرت ترجمة السطر محليًا؛ أعد المحاولة أو اختر نموذجًا آخر.":error.getMessage()+" اختر المحلي من إعدادات المحرك إذا لزم.";}busy.set(false);});}
       });return;
      }
      translator.translate(text).addOnSuccessListener(arabic->publish(text,arabic,now,readDone,SystemClock.elapsedRealtime(),generation,"النموذج المحلي"))
-      .addOnFailureListener(e->{gate.retry();Status.message="تعذرت ترجمة هذا السطر محليًا؛ ستُعاد المحاولة.";busy.set(false);});
-    }).addOnFailureListener(e->{bitmap.recycle();Status.message="تعذرت قراءة الإطار.";busy.set(false);});
+      .addOnFailureListener(e->{PipelineMetrics.failures.incrementAndGet();gate.retry();Status.message="تعذرت ترجمة هذا السطر محليًا؛ ستُعاد المحاولة.";busy.set(false);});
+    }).addOnFailureListener(e->{PipelineMetrics.ocrFailures.incrementAndGet();bitmap.recycle();Status.message="تعذرت قراءة الإطار.";busy.set(false);});
  }
  private void drainLocalQueue(){
   if(closed)return;LatestLocalQueue.Job job=localQueue.take();if(job==null)return;LocalModels.Session local=localSession;AiPreferences.Config selected=engine;
   aiWorker.execute(()->{try{boolean nativeModel=AiPreferences.NATIVE.equals(selected.provider);if(nativeModel&&local==null||closed||job.generation!=epoch)return;long sent=SystemClock.elapsedRealtime();String arabic=nativeModel?local.translate(job.source):com.google.android.gms.tasks.Tasks.await(translator.translate(job.source),8,java.util.concurrent.TimeUnit.SECONDS);long finished=SystemClock.elapsedRealtime();ui.post(()->{
-    if(!closed&&job.generation==epoch){Status.cloudMetrics="محلي على الجوال: "+selected.model+" | استدلال: "+(finished-sent)+" ms | انتظار: "+(sent-job.readDone)+" ms";
-     if(localQueue.current(job)){if(finished-job.captured<=4500)publish(job.source,arabic,job.captured,job.readDone,finished,job.generation,selected.label(),false,finished-sent,sent-job.readDone);else{gate.remember(job.source,arabic);Status.message="النموذج المحلي بطيء لهذا السطر؛ حُفظ دون عرض نص قديم. جرّب جسر الأخف وقارن زمن الاستدلال.";}}}
+    if(!closed&&job.generation==epoch){gate.remember(job.source,arabic);Status.cloudMetrics="محلي على الجوال: "+selected.model+" | استدلال: "+(finished-sent)+" ms | انتظار: "+(sent-job.readDone)+" ms";
+     if(localQueue.current(job)){if(finished-job.captured<=LocalTiming.maxAge(this))publish(job.source,arabic,job.captured,job.readDone,finished,job.generation,selected.label(),false,finished-sent,sent-job.readDone);else{PipelineMetrics.expired.incrementAndGet();gate.remember(job.source,arabic);Status.message="النموذج المحلي بطيء لهذا السطر؛ حُفظ دون عرض نص قديم. اضبط أقصى عمر للسطر من سرعة القراءة المحلية.";}}else PipelineMetrics.superseded.incrementAndGet();}
    });
-  }catch(Exception e){ui.post(()->{if(!closed&&job.generation==epoch&&localQueue.current(job)){gate.retry();cloudRetryAfter=SystemClock.elapsedRealtime()+1000;Status.message="تعذرت ترجمة السطر محليًا؛ ستُعاد المحاولة دون تراكم طلبات.";}});}finally{ui.post(()->{localQueue.finish(job);drainLocalQueue();});}});
+  }catch(Exception e){PipelineMetrics.failures.incrementAndGet();ui.post(()->{if(!closed&&job.generation==epoch&&localQueue.current(job)){gate.retry();cloudRetryAfter=SystemClock.elapsedRealtime()+1000;Status.message="تعذرت ترجمة السطر محليًا؛ ستُعاد المحاولة دون تراكم طلبات.";}});}finally{ui.post(()->{localQueue.finish(job);drainLocalQueue();});}});
  }
  private String dialogueText(com.google.mlkit.vision.text.Text result,int width){
   if(!DialogueProfile.rdr2(AiPreferences.game(this)))return result.getText();StringBuilder text=new StringBuilder();float[] region=ReadingRegion.bounds(getSharedPreferences("reading",0).getString("region","subtitles"));
@@ -240,7 +241,7 @@ public final class CaptureService extends Service {
   if(!origin.startsWith("تصحيحك المعتمد"))arabic=DialogueProfile.arabic(text,arabic,AiPreferences.game(this));
   try{
    if(closed||generation!=epoch)return;
-   gate.remember(text,arabic);gate.shown(text);lease.store(text,arabic,translated);Status.arabic=arabic;
+   PipelineMetrics.published.incrementAndGet();gate.remember(text,arabic);gate.shown(text);lease.store(text,arabic,translated);Status.arabic=arabic;
    if(getSharedPreferences("reading",0).getBoolean("history",true))DialogueStore.get(this).add(engine==null?"":engine.game,getSharedPreferences("reading",0).getString("region","subtitles"),text,arabic,origin,readDone-captured,translated-readDone,translated-captured,inferenceMs,queueMs);
    String context=text+" → "+arabic;if(history.isEmpty()||!history.peekLast().equals(context)){history.addLast(context);while(history.size()>3)history.removeFirst();}
    Status.metrics="المصدر: "+origin+" | قراءة: "+(readDone-captured)+" ms | ترجمة: "+(translated-readDone)+" ms | تجهيز السطر: "+(translated-captured)+" ms (لا يشمل بث Xbox / PS5 أو عرض TV)";

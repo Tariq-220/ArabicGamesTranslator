@@ -5,4 +5,5 @@ public class LatestLocalQueueTest {
  @Test public void repeatedOcrNeverRetranslatesCurrentWork(){LatestLocalQueue q=new LatestLocalQueue();q.offer("same",1,0,1);var job=q.take();for(int i=0;i<50;i++)assertFalse(q.offer("same",1,2,3));assertTrue(q.current(job));q.finish(job);assertNull(q.take());}
  @Test public void resettingDoesNotAllowOverlappingInferenceOrStaleOutput(){LatestLocalQueue q=new LatestLocalQueue();q.offer("old",1,0,1);var old=q.take();q.reset();q.offer("new",2,2,3);assertFalse(q.current(old));assertNull(q.take());q.finish(old);assertEquals("new",q.take().source);}
  @Test public void returningToRunningSubtitleDiscardsTheSupersededWaitingLine(){LatestLocalQueue q=new LatestLocalQueue();q.offer("A",1,0,1);var a=q.take();q.offer("B",1,2,3);q.offer("A",1,4,5);assertTrue(q.current(a));q.finish(a);assertNull(q.take());}
+ @Test public void punctuationJitterCannotStarveCompletedInference(){LatestLocalQueue q=new LatestLocalQueue();q.offer("And why're we doing this?",1,0,10);var job=q.take();assertFalse(q.offer("And whyre we doing this.",1,100,120));assertTrue(q.current(job));q.finish(job);assertNull(q.take());}
 }

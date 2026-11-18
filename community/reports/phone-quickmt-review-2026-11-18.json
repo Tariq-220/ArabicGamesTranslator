@@ -1,0 +1,492 @@
+{
+  "source": "comparison-phone.jsonl",
+  "rows": 200,
+  "game": "Grand Theft Auto VI",
+  "engines": {
+    "ذاكرة الترجمة — محلي": {
+      "count": 34,
+      "read_ms": {
+        "median": 62.5,
+        "p95": 168,
+        "max": 193
+      },
+      "translation_ms": {
+        "median": 0.0,
+        "p95": 0,
+        "max": 0
+      },
+      "total_ms": {
+        "median": 62.5,
+        "p95": 168,
+        "max": 193
+      },
+      "inference_ms": {
+        "median": -1.0,
+        "p95": -1,
+        "max": -1
+      },
+      "queue_ms": {
+        "median": 0.0,
+        "p95": 0,
+        "max": 0
+      }
+    },
+    "محلي على الجوال / quickmt-en-ar": {
+      "count": 166,
+      "read_ms": {
+        "median": 70.0,
+        "p95": 96,
+        "max": 128
+      },
+      "translation_ms": {
+        "median": 381.5,
+        "p95": 723,
+        "max": 878
+      },
+      "total_ms": {
+        "median": 447.0,
+        "p95": 814,
+        "max": 922
+      },
+      "inference_ms": {
+        "median": 376.0,
+        "p95": 711,
+        "max": 878
+      },
+      "queue_ms": {
+        "median": 0.0,
+        "p95": 1,
+        "max": 566
+      }
+    }
+  },
+  "limits": "Only successful displayed rows were present. No failure events or capture/stability/TV latency measurement; stalls cannot be timed or attributed from this file. No cloud engine samples present.",
+  "reviewed_rows": 84,
+  "new_exact_keys": 99,
+  "quarantined": [
+    "Well, Donnie tried to pull a fast one on. Messed up again.",
+    "Let's"
+  ],
+  "reviewed_changes": [
+    {
+      "source": "Double check.",
+      "before": "الاختيار المزدوج.",
+      "after": "تأكد مرة أخرى."
+    },
+    {
+      "source": "Sit tight. We're gonna check on a couple things.\nWhat's he doing with the bag?",
+      "before": "إجلسوا هنا، سنتفقد بعض الأشياء ماذا يفعل بحقيبة؟",
+      "after": "انتظروا هنا. سنتحقق من بعض الأمور.\nماذا يفعل بالحقيبة؟"
+    },
+    {
+      "source": "Sit tight We're gonna check on a couple things",
+      "before": "إجلسي جيداً سنتفقد بعض الأشياء",
+      "after": "انتظر هنا. سنتحقق من بعض الأمور."
+    },
+    {
+      "source": "It's just one foot in front of the other. Come on.",
+      "before": "انها مجرد قدم واحدة أمام الأخرى هيا",
+      "after": "فقط ضع قدمًا أمام الأخرى. هيا."
+    },
+    {
+      "source": "Fuck We can't hit 'em from the front.",
+      "before": "تباً لا يمكننا ضربهم من الجبهة",
+      "after": "تبًا! لا يمكننا مهاجمتهم من الأمام."
+    },
+    {
+      "source": "Hey, you know what?",
+      "before": "أتعلمين ماذا؟",
+      "after": "اسمع، أتعلم شيئًا؟"
+    },
+    {
+      "source": "Let's not.",
+      "before": "دعنا لا.",
+      "after": "الأفضل ألا نفعل."
+    },
+    {
+      "source": "Let's just.. head back and stay the fuck out of this.",
+      "before": "دعنا فقط نعود ونبقى خارج هذا",
+      "after": "لنعد فحسب... ولنبقَ بعيدين عن هذه المصيبة."
+    },
+    {
+      "source": "Let'sjust... head back and stay the fuck out of this.",
+      "before": "دعنا فقط نعود ونبقى خارج هذا",
+      "after": "لنعد فحسب... ولنبقَ بعيدين عن هذه المصيبة."
+    },
+    {
+      "source": "Jay... we are not getting paid enough for this, man!",
+      "before": "جاي... نحن لا نتلقى ما يكفي من المال لهذا، رجل!",
+      "after": "جاي... أجرنا لا يستحق كل هذا الخطر يا رجل!"
+    },
+    {
+      "source": "So what? We're just gonna- we're just gonna what?",
+      "before": "ماذا إذاً؟ سنذهب فقط ماذا؟",
+      "after": "وماذا بعد؟ سنفعل... سنفعل ماذا بالضبط؟"
+    },
+    {
+      "source": "RV PARK\nl go get Donnie. Don't get out of the boat.",
+      "before": "(آر في بارك) سأذهب لإحضار (دوني) لا تخرج من القارب",
+      "after": "سأذهب لإحضار دوني. لا تخرج من القارب."
+    },
+    {
+      "source": "Absolutely goddamn right.",
+      "before": "بالتأكيد حق ملعون.",
+      "after": "صحيح تمامًا، تبًا!"
+    },
+    {
+      "source": "Okay, alright, just- just tell me as soon you got him, okay?",
+      "before": "حسناً، فقط أخبريني حالما تقبضين عليه، حسناً؟",
+      "after": "حسنًا، فقط أخبرني فور العثور عليه، اتفقنا؟"
+    },
+    {
+      "source": "And haul ass, man.",
+      "before": "و اسحب المؤخرة يا رجل",
+      "after": "وأسرع يا رجل!"
+    },
+    {
+      "source": "What's doin'?",
+      "before": "ماذا تفعل؟",
+      "after": "ما الأخبار؟"
+    },
+    {
+      "source": "God, ain't this some shit.",
+      "before": "يا إلهي، أليس هذا هراءً؟",
+      "after": "يا إلهي، يا لها من مصيبة."
+    },
+    {
+      "source": "Whatever. This stuff the good stuff?\nHey. that radio tower still giving you problems?",
+      "before": "لا يهم، هل هذه الأشياء الجيدة؟ برج الراديو هذا لا يزال يسبب لك المشاكل؟",
+      "after": "لا يهم. هل هذه البضاعة من النوع الممتاز؟\nاسمع، هل ما زال برج الإذاعة يسبب لك المشاكل؟"
+    },
+    {
+      "source": "Whatever. This stuff the good stuff?\nHey, that radio tower still giving you problems?",
+      "before": "لا يهم، هل هذه الأشياء الجيدة؟ هل مازال برج الراديو يسبب لك المشاكل؟",
+      "after": "لا يهم. هل هذه البضاعة من النوع الممتاز؟\nاسمع، هل ما زال برج الإذاعة يسبب لك المشاكل؟"
+    },
+    {
+      "source": "That's some serious hardware.",
+      "before": "هذه بعض الأجهزة الخطيرة",
+      "after": "تلك أسلحة ثقيلة فعلًا."
+    },
+    {
+      "source": "Alive? Yeah, he's still here.",
+      "before": "نعم، لا يزال هنا",
+      "after": "حيّ؟ نعم، ما زال هنا."
+    },
+    {
+      "source": "HAT\nAlive? Yeah, he's still here.",
+      "before": "نعم، لا يزال هنا",
+      "after": "حيّ؟ نعم، ما زال هنا."
+    },
+    {
+      "source": "Now, who the hell built this outhouse back here? She's a beaut.",
+      "before": "الآن، من بنى هذا المنزل الخارجي هنا بحق الجحيم؟",
+      "after": "من بنى هذا المرحاض الخارجي هنا بحق الجحيم؟ إنه رائع."
+    },
+    {
+      "source": "I need me one of those.",
+      "before": "أحتاج إلى واحدة من هؤلاء.",
+      "after": "أحتاج إلى واحد من هذه."
+    },
+    {
+      "source": "Can never have too much storage space, am I right?",
+      "before": "لا يمكن أبدا أن يكون مساحة تخزين كبيرة جدا، وأنا على حق؟",
+      "after": "كلما زادت مساحة التخزين كان أفضل، أليس كذلك؟"
+    },
+    {
+      "source": "C'mon, you drag me all the way west of camp, to..",
+      "before": "هيا، أنت تجرني إلى الغرب من المخيم، إلى...",
+      "after": "هيا، جررتني كل هذه المسافة إلى غرب المخيم، إلى..."
+    },
+    {
+      "source": "C'mon, you drag me all the way west of camp, to...",
+      "before": "هيا، أنت تجرني كل الطريق غرب المخيم، إلى...",
+      "after": "هيا، جررتني كل هذه المسافة إلى غرب المخيم، إلى..."
+    },
+    {
+      "source": "this tiny little shack, next to the turbine...",
+      "before": "هذا الكوخ الصغير الصغير بجانب التوربينات",
+      "after": "هذا الكوخ الصغير جدًا بجوار التوربين..."
+    },
+    {
+      "source": "this tiny little shack, next to the turbine..",
+      "before": "هذا الكوخ الصغير الصغير بجانب التوربينات",
+      "after": "هذا الكوخ الصغير جدًا بجوار التوربين..."
+    },
+    {
+      "source": "Hey. you talking to somebody?",
+      "before": "هل تتحدثين مع شخص ما؟",
+      "after": "مهلًا، هل تتحدث مع أحد؟"
+    },
+    {
+      "source": "Jump! Jump!",
+      "before": "اقفز اقفز اقفز",
+      "after": "اقفز! اقفز!"
+    },
+    {
+      "source": "C'mon! Up! Up!",
+      "before": "هيا، انهضوا",
+      "after": "هيا! اصعد! اصعد!"
+    },
+    {
+      "source": "Do somethin', you stripy bitch!",
+      "before": "افعلي شيئاً أيتها العاهرة المتعرية",
+      "after": "افعلي شيئًا، أيتها اللعينة المخططة!"
+    },
+    {
+      "source": "He can cry, he can beg. plead, piss himself.\nFind a way into the shack",
+      "before": "يمكنه البكاء، يمكنه التسول، التبول، التبول، إيجاد طريق إلى الكوخ",
+      "after": "فليبكِ ويتوسل ويتضرع ويبلل سرواله."
+    },
+    {
+      "source": "He can cry, he can beg. plead, piss himself.\nCal, I got Donnie.\nFind a way into the shack",
+      "before": "(كال)، لقد أمسكت بـ(دوني)، جد طريقاً إلى الكوخ",
+      "after": "فليبكِ ويتوسل ويتضرع ويبلل سرواله.\nكال، دوني معي."
+    },
+    {
+      "source": "He can cry, he can beg. plead, piss himself.\nFind a way into the shack",
+      "before": "يمكنه البكاء، يمكنه التسول، التبول، التبول، إيجاد طريق إلى الكوخ",
+      "after": "فليبكِ ويتوسل ويتضرع ويبلل سرواله."
+    },
+    {
+      "source": "Get out of here, meet us at Brian's.\nFind a way into the shack",
+      "before": "اخرج من هنا قابلنا عند براين اعثر على طريق الى الكوخ",
+      "after": "اخرج من هنا، وقابلنا عند برايان."
+    },
+    {
+      "source": "I dunno, he's a funny guy.",
+      "before": "لا أعلم، إنه رجل مضحك",
+      "after": "لا أدري، إنه شخص مضحك."
+    },
+    {
+      "source": "I dunno, he's a funny guy.\nYou know that's what he wants?",
+      "before": "لا أعلم، إنه رجل مضحك أتعلمين هذا ما يريده؟",
+      "after": "لا أدري، إنه شخص مضحك.\nأتعلم أن هذا ما يريده؟"
+    },
+    {
+      "source": "Believe me, this his last stop. Just keeping him on ice.",
+      "before": "صدقني، هذه محطته الأخيرة، فقط يبقيه على الثلج",
+      "after": "صدقني، هذه محطته الأخيرة. نحتجزه مؤقتًا فحسب."
+    },
+    {
+      "source": "It's about fucking time!",
+      "before": "إنه حول الوقت اللعين!",
+      "after": "أخيرًا، تبًا!"
+    },
+    {
+      "source": "Donnie, I'm gonna chicken-fry your fucking balls!",
+      "before": "دوني) ، سأقلي خصيتيك اللعينة)",
+      "after": "دوني، سأقلي خصيتيك اللعينتين!"
+    },
+    {
+      "source": "Donnie, I'm gonna chicken-fry your fucking balls!\nOh shit.",
+      "before": "دوني) سأقلي خصيتيك اللعينة)",
+      "after": "دوني، سأقلي خصيتيك اللعينتين!\nتبًا!"
+    },
+    {
+      "source": "Hell yeah!\nBoy, I'm gonna gut you like a fish.\nPress Xto fight",
+      "before": "نعم، سأخرجك كالسمكة، اضغط على \"إكس تو\" لتقاتل",
+      "after": "أجل، تبًا!\nسأشق بطنك كالسمكة يا فتى."
+    },
+    {
+      "source": "What the fuck?\nPress X to fight",
+      "before": "ماذا بحق الجحيم؟ اضغط X لمحاربة",
+      "after": "ما هذا بحق الجحيم؟"
+    },
+    {
+      "source": "Damn it!\nYou fucker!\nPress X to fight",
+      "before": "اللعنة، أيها اللعين، اضغط على \"إكس\" للقتال",
+      "after": "تبًا!\nأيها اللعين!"
+    },
+    {
+      "source": "Psycho! Ease up.\nFuck!\nPress X to fight",
+      "before": "مختل، اهدأ، اضغط على X للقتال",
+      "after": "يا مختل! تمهّل.\nتبًا!"
+    },
+    {
+      "source": "Fuck off!\nPressX to fight",
+      "before": "إذهبوا إلى هنا!",
+      "after": "اغرب عن وجهي!"
+    },
+    {
+      "source": "Bring your fuckin' ass out here, Donnie!",
+      "before": "أحضر مؤخرتك اللعينة إلى هنا يا (دوني)",
+      "after": "اخرج إلى هنا يا دوني، أيها اللعين!"
+    },
+    {
+      "source": "Shit! We gotta think fast. On you. go!",
+      "before": "تباً، علينا أن نفكر بسرعة، عليك، اذهب",
+      "after": "تبًا! علينا التصرف بسرعة. دورك، هيا!"
+    },
+    {
+      "source": "Shit! We gotta think fast. On you, go!",
+      "before": "تباً، علينا أن نفكر بسرعة، هيا",
+      "after": "تبًا! علينا التصرف بسرعة. دورك، هيا!"
+    },
+    {
+      "source": "Shit! We gotta think fast. On you. go!",
+      "before": "تباً، علينا أن نفكر بسرعة، عليك، اذهب",
+      "after": "تبًا! علينا التصرف بسرعة. دورك، هيا!"
+    },
+    {
+      "source": "You get the fuck out here!\nHead for the plane",
+      "before": "اخرج من هنا توجه الى الطائرة",
+      "after": "اخرج إلى هنا، تبًا!"
+    },
+    {
+      "source": "Head for the plane",
+      "before": "رئيس الطائرة",
+      "after": "توجّه إلى الطائرة."
+    },
+    {
+      "source": "More of 'em driving up! Come on, cut through.",
+      "before": "المزيد منهم يقودون للأعلى هيا، اقطعوا الطريق",
+      "after": "المزيد منهم يقتربون بالسيارات! هيا، شقوا طريقكم."
+    },
+    {
+      "source": "More of em driving up! Come on, cut through.",
+      "before": "المزيد منهم يقودون للأعلى هيا، إقطعوا الطريق",
+      "after": "المزيد منهم يقتربون بالسيارات! هيا، شقوا طريقكم."
+    },
+    {
+      "source": "We gotta cut through!",
+      "before": "يجب أن نقطع الطريق",
+      "after": "علينا شق طريقنا!"
+    },
+    {
+      "source": "We're almost outta here, man. Just keep it together.",
+      "before": "نحن على وشك الخروج من هنا يا رجل فقط ابقي الأمور سوية",
+      "after": "أوشكنا على الخروج من هنا يا رجل. تماسك فحسب."
+    },
+    {
+      "source": "Center of the road, man!",
+      "before": "مركز الطريق يا رجل",
+      "after": "في وسط الطريق يا رجل!"
+    },
+    {
+      "source": "Come on, go get insidel",
+      "before": "هيا اذهبي و ادخلي",
+      "after": "هيا، تعال إلى الداخل!"
+    },
+    {
+      "source": "Jason, come get the cash from the trailer!",
+      "before": "جايسون، تعال وخذ المال من المقطورة!",
+      "after": "جيسون، تعال وخذ النقود من المقطورة!"
+    },
+    {
+      "source": "Jason! They're coming in from over the water!",
+      "before": "جيسون) إنهم قادمون من فوق الماء)",
+      "after": "جيسون! إنهم يأتون من جهة الماء!"
+    },
+    {
+      "source": "Son-bitch, try me, you motherfuckers!",
+      "before": "أيها السافلة، جربني أيها الملاعين",
+      "after": "جربوني أيها الأوغاد، تبًا لكم!"
+    },
+    {
+      "source": "Yeah! Eat shit, dumb fucks!\nGet in the sea plane",
+      "before": "أجل، كلوا برازاً أيها الأغبياء، اصعدوا إلى الطائرة البحرية",
+      "after": "أجل! تبًا لكم أيها الأغبياء!"
+    },
+    {
+      "source": "Jason, in the plane. We are outta here, baby!\nGet in the sea plane",
+      "before": "جيسون) ، في الطائرة) نحن خارجون من هنا يا عزيزي ، إصعد إلى الطائرة البحرية",
+      "after": "جيسون، إلى الطائرة. سنغادر هذا المكان يا عزيزي!"
+    },
+    {
+      "source": "Jason, in the plane. We are outta here, baby!",
+      "before": "جيسون) في الطائرة) نحن خارجون من هنا يا عزيزي",
+      "after": "جيسون، إلى الطائرة. سنغادر هذا المكان يا عزيزي!"
+    },
+    {
+      "source": "There's more of 'em crawlin' out. Make a run for the plane!",
+      "before": "هناك المزيد منهم يزحفون للخارج إهرب للطائرة",
+      "after": "المزيد منهم يخرجون! اركض نحو الطائرة!"
+    },
+    {
+      "source": "There's more of 'em crawlin' out. Make a run for the plane!\nGet in the sea plane",
+      "before": "هناك المزيد منهم يزحفون للخارج، اركضوا للطائرة، اركبوا الطائرة البحرية",
+      "after": "المزيد منهم يخرجون! اركض نحو الطائرة!"
+    },
+    {
+      "source": "Ah shit. Keep moving, Donnie!\nGet in the sea plane",
+      "before": "اللعنة، استمر في التحرك يا (دوني) اصعد إلى الطائرة البحرية",
+      "after": "تبًا! واصل التحرك يا دوني!"
+    },
+    {
+      "source": "Lapwing\nGet in the sea plane",
+      "before": "Lapwing الحصول على الطائرة البحرية",
+      "after": "اصعد إلى الطائرة المائية."
+    },
+    {
+      "source": "No, no, no, no, no, don't- don't let 'em go!\nEscape the camp",
+      "before": "لا لا لا تدعهم يذهبون",
+      "after": "لا، لا، لا تدعوهم يهربون!"
+    },
+    {
+      "source": "They're takin' off!\nEscape the camp",
+      "before": "إنهم يهربون من المخيم",
+      "after": "إنهم يقلعون!"
+    },
+    {
+      "source": "Jason.\nEscape the camp",
+      "before": "جيسون. الهروب من المخيم",
+      "after": "جيسون."
+    },
+    {
+      "source": "Get it up! High in the sky as you can!",
+      "before": "انهضوا عاليا في السماء قدر استطاعتكم",
+      "after": "ارفعها! حلّق بها إلى أعلى ارتفاع ممكن!"
+    },
+    {
+      "source": "Get it up! High in the sky as you can",
+      "before": "انهضوا عاليا في السماء بقدر ما تستطيعون",
+      "after": "ارفعها! حلّق بها إلى أعلى ارتفاع ممكن!"
+    },
+    {
+      "source": "Fly back to Brian's marina",
+      "before": "العودة إلى بريان مارينا",
+      "after": "عُد بالطائرة إلى مرسى برايان."
+    },
+    {
+      "source": "Got us paid.\nFly back to Brian's marina",
+      "before": "لقد دفعت لنا، عودوا إلى مرسى (براين)",
+      "after": "حصلنا على أجرنا."
+    },
+    {
+      "source": "Fly back to Brian's marina",
+      "before": "العودة إلى بريان مارينا",
+      "after": "عُد بالطائرة إلى مرسى برايان."
+    },
+    {
+      "source": "Hell nah, she's good! We're good!",
+      "before": "إنها بخير نحن بخير",
+      "after": "بلى، الطائرة بخير! نحن بخير!"
+    },
+    {
+      "source": "Hell nah, she's good! Were good!",
+      "before": "إنها جيدة، كانت جيدة",
+      "after": "بلى، الطائرة بخير! نحن بخير!"
+    },
+    {
+      "source": "Just head back to Brian's, shell get us there.",
+      "before": "فقط عد إلى براين، قذيفة أوصلنا إلى هناك.",
+      "after": "فقط عُد إلى برايان، ستوصلنا الطائرة إلى هناك."
+    },
+    {
+      "source": "Hey, text Cal.",
+      "before": "(راسل (كال",
+      "after": "اسمع، أرسل رسالة إلى كال."
+    },
+    {
+      "source": "Tell him to stay the fuck out of the way",
+      "before": "أخبره أن يبتعد عن الطريق",
+      "after": "أخبره أن يبتعد عن الطريق"
+    },
+    {
+      "source": "and keep his mouth shut.",
+      "before": "وأغلق فمه.",
+      "after": "وأن يُبقي فمه مغلقًا."
+    }
+  ]
+}

@@ -31,7 +31,8 @@ final class DialogueStore {
   for(int i=lines.size()-1;i>=0;i--){JSONObject e=lines.get(i);if(e.optBoolean("reviewed")&&game.equals(e.optString("game"))&&key.equals(e.optString("source").trim().replaceAll("\\s+"," ")))return e.optString("arabic");}return null;
  }
  synchronized void flag(long id){for(JSONObject e:lines)if(e.optLong("id")==id){try{e.put("reported",true);changed();}catch(JSONException ignored){}return;}}
- synchronized void clear(){persistentReviewed.clear();lines.clear();changed();}
+ synchronized void clear(){persistentReviewed.clear();lines.clear();changed();try{java.nio.file.Files.write(file.toPath(),"[]".getBytes(StandardCharsets.UTF_8));}catch(IOException e){throw new IllegalStateException("Cannot clear history",e);}}
+ void flush()throws Exception{writer.submit(()->{}).get(10,TimeUnit.SECONDS);}
  synchronized String pack(String game,boolean reviewedOnly)throws Exception{
   JSONObject pairs=new JSONObject();Set<String> conflicts=new HashSet<>();
   if(reviewedOnly){JSONArray saved=persistentReviewed.forGame(game);for(int i=0;i<saved.length();i++){JSONObject e=saved.getJSONObject(i);pairs.put(e.getString("source"),e.getString("arabic"));}}
@@ -42,8 +43,8 @@ final class DialogueStore {
  }
  private void changed(){revision++;if(writing)return;writing=true;writer.execute(()->{
   while(true){long saved;String json;synchronized(this){saved=revision;json=snapshot().toString();}
-   try{File temp=new File(file.getPath()+".tmp");java.nio.file.Files.write(temp.toPath(),json.getBytes(StandardCharsets.UTF_8));java.nio.file.Files.move(temp.toPath(),file.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);}catch(IOException ignored){}
-   synchronized(this){if(saved==revision){writing=false;return;}}
+   synchronized(this){if(saved!=revision)continue;try{File temp=new File(file.getPath()+".tmp");java.nio.file.Files.write(temp.toPath(),json.getBytes(StandardCharsets.UTF_8));java.nio.file.Files.move(temp.toPath(),file.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);}catch(IOException ignored){}
+   if(saved==revision){writing=false;return;}}
   }
  });}
 }

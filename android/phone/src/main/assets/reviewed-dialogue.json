@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 4,
+  "revision": 5,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -675,6 +675,699 @@
       "arabic": "إذن لنتأنَّ ونضع خطة ليست غبية إلى هذا الحد، بحق الجحيم.",
       "reviewed": true,
       "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Double check.",
+      "arabic": "تأكد مرة أخرى.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Sit tight. We're gonna check on a couple things.\nWhat's he doing with the bag?",
+      "arabic": "انتظروا هنا. سنتحقق من بعض الأمور.\nماذا يفعل بالحقيبة؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Sit tight We're gonna check on a couple things",
+      "arabic": "انتظر هنا. سنتحقق من بعض الأمور.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "It's just one foot in front of the other. Come on.",
+      "arabic": "فقط ضع قدمًا أمام الأخرى. هيا.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Fuck We can't hit 'em from the front.",
+      "arabic": "تبًا! لا يمكننا مهاجمتهم من الأمام.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hey, you know what?",
+      "arabic": "اسمع، أتعلم شيئًا؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Let's not.",
+      "arabic": "الأفضل ألا نفعل.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Let's just.. head back and stay the fuck out of this.",
+      "arabic": "لنعد فحسب... ولنبقَ بعيدين عن هذه المصيبة.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Let's just... head back and stay the fuck out of this.",
+      "arabic": "لنعد فحسب... ولنبقَ بعيدين عن هذه المصيبة.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Let'sjust... head back and stay the fuck out of this.",
+      "arabic": "لنعد فحسب... ولنبقَ بعيدين عن هذه المصيبة.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jay... we are not getting paid enough for this, man!",
+      "arabic": "جاي... أجرنا لا يستحق كل هذا الخطر يا رجل!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "So what? We're just gonna- we're just gonna what?",
+      "arabic": "وماذا بعد؟ سنفعل... سنفعل ماذا بالضبط؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "l go get Donnie. Don't get out of the boat.",
+      "arabic": "سأذهب لإحضار دوني. لا تخرج من القارب.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "RV PARK\nl go get Donnie. Don't get out of the boat.",
+      "arabic": "سأذهب لإحضار دوني. لا تخرج من القارب.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Absolutely goddamn right.",
+      "arabic": "صحيح تمامًا، تبًا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay, alright, just- just tell me as soon you got him, okay?",
+      "arabic": "حسنًا، فقط أخبرني فور العثور عليه، اتفقنا؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "And haul ass, man.",
+      "arabic": "وأسرع يا رجل!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What's doin'?",
+      "arabic": "ما الأخبار؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "God, ain't this some shit.",
+      "arabic": "يا إلهي، يا لها من مصيبة.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Whatever. This stuff the good stuff?\nHey. that radio tower still giving you problems?",
+      "arabic": "لا يهم. هل هذه البضاعة من النوع الممتاز؟\nاسمع، هل ما زال برج الإذاعة يسبب لك المشاكل؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Whatever. This stuff the good stuff?\nHey, that radio tower still giving you problems?",
+      "arabic": "لا يهم. هل هذه البضاعة من النوع الممتاز؟\nاسمع، هل ما زال برج الإذاعة يسبب لك المشاكل؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "That's some serious hardware.",
+      "arabic": "تلك أسلحة ثقيلة فعلًا.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Alive? Yeah, he's still here.",
+      "arabic": "حيّ؟ نعم، ما زال هنا.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "HAT\nAlive? Yeah, he's still here.",
+      "arabic": "حيّ؟ نعم، ما زال هنا.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Now, who the hell built this outhouse back here? She's a beaut.",
+      "arabic": "من بنى هذا المرحاض الخارجي هنا بحق الجحيم؟ إنه رائع.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I need me one of those.",
+      "arabic": "أحتاج إلى واحد من هذه.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Can never have too much storage space, am I right?",
+      "arabic": "كلما زادت مساحة التخزين كان أفضل، أليس كذلك؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "C'mon, you drag me all the way west of camp, to..",
+      "arabic": "هيا، جررتني كل هذه المسافة إلى غرب المخيم، إلى...",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "C'mon, you drag me all the way west of camp, to...",
+      "arabic": "هيا، جررتني كل هذه المسافة إلى غرب المخيم، إلى...",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "this tiny little shack, next to the turbine...",
+      "arabic": "هذا الكوخ الصغير جدًا بجوار التوربين...",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "this tiny little shack, next to the turbine..",
+      "arabic": "هذا الكوخ الصغير جدًا بجوار التوربين...",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hey. you talking to somebody?",
+      "arabic": "مهلًا، هل تتحدث مع أحد؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jump! Jump!",
+      "arabic": "اقفز! اقفز!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "C'mon! Up! Up!",
+      "arabic": "هيا! اصعد! اصعد!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Do somethin', you stripy bitch!",
+      "arabic": "افعلي شيئًا، أيتها اللعينة المخططة!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "He can cry, he can beg. plead, piss himself.\nFind a way into the shack",
+      "arabic": "فليبكِ ويتوسل ويتضرع ويبلل سرواله.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "He can cry, he can beg. plead, piss himself.",
+      "arabic": "فليبكِ ويتوسل ويتضرع ويبلل سرواله.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "He can cry, he can beg. plead, piss himself.\nCal, I got Donnie.\nFind a way into the shack",
+      "arabic": "فليبكِ ويتوسل ويتضرع ويبلل سرواله.\nكال، دوني معي.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "He can cry, he can beg. plead, piss himself.\nCal, I got Donnie.",
+      "arabic": "فليبكِ ويتوسل ويتضرع ويبلل سرواله.\nكال، دوني معي.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Get out of here, meet us at Brian's.",
+      "arabic": "اخرج من هنا، وقابلنا عند برايان.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Get out of here, meet us at Brian's.\nFind a way into the shack",
+      "arabic": "اخرج من هنا، وقابلنا عند برايان.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I dunno, he's a funny guy.",
+      "arabic": "لا أدري، إنه شخص مضحك.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I dunno, he's a funny guy.\nYou know that's what he wants?",
+      "arabic": "لا أدري، إنه شخص مضحك.\nأتعلم أن هذا ما يريده؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Believe me, this his last stop. Just keeping him on ice.",
+      "arabic": "صدقني، هذه محطته الأخيرة. نحتجزه مؤقتًا فحسب.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "It's about fucking time!",
+      "arabic": "أخيرًا، تبًا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Donnie, I'm gonna chicken-fry your fucking balls!",
+      "arabic": "دوني، سأقلي خصيتيك اللعينتين!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Donnie, I'm gonna chicken-fry your fucking balls!\nOh shit.",
+      "arabic": "دوني، سأقلي خصيتيك اللعينتين!\nتبًا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hell yeah!\nBoy, I'm gonna gut you like a fish.",
+      "arabic": "أجل، تبًا!\nسأشق بطنك كالسمكة يا فتى.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hell yeah!\nBoy, I'm gonna gut you like a fish.\nPress Xto fight",
+      "arabic": "أجل، تبًا!\nسأشق بطنك كالسمكة يا فتى.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What the fuck?\nPress X to fight",
+      "arabic": "ما هذا بحق الجحيم؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What the fuck?",
+      "arabic": "ما هذا بحق الجحيم؟",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Damn it!\nYou fucker!",
+      "arabic": "تبًا!\nأيها اللعين!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Damn it!\nYou fucker!\nPress X to fight",
+      "arabic": "تبًا!\nأيها اللعين!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Psycho! Ease up.\nFuck!",
+      "arabic": "يا مختل! تمهّل.\nتبًا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Psycho! Ease up.\nFuck!\nPress X to fight",
+      "arabic": "يا مختل! تمهّل.\nتبًا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Fuck off!\nPressX to fight",
+      "arabic": "اغرب عن وجهي!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Fuck off!",
+      "arabic": "اغرب عن وجهي!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Bring your fuckin' ass out here, Donnie!",
+      "arabic": "اخرج إلى هنا يا دوني، أيها اللعين!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Shit! We gotta think fast. On you. go!",
+      "arabic": "تبًا! علينا التصرف بسرعة. دورك، هيا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Shit! We gotta think fast. On you, go!",
+      "arabic": "تبًا! علينا التصرف بسرعة. دورك، هيا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You get the fuck out here!",
+      "arabic": "اخرج إلى هنا، تبًا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You get the fuck out here!\nHead for the plane",
+      "arabic": "اخرج إلى هنا، تبًا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Head for the plane",
+      "arabic": "توجّه إلى الطائرة.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "More of 'em driving up! Come on, cut through.",
+      "arabic": "المزيد منهم يقتربون بالسيارات! هيا، شقوا طريقكم.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "More of em driving up! Come on, cut through.",
+      "arabic": "المزيد منهم يقتربون بالسيارات! هيا، شقوا طريقكم.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "We gotta cut through!",
+      "arabic": "علينا شق طريقنا!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "We're almost outta here, man. Just keep it together.",
+      "arabic": "أوشكنا على الخروج من هنا يا رجل. تماسك فحسب.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Center of the road, man!",
+      "arabic": "في وسط الطريق يا رجل!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Come on, go get insidel",
+      "arabic": "هيا، تعال إلى الداخل!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jason, come get the cash from the trailer!",
+      "arabic": "جيسون، تعال وخذ النقود من المقطورة!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jason! They're coming in from over the water!",
+      "arabic": "جيسون! إنهم يأتون من جهة الماء!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Son-bitch, try me, you motherfuckers!",
+      "arabic": "جربوني أيها الأوغاد، تبًا لكم!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah! Eat shit, dumb fucks!",
+      "arabic": "أجل! تبًا لكم أيها الأغبياء!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah! Eat shit, dumb fucks!\nGet in the sea plane",
+      "arabic": "أجل! تبًا لكم أيها الأغبياء!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jason, in the plane. We are outta here, baby!",
+      "arabic": "جيسون، إلى الطائرة. سنغادر هذا المكان يا عزيزي!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jason, in the plane. We are outta here, baby!\nGet in the sea plane",
+      "arabic": "جيسون، إلى الطائرة. سنغادر هذا المكان يا عزيزي!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "There's more of 'em crawlin' out. Make a run for the plane!",
+      "arabic": "المزيد منهم يخرجون! اركض نحو الطائرة!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "There's more of 'em crawlin' out. Make a run for the plane!\nGet in the sea plane",
+      "arabic": "المزيد منهم يخرجون! اركض نحو الطائرة!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Ah shit. Keep moving, Donnie!",
+      "arabic": "تبًا! واصل التحرك يا دوني!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Ah shit. Keep moving, Donnie!\nGet in the sea plane",
+      "arabic": "تبًا! واصل التحرك يا دوني!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Get in the sea plane",
+      "arabic": "اصعد إلى الطائرة المائية.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Lapwing\nGet in the sea plane",
+      "arabic": "اصعد إلى الطائرة المائية.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "No, no, no, no, no, don't- don't let 'em go!",
+      "arabic": "لا، لا، لا تدعوهم يهربون!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "No, no, no, no, no, don't- don't let 'em go!\nEscape the camp",
+      "arabic": "لا، لا، لا تدعوهم يهربون!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "They're takin' off!\nEscape the camp",
+      "arabic": "إنهم يقلعون!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "They're takin' off!",
+      "arabic": "إنهم يقلعون!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jason.\nEscape the camp",
+      "arabic": "جيسون.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jason.",
+      "arabic": "جيسون.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Get it up! High in the sky as you can!",
+      "arabic": "ارفعها! حلّق بها إلى أعلى ارتفاع ممكن!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Get it up! High in the sky as you can",
+      "arabic": "ارفعها! حلّق بها إلى أعلى ارتفاع ممكن!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Fly back to Brian's marina",
+      "arabic": "عُد بالطائرة إلى مرسى برايان.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Got us paid.\nFly back to Brian's marina",
+      "arabic": "حصلنا على أجرنا.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Got us paid.",
+      "arabic": "حصلنا على أجرنا.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hell nah, she's good! We're good!",
+      "arabic": "بلى، الطائرة بخير! نحن بخير!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hell nah, she's good! Were good!",
+      "arabic": "بلى، الطائرة بخير! نحن بخير!",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Just head back to Brian's, shell get us there.",
+      "arabic": "فقط عُد إلى برايان، ستوصلنا الطائرة إلى هناك.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hey, text Cal.",
+      "arabic": "اسمع، أرسل رسالة إلى كال.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Tell him to stay the fuck out of the way",
+      "arabic": "أخبره أن يبتعد عن الطريق",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "and keep his mouth shut.",
+      "arabic": "وأن يُبقي فمه مغلقًا.",
+      "reviewed": true,
+      "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
     }
   ],
   "ignored_sources": [
