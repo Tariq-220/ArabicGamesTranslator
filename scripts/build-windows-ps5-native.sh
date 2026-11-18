@@ -28,7 +28,7 @@ cmake -S "$repo_dir/windows/native" -B "$ps5_work/build" -G Ninja -DCMAKE_BUILD_
  -DCHIAKI_SOURCE_DIR="$ps5_work/chiaki" -DFFMPEG_PREFIX="$ps5_work/ffmpeg-install" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
  -DPYTHON_EXECUTABLE="$(command -v python)" -DCHIAKI_LIB_ENABLE_MBEDTLS=OFF
 cmake --build "$ps5_work/build" -j 2
-"$ps5_work/build/gametranslator_native_test.exe"
+"$ps5_work/build/gametranslator_native_test.exe" "$repo_dir/windows/native/tests/fixtures/sample-1080p.h264"
 cp "$ps5_work/build/gametranslator_native.dll" out/ps5-windows-native/
 objdump -p out/ps5-windows-native/gametranslator_native.dll > out/ps5-windows-native/pe-dependencies.txt
 python - <<'PY'
