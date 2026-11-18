@@ -11,8 +11,10 @@ for entry in manifest['files']:
  assert entry['path']==f'{platform}/{version}/{name}' and entry['name']==name and entry['certificate_sha256']==cert
  file=deliveries/entry['path'];assert 0<file.stat().st_size==entry['bytes']<250_000_000
  assert hashlib.sha256(file.read_bytes()).hexdigest()==entry['sha256']
- result=subprocess.run([str(signer),'verify','--print-certs',str(file)],check=True,capture_output=True,text=True).stdout
+ result=subprocess.run([str(signer),'verify','--verbose','--print-certs',str(file)],check=True,capture_output=True,text=True).stdout
  assert f'certificate SHA-256 digest: {cert}' in result
+ if platform=='phone' and tuple(map(int,version.split('.'))) >= (0,4,14):
+  for scheme in ['v1 scheme (JAR signing)','v2 scheme (APK Signature Scheme v2)','v3 scheme (APK Signature Scheme v3)']:assert 'Verified using '+scheme+': true' in result,'Missing compatible signing scheme: '+scheme
  info=subprocess.run([str(aapt),'dump','badging',str(file)],check=True,capture_output=True,text=True).stdout
  package='dev.arabicgames.phone' if platform=='phone' else 'dev.arabicgames.tv'
  assert re.search(r"package: name='"+re.escape(package)+r"' versionCode='"+str(entry['versionCode'])+r"' versionName='"+re.escape(version)+r"'",info)
