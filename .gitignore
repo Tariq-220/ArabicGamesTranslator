@@ -19,3 +19,6 @@ bundled-runtime/
 out/
 test-user/
 test-desktop/
+
+# Local Android native build outputs; sources are under cpp/.
+android/phone/src/main/jniLibs/
