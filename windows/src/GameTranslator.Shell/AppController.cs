@@ -969,6 +969,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public string DialogueGame {get=>store.Load<string>("DialogueGame")??"Red Dead Redemption 2";set=>store.Save("DialogueGame",value);}
 
+    public event Action<string,string>? TranslationRejected;
+    public event Action<string,string>? LineDiscarded;
     private void MakePipeline()
     {
         pipeline?.Reset();
@@ -978,10 +980,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         activeReader = reader;
         OcrMissing = reader is null || !services.HasOcrLanguage(settings.SourceLanguage);
         if (reader is null) return;
-        var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
+        var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
+        built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>DialogueProfile.DialogueOnly(reading,area,gameProfile);built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
-        if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??DialogueProfile.Reviewed(text,gameProfile);
+        if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
         built.PendingLineLimit = PreferLatestDialogue ? 1 : SubtitlePipeline.MaxWaiting;
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });

@@ -5,7 +5,7 @@ using GameTranslator.Core;
 namespace GameTranslator.Translation;
 
 public sealed record ComparisonEntry(DateTimeOffset Time, string Session, string Game, string Engine,
-    string English, string Arabic, LineMetrics? Metrics, CropRegion Region, bool LatestOnly, string? Method=null, string? Edition=null, int? CaptureGapMs=null, string? Console=null);
+    string English, string Arabic, LineMetrics? Metrics, CropRegion Region, bool LatestOnly, string? Method=null, string? Edition=null, int? CaptureGapMs=null, string? Console=null,string? OcrLanguage=null,string? Error=null,int? RulesRevision=null,bool? PublicCorrections=null);
 
 /// <summary>Local, bounded background log. No credentials, images or network access.</summary>
 public sealed class ComparisonLog : IAsyncDisposable

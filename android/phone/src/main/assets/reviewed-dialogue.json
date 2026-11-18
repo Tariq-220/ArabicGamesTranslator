@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 6,
+  "revision": 7,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -1368,6 +1368,174 @@
       "arabic": "وأن يُبقي فمه مغلقًا.",
       "reviewed": true,
       "reason": "Reviewed from user phone comparison log: idiom, missing clause, OCR variant, or UI separation; exact game and source only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Need you with rne while I make this delivery.",
+      "arabic": "أحتاجك معي أثناء تسليم هذه الشحنة.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "find a spot near the dock. stay close",
+      "arabic": "اعثر على مكان قرب الرصيف، وابقَ قريبًا.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Roger that well hang around.",
+      "arabic": "عُلم. سنبقى بالقرب من المكان.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Roger that.",
+      "arabic": "عُلم.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Release to equip your binoculars",
+      "arabic": "اترك الزر لتجهيز المنظار.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Press to scope out the deal",
+      "arabic": "اضغط لاستطلاع الصفقة.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "We let him go. we won't see him again.",
+      "arabic": "إذا تركناه يذهب، فلن نراه مجددًا.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Believe me. this his last stop. Just keeping him on ice.",
+      "arabic": "صدقني، هذه محطته الأخيرة. نحتجزه مؤقتًا فحسب.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Alrighty, that is brick numero dos!",
+      "arabic": "حسنًا، هذه الرزمة الثانية!",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I could use a numero dos... soon as we get off this boat.",
+      "arabic": "أحتاج إلى قضاء حاجتي... فور أن ننزل من هذا القارب.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay. alright just- just tell me as soon you got him. okay?",
+      "arabic": "حسنًا، فقط أخبرني فور أن يصبح معك، اتفقنا؟",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Tiger food, you say? I heard stories they had a tiger.",
+      "arabic": "طعام للنمور، تقول؟ سمعت أنهم يملكون نمرًا.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Tiger food, you say? I heard stories they had a tiger.",
+      "arabic": "طعام للنمور، تقول؟ سمعت أنهم يملكون نمرًا.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah. man. We reached an understanding, though.",
+      "arabic": "نعم يا رجل، لكننا توصلنا إلى تفاهم.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "She pays the bills and I don't invite anyone over after midnight.",
+      "arabic": "هي تدفع الفواتير، وأنا لا أدعو أحدًا بعد منتصف الليل.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You do your time. you kee your head down,\ntry not to shank an one.",
+      "arabic": "اقضِ مدة عقوبتك، وتجنب لفت الانتباه، وحاول ألا تطعن أحدًا.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "So. you still got that place for me to stay?",
+      "arabic": "إذًا، هل ما زال لديك مكان أقيم فيه؟",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah, yeah. got a place. Any idea when?",
+      "arabic": "نعم، لدي مكان. هل لديك فكرة عن الموعد؟",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You aren't having second thoughts. are you?",
+      "arabic": "أنت لا تعيد التفكير في الأمر، أليس كذلك؟",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You think I'm gonna like it in the Keys?",
+      "arabic": "هل تظن أنني سأحب العيش في جزر كيز؟",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I'll swing by later to see if we're square",
+      "arabic": "سأمر لاحقًا لأتأكد من أننا سوّينا حسابنا.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "1 go.t'a lockup next d r to the Isla Tropical Private club.",
+      "arabic": "لدي مخزن بجوار نادي إيسلا تروبيكال الخاص.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "got so e acid though. That cover your cut?",
+      "arabic": "لكن لدي بعض المخدرات. هل تغطي حصتك؟",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Stash the acid in Brian's lockup",
+      "arabic": "خبّئ المخدرات في مخزن برايان.",
+      "reviewed": true,
+      "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
     }
   ],
   "ignored_sources": [

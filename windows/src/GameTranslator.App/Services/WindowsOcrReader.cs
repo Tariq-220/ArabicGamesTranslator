@@ -15,19 +15,22 @@ namespace GameTranslator.App.Services;
 public sealed class WindowsOcrReader : ITextReader
 {
     private readonly OcrEngine engine;
+    public static string SelectedLanguage {get;private set;}="unavailable";
 
     private WindowsOcrReader(OcrEngine engine) => this.engine = engine;
 
     /// <summary>Hiçbir OCR dili yüklü değilse null.</summary>
     public static WindowsOcrReader? Create(string language)
     {
-        var engine = OcrEngine.TryCreateFromLanguage(new Language(language))
-                     ?? OcrEngine.TryCreateFromUserProfileLanguages();
-        return engine is null ? null : new WindowsOcrReader(engine);
+        var wanted=language.Split('-')[0];
+        var selected=OcrEngine.AvailableRecognizerLanguages.FirstOrDefault(x=>x.LanguageTag.Equals(language,StringComparison.OrdinalIgnoreCase))
+            ??OcrEngine.AvailableRecognizerLanguages.FirstOrDefault(x=>x.LanguageTag.Split('-')[0].Equals(wanted,StringComparison.OrdinalIgnoreCase));
+        var engine=selected is null?null:OcrEngine.TryCreateFromLanguage(selected);
+        SelectedLanguage=engine?.RecognizerLanguage.LanguageTag??"unavailable";
+        return engine is null?null:new WindowsOcrReader(engine);
     }
 
-    /// <summary>Oyun dilinin kendi OCR paketi yüklü mü (değilse ayarlarda eklenmesi önerilir).</summary>
-    public static bool HasLanguage(string language) => OcrEngine.IsLanguageSupported(new Language(language));
+    public static bool HasLanguage(string language)=>OcrEngine.AvailableRecognizerLanguages.Any(x=>x.LanguageTag.Split('-')[0].Equals(language.Split('-')[0],StringComparison.OrdinalIgnoreCase));
 
     public string Read(Frame image) => Read(image, deep: true);
 

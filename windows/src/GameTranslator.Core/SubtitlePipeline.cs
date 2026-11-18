@@ -58,7 +58,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     private readonly Func<long> now = clock ?? DefaultClock;
     /// <summary>Varsayılanı her kareyi okur; uygulama gereksiz okumaları atlayan planı verir.</summary>
     private readonly ReadScheduler schedule = scheduler ?? ReadScheduler.Always();
-    private readonly SubtitleStabilizer stabilizer = new(clock: clock ?? DefaultClock, cleanFastPathOnly: translator.Prefetches);
+    private readonly SubtitleStabilizer stabilizer = new(clock: clock ?? DefaultClock, cleanFastPathOnly: true);
     /// <summary>En son önceden çevirisi başlatılan okuma; aynı metin her karede yeniden istenmez.</summary>
     private string lastPrefetched = "";
     /// <summary>
@@ -127,6 +127,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public event Action<IReadOnlyList<SpokenLine>>? SpeechReady;
     /// <summary>Her çeviri denemesinden sonra çağrılır (başarılıysa null).</summary>
     public event Action<TranslatorStatus?>? TranslationResult;
+    public event Action<string,string>? LineDiscarded;
 
     /// <summary>
     /// Oyun paketi: kararlı satırın hazır Türkçesi (yoksa null). Çeviri motorundan ve önbellekten önce bakılır; bulunursa
@@ -508,7 +509,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             waiting.Add(request);
             if (waiting.Count > Math.Max(1, PendingLineLimit))
             {
-                foreach (var old in waiting.Take(waiting.Count - Math.Max(1, PendingLineLimit))) Write(old, "atıldı: sıra doldu");
+                foreach (var old in waiting.Take(waiting.Count - Math.Max(1, PendingLineLimit))){Write(old, "atıldı: sıra doldu");LineDiscarded?.Invoke(old.Source,"queue_full");}
                 waiting.RemoveRange(0, waiting.Count - Math.Max(1, PendingLineLimit));
             }
             // Süren çeviri bu cümlenin yarım okumasınınsa (daktilo efekti) beklenmez: bırakılır, tamamı hemen çevrilir.
@@ -529,7 +530,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     /// <summary>Paketteki Türkçe hemen gösterilir; süren çevirinin sonucu (eski satır) artık gösterilmez.</summary>
     private Action? ShowPacked(Request request, PackMatch packed)
     {
-        foreach (var old in waiting) Write(old, $"atıldı: sonraki satır paketten geldi (#{request.Number})");
+        foreach (var old in waiting){Write(old, $"atıldı: sonraki satır paketten geldi (#{request.Number})");LineDiscarded?.Invoke(old.Source,"superseded_by_reviewed_line");}
         waiting.Clear();
         PackHits++;
         var source = request.Source;
@@ -688,6 +689,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                 LastError = (error as TranslatorException)?.Status;
                 if (request.Number == lineOnScreen) stabilizer.ForgetSent();
             }
+            LineDiscarded?.Invoke(source,"translation_failed_"+(LastError?.ToString()??error.GetType().Name));
             TranslationResult?.Invoke(LastError);
             return;
         }
@@ -716,6 +718,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                 var reason = !shouldSend ? "zaten hedef dilde"
                     : request.Superseded ? "uzamış okuması geldi" : $"daha yeni satır gösterildi (#{lastShown})";
                 Write(request, $"{result}, atıldı: {reason}");
+                LineDiscarded?.Invoke(source,request.Superseded?"superseded_reading":"newer_line_already_shown");
                 return;
             }
             var onScreen = request.Number == lineOnScreen;
@@ -723,6 +726,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             if (!onScreen && request.LeftAt is { } left && now() - left > LateResultMs)
             {
                 Write(request, $"{result}, geç: satır {now() - left} ms önce kalktı, gösterilmedi");
+                LineDiscarded?.Invoke(source,"late_result");
                 return;
             }
             Write(request, $"{result}, gösterildi{(onScreen ? "" : " (satır kalkmıştı)")}");

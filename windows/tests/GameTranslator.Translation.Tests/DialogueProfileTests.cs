@@ -46,4 +46,5 @@ public class DialogueProfileTests
         Assert.Equal("low",json.RootElement.GetProperty("generationConfig").GetProperty("thinkingConfig").GetProperty("thinkingLevel").GetString());
         Assert.DoesNotContain("test-key",text);Assert.Contains("Red Dead Redemption 2",text);Assert.Contains("Arabic",text);
     }
+ [Fact]public void KnownCombatButtonsCannotBecomeDialogue(){var input=new Reading(new[]{new TextLine("Press X to fight",null),new TextLine("Get down!",null),new TextLine("PHOTO STUDIO X SELECT",null)});var output=DialogueProfile.DialogueOnly(input,new GameTranslator.Core.TextBox(0,0,1,1),"GTA6");Assert.Equal("Get down!",output.Text);}
 }

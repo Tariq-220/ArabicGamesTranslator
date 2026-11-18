@@ -8,9 +8,10 @@ public static class DialogueProfile {
   ||(!Regex.IsMatch(text,@"[.!?]")&&Regex.IsMatch(text,@"^PHOTO\b",RegexOptions.IgnoreCase)&&Regex.IsMatch(text,@"\b(?:SELECT|BACK|BACH|MODE)\b",RegexOptions.IgnoreCase))
   ||Regex.IsMatch(text,@"^(?:[O0]\s+)?(?:RETRY\s*CHECKPOINT|CANCEL MISSION)(?:\s+[O0])?(?:\s+CANCEL MISSION\s*[O0]?)?$",RegexOptions.IgnoreCase);
 
+ private static bool KnownHud(string text)=>Regex.IsMatch(text.Trim(),@"^(?:PHOTO (?:STUDIO|MODE)(?: [A-Z])? SELECT.*|(?:PRESS\s*[A-Z]|HOLD(?: [A-Z])? AND PRESS\s*[A-Z])\s*TO (?:FIGHT|HEAL)|GIRARDI ES9|MILITARY PISTOL|DAMAGE|ACCURACY|HANDLING|RANGE|HAT|W-14 RIFLE|LT|RT|[!|0-9 ]+)$",RegexOptions.IgnoreCase);
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
  public static Reading DialogueOnly(Reading reading,TextBox area,string game){
-  reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)));
+  reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)&&!KnownHud(line.Text)));
   if(!Rdr2(game))return reading;
   return new Reading(reading.Lines.Where(line=>{
    if(line.Box is not {} relative)return true;
@@ -56,8 +57,14 @@ public static class DialogueProfile {
   return arabic;
  }
 }
-public sealed class ProfileTranslator(ITextTranslator inner,string game):ITextTranslator {
- public async Task<string> TranslateAsync(string text,CancellationToken token=default)=>CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(text,token),game));
+public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<string,string>? rejected=null,bool validateArabic=true):ITextTranslator {
+ private string rejectedSource="";private DateTimeOffset retryAfter;
+ public async Task<string> TranslateAsync(string text,CancellationToken token=default){
+  if(validateArabic&&text==rejectedSource&&DateTimeOffset.UtcNow<retryAfter)throw new TranslatorException(TranslatorStatus.EngineFailed);
+  var result=CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(text,token),game));
+  if(validateArabic&&!Regex.IsMatch(result,@"\p{IsArabic}")&&Regex.Matches(result,@"[A-Za-z]{2,}").Count>=3){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
+  return result;
+ }
  public bool Prefetches=>inner.Prefetches;
  public void Prefetch(string text)=>inner.Prefetch(text);
  public IReadOnlyList<GameTranslator.Core.Dubbing.SpokenLine> SpokenLines(string text)=>inner.SpokenLines(text);
