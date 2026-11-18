@@ -47,11 +47,15 @@ jobs:
       - name: Community review data validation tests
         run: python scripts/test-community-review.py
       - name: Regression tests
-        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~ArabicDesktopUpdateTests|FullyQualifiedName~ServiceImprovementTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~ReadingRecoveryTests|FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests|FullyQualifiedName~CommunityCorrectionsTests|FullyQualifiedName~ReviewedLanguageTests|FullyQualifiedName~EngineComparisonTests|FullyQualifiedName~ComparisonLogExporterTests"
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~ArabicDesktopUpdateTests|FullyQualifiedName~ServiceImprovementTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~ReadingRecoveryTests|FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests|FullyQualifiedName~CommunityCorrectionsTests|FullyQualifiedName~ReviewedLanguageTests|FullyQualifiedName~EngineComparisonTests|FullyQualifiedName~ComparisonLogExporterTests|FullyQualifiedName~ReadingModesTests"
       - name: Reading guard regression tests
         run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~ReadingFilterOrderTests|FullyQualifiedName~LocalRequestPolicyTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~ConsoleWindowSelectionTests|FullyQualifiedName~RereadGuardTests|FullyQualifiedName~ReadSchedulerTests|FullyQualifiedName~ReviewedLookup|FullyQualifiedName~RereadGuardPrevents"
       - name: Package Arabic LG webOS companion
         run: python scripts/package-ipk.py --version auto --out-dir tv/packages
+      - name: Package experimental Samsung developer kit
+        run: |
+          node scripts/test-samsung-platform.js
+          python scripts/package-samsung.py
       - name: Stage verified native PS5 engine
         shell: pwsh
         env:
@@ -95,6 +99,8 @@ jobs:
             ui-preview
             dependency-audit.json
           retention-days: 7
+      - name: Package illustrated Arabic guide
+        run: python scripts/package-guide.py --screenshots ui-preview
       - name: Prepare and test small reading repair
         shell: pwsh
         run: |
@@ -105,7 +111,7 @@ jobs:
           ./installer/Test-Reading-Fix.ps1 -Package (Resolve-Path out/reading-fix)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Reading-Fix-0.4.18
+          name: Reading-Fix-0.4.19
           path: out/reading-fix/
           retention-days: 90
       - name: Download verified runtime dependencies
@@ -130,7 +136,7 @@ jobs:
         run: |
           $info=Get-Content release/version.json -Raw|ConvertFrom-Json
           Compress-Archive -Path out/reading-fix/* -DestinationPath "out/ArabicGames-Windows-$($info.version)-Update.zip"
-          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" "out/ArabicGames-Windows-$($info.version)-Update.zip" out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip tv/packages/*.ipk --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes-file release/NOTES.md
+          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" "out/ArabicGames-Windows-$($info.version)-Update.zip" out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip tv/packages/*.ipk tv/packages/*.wgt tv/packages/*Developer-Kit.zip out/ArabicGames-Arabic-Guide.zip --repo '${{ github.repository }}' --target '${{ github.sha }}' --draft --title "ArabicGames $($info.version) — assembling all platforms" --notes-file release/NOTES.md
           if($LASTEXITCODE -ne 0){throw 'Release upload failed'}
 
       - name: Prepare separate GitHub preview downloads
@@ -146,5 +152,5 @@ jobs:
           gh release view $tag --repo '${{ github.repository }}' --json isDraft > preview-state.json 2>$null
           if($LASTEXITCODE -eq 0){if(-not((Get-Content preview-state.json -Raw|ConvertFrom-Json).isDraft)){throw 'Published previews are immutable'}}
           else{gh release create $tag --repo '${{ github.repository }}' --target '${{ github.sha }}' --draft --prerelease --title "ArabicGames $($info.version) — نسخة تجربة" --notes-file release/NOTES.md}
-          gh release upload $tag "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" $update out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip tv/packages/*.ipk --repo '${{ github.repository }}' --clobber
+          gh release upload $tag "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" $update out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip tv/packages/*.ipk tv/packages/*.wgt tv/packages/*Developer-Kit.zip out/ArabicGames-Arabic-Guide.zip --repo '${{ github.repository }}' --clobber
           if($LASTEXITCODE -ne 0){throw 'Preview upload failed'}

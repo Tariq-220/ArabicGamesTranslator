@@ -1,7 +1,7 @@
 """Small reading repair; keeps installed runtimes, models and private user settings."""
 from pathlib import Path
 import argparse,json,hashlib,shutil,subprocess
-NAMES=['GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json']
+NAMES=['GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','GameTranslator.TvInstall.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json']
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--publish',required=True);p.add_argument('--output',required=True);a=p.parse_args()
  root=Path(__file__).resolve().parents[1];out=Path(a.output);(out/'files').mkdir(parents=True,exist_ok=True)

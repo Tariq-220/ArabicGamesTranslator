@@ -59,7 +59,7 @@ public static class SamsungMessages
 /// <summary>Samsung TV ile uzaktan kumanda WebSocket'i üzerinden konuşur. İlk bağlantıda TV izin sorar.</summary>
 public sealed class SamsungClient(Uri url, TimeSpan? approvalTimeout = null) : ITvControl
 {
-    public const string AppId = "GameTransT.GameTranslator";
+    public const string AppId = "ArGamesTV1.ArabicGames";
 
     private ClientWebSocket? socket;
 

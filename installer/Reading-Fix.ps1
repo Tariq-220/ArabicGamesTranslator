@@ -1,6 +1,6 @@
 ﻿param([string]$BasePath,[string]$InstallRoot=(Join-Path $env:LOCALAPPDATA 'ArabicGamesLauncher'),[switch]$TestMode)
 $ErrorActionPreference='Stop'
-$allowed=@('GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json')
+$allowed=@('GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','GameTranslator.TvInstall.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json')
 try {
     $manifest=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'patch.json') -Raw | ConvertFrom-Json
     if($manifest.version -notmatch '^\d+\.\d+\.\d+$' -or @($manifest.files).Count -ne $allowed.Count){throw 'Invalid repair manifest.'}

@@ -1,32 +1,47 @@
-"""Publish signed public binaries through CI's scoped release token, never a signing secret."""
+"""Complete a draft release with verified APKs before making the combined stable version public."""
 from pathlib import Path
-import json,subprocess,os
-root=Path(__file__).resolve().parents[1];info=json.loads((root/'release/version.json').read_text());repo=info['repository'];out=root/'out/signed-android';manifest=json.loads((out/'verified.json').read_text());standalone=os.environ.get('ANDROID_ONLY')=='true';tag='android-v'+manifest['files'][0]['version']+'-tv'+manifest['files'][1]['version'] if standalone else 'preview-'+info['version']
+import json,subprocess,os,re
+root=Path(__file__).resolve().parents[1];info=json.loads((root/'release/version.json').read_text());repo=info['repository'];out=root/'out/signed-android';manifest=json.loads((out/'verified.json').read_text());standalone=os.environ.get('ANDROID_ONLY')=='true'
 def gh(*args):return subprocess.check_output(['gh',*args],text=True).strip()
-try:release=json.loads(gh('release','view',tag,'--repo',repo,'--json','isDraft,assets'))
-except subprocess.CalledProcessError:
+def view(tag):
+ try:return json.loads(gh('release','view',tag,'--repo',repo,'--json','isDraft,assets'))
+ except subprocess.CalledProcessError:return None
+stable=False
+if standalone:tag='android-v'+manifest['files'][0]['version']+'-tv'+manifest['files'][1]['version']
+else:
+ stable_tag='v'+info['version'];candidate=view(stable_tag)
+ if candidate and candidate['isDraft']:tag=stable_tag;stable=True
+ else:tag='preview-'+info['version']
+release=view(tag)
+if release is None:
  if standalone:
-  subprocess.run(['gh','release','create',tag,'--repo',repo,'--draft','--target',os.environ['GITHUB_SHA'],'--title','Android HDMI and local translation repair','--notes-file',str(root/'release/ANDROID-FIX-NOTES.md')],check=True)
-  release=json.loads(gh('release','view',tag,'--repo',repo,'--json','isDraft,assets'))
- elif os.environ.get('GITHUB_EVENT_NAME')=='workflow_run':print('No preview draft to attach; stable release unchanged.');raise SystemExit(0)
- else:raise
+  subprocess.run(['gh','release','create',tag,'--repo',repo,'--draft','--target',os.environ['GITHUB_SHA'],'--title','ArabicGames Android updates','--notes-file',str(root/'release/ANDROID-FIX-NOTES.md')],check=True);release=view(tag)
+ elif os.environ.get('GITHUB_EVENT_NAME')=='workflow_run':print('No prepared draft; existing published releases unchanged.');raise SystemExit(0)
+ else:raise RuntimeError('Prepare the Windows draft first')
 if not release['isDraft']:
- assets={a['name']:a for a in release['assets']}
- assert all(e['name'] in assets for e in manifest['files']),'Published releases are immutable: prepare a new version'
- print('Preview already published; no files overwritten.');raise SystemExit(0)
+ assert all(e['name'] in {a['name'] for a in release['assets']} for e in manifest['files']),'Published releases are immutable'
+ print('Already published; no files overwritten.');raise SystemExit(0)
 subprocess.run(['gh','release','upload',tag,'--repo',repo,'--clobber',*[str(out/e['name']) for e in manifest['files']],str(out/'SHA256SUMS-Android.txt'),str(root/'community/packs/ArabicGames-GTA6-Reviewed-Pack.json')],check=True)
-subprocess.run(['gh','release','edit',tag,'--repo',repo,'--target',os.environ['GITHUB_SHA'],'--notes-file',str(root/('release/ANDROID-FIX-NOTES.md' if standalone else 'release/NOTES.md')),'--title',f"ArabicGames — Phone {manifest['files'][0]['version']} · TV {manifest['files'][1]['version']}" if standalone else f"ArabicGames — Windows {info['version']} · Phone {manifest['files'][0]['version']} · TV {manifest['files'][1]['version']} (تجربة)"],check=True)
-release=json.loads(gh('release','view',tag,'--repo',repo,'--json','assets'));assets={a['name']:a for a in release['assets']}
+title=f"ArabicGames {info['version']} — Windows · Android · Google TV · LG · Samsung" if stable else f"ArabicGames — Phone {manifest['files'][0]['version']} · TV {manifest['files'][1]['version']}"
+subprocess.run(['gh','release','edit',tag,'--repo',repo,'--notes-file',str(root/('release/ANDROID-FIX-NOTES.md' if standalone else 'release/NOTES.md')),'--title',title],check=True)
+all_releases=json.loads(gh('api',f'repos/{repo}/releases?per_page=20'));current=next(r for r in all_releases if r['tag_name']==tag);assets={a['name']:a for a in current['assets']}
 for e in manifest['files']:
- assert assets[e['name']]['size']==e['bytes']
-# GitHub's API supplies the canonical asset digest; validate before publication.
-all_releases=json.loads(gh('api',f'repos/{repo}/releases?per_page=20'))
-current=next(r for r in all_releases if r['tag_name']==tag)
-for e in manifest['files']:
- asset=next(a for a in current['assets'] if a['name']==e['name']);assert asset['digest']=='sha256:'+e['sha256']
-if os.environ.get('PUBLISH_PREVIEW')=='true':
+ a=assets[e['name']];assert a['size']==e['bytes'] and a['digest']=='sha256:'+e['sha256']
+labels={manifest['files'][0]['name']:'جوال Android arm64 — APK',manifest['files'][1]['name']:'شاشة Google TV / Android TV — APK'}
+if stable:
+ required=[f"ArabicGames-Windows-{info['version']}-Full-Install.zip",f"ArabicGames-Windows-{info['version']}-Update.zip",'ArabicGames-Arabic-Guide.zip','ArabicGames-Samsung-0.1.0-Developer-Kit.zip','ArabicGames-Samsung-0.1.0-unsigned.wgt']
+ assert all(n in assets for n in required) and any(n.endswith('.ipk') for n in assets),'Some platform packages or guide are missing'
+ labels.update({required[0]:'ويندوز — تثبيت كامل أول مرة',required[1]:'ويندوز — تحديث النسخة الموجودة','ArabicGames-Arabic-Guide.zip':'دليل عربي مصور — HTML دون إنترنت','ArabicGames-Samsung-0.1.0-Developer-Kit.zip':'Samsung Tizen — نسخة مطوّر تحتاج شهادة','ArabicGames-Samsung-0.1.0-unsigned.wgt':'Samsung WGT — غير موقّع، يحتاج توقيعًا قبل التثبيت'})
+ for n in assets:
+  if n.endswith('.ipk'):labels[n]='شاشة LG webOS — حزمة IPK'
+for name,label in labels.items():gh('api','--method','PATCH',f"repos/{repo}/releases/assets/{assets[name]['id']}",'-f','label='+label)
+if stable:
+ checks=[]
+ for name,a in sorted(assets.items()):
+  digest=a.get('digest','');assert re.fullmatch(r'sha256:[a-f0-9]{64}',digest),'Missing canonical checksum';checks.append(digest[7:]+'  '+name+'\n')
+ sums=out/'SHA256SUMS-All.txt';sums.write_text(''.join(checks));subprocess.run(['gh','release','upload',tag,str(sums),'--repo',repo,'--clobber'],check=True)
+if stable or os.environ.get('PUBLISH_PREVIEW')=='true':
  if not standalone:
-  for name in [f"ArabicGames-Windows-{info['version']}-Full-Install.zip",f"ArabicGames-Windows-{info['version']}-Update.zip"]:assert name in assets,'Desktop preparation has not finished'
- subprocess.run(['gh','release','edit',tag,'--repo',repo,'--draft=false','--prerelease=false' if standalone else '--prerelease','--latest=false'],check=True)
- print('Published verified preview with separate platform files.')
-else:print('Separate Android downloads attached to the prepared draft.')
+  assert all(f"ArabicGames-Windows-{info['version']}-{part}.zip" in assets for part in ['Full-Install','Update'])
+ subprocess.run(['gh','release','edit',tag,'--repo',repo,'--draft=false','--prerelease=false' if stable or standalone else '--prerelease','--latest' if stable else '--latest=false'],check=True);print('Published complete verified release:',tag)
+else:print('Signed APKs attached to draft:',tag)

@@ -57,6 +57,8 @@ public static class ScreenRenderer
                     if(!toggle.IsVisible||toggle.IsChecked==true||DesktopSubtitleOverlay.IsOverlayEnabled)throw new InvalidOperationException("Desktop overlay must be visible as an option and disabled for TV reading.");
                     if(!LogicalElements(grid).OfType<System.Windows.Controls.Button>().Any(x=>Equals(x.Tag,"reading-recovery")&&x.IsVisible))throw new InvalidOperationException("Reading recovery button is missing.");
                 }
+                var startButton=LogicalElements(grid).OfType<System.Windows.Controls.Button>().Single(x=>Equals(x.Tag,"translation-start"));var startBounds=startButton.TransformToAncestor(grid).TransformBounds(new Rect(startButton.RenderSize));if(!startButton.IsVisible||startBounds.Top<0||startBounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Start translation button is not visible");
+                if(!LogicalElements(grid).OfType<System.Windows.Controls.ScrollViewer>().Any(x=>Equals(x.Tag,"setup-scroll")&&x.IsVisible&&x.VerticalScrollBarVisibility==System.Windows.Controls.ScrollBarVisibility.Visible))throw new InvalidOperationException("Setup scrollbar is hidden");
                 var visual=(FrameworkElement)window.Content;
                 var bitmap=new RenderTargetBitmap((int)visual.ActualWidth,(int)visual.ActualHeight,96,96,PixelFormats.Pbgra32);
                 bitmap.Render(visual);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));

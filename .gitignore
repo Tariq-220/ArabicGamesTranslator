@@ -24,3 +24,6 @@ test-desktop/
 android/phone/src/main/jniLibs/
 
 native-runtime/
+
+# Generated release companions
+tv/packages/

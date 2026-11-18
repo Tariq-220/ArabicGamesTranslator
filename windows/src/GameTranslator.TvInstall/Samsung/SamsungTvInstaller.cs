@@ -33,8 +33,8 @@ public sealed class SamsungInstallException(SamsungInstallError error, string? d
 public sealed partial class SamsungTvInstaller(string host, string profilesDirectory, SamsungCertificates certificates)
 {
     public const int SdbPort = 26101;
-    public const string AppId = "GameTransT.GameTranslator";
-    private const string PackageId = "GameTransT";
+    public const string AppId = "ArGamesTV1.ArabicGames";
+    private const string PackageId = "ArGamesTV1";
 
     /// <summary>Sertifika yoksa Samsung girişini başlatır; yoksa null döner ve kurulum giriş adımında durur.</summary>
     public Func<CancellationToken, Task<SamsungAccount>>? SignIn { get; init; }
