@@ -60,7 +60,7 @@ public final class MainActivity extends Activity {
   Ui.button(this,root,"التحديثات — فحص وتنزيل تلقائي",false,()->startActivity(new Intent(this,dev.arabicgames.update.UpdateActivity.class)));
   dev.arabicgames.update.UpdateActivity.onLaunch(this,"Phone");CommunityCorrections.refresh(this);
   Ui.button(this,root,"إيقاف القراءة والربط",false,()->{stopService(new Intent(this,CaptureService.class));Status.running=false;Status.message="متوقف";});
-  ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(Ui.BG);scroll.addView(root);PhoneInsets.fit(scroll);setContentView(scroll);
+  ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(Ui.BG);scroll.addView(root);LinearLayout dock=ConnectionBar.dock(this,scroll);PhoneInsets.fit(dock);setContentView(dock);
   if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},702);
  }
  private void prepare(){if(AiPreferences.NATIVE.equals(AiPreferences.provider(this))){startActivity(new Intent(this,LocalModelsActivity.class));return;}download.setEnabled(false);Status.message="جارٍ تنزيل نموذج الترجمة. اتصال Wi-Fi مطلوب أول مرة.";

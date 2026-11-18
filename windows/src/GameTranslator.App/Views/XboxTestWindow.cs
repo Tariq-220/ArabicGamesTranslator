@@ -29,6 +29,7 @@ public sealed class XboxTestWindow : Window
     private bool comparisonLatest;
     private readonly TextBlock logState=Label("السجل مفعّل محليًا؛ لا يُرسل تلقائيًا. المقارنة قد تشمل نتائج الذاكرة المؤقتة.");
     private readonly ComboBox windows = new() { MinWidth = 300, Width=480,MaxWidth=480,Tag="capture-window", Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
+    private readonly TextBlock connectionBar = Label("المحرك: لم يُختبر | الشاشة: غير متصلة | الترجمة: متوقفة",14);
     private readonly TextBlock status = Label("جاهز — افتح جلسة Xbox Remote Play أولًا.");
     private readonly TextBlock source = Label("النص الإنجليزي سيظهر هنا.");
     private readonly TextBlock translated = Label("الترجمة العربية ستظهر هنا.", 24);
@@ -189,11 +190,13 @@ public sealed class XboxTestWindow : Window
         shell.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
         var heading=new StackPanel{Margin=new Thickness(10)};
         heading.Children.Add(Label("ArabicGames · ترجمة الألعاب",24));
+        connectionBar.Tag="connection-status"; heading.Children.Add(connectionBar);
         heading.Children.Add(Label("① اختر المصدر  ② اختر المحرك واللعبة  ③ اربط الشاشة  ثم اضغط بدء الترجمة.",14));
         var ambient=new Border{CornerRadius=new CornerRadius(18),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
         shell.Children.Add(ambient);
         var actions=new WrapPanel{Margin=new Thickness(0,0,0,10)};
         actions.Children.Add(start);
+        var quickTest=Button("اختبار العربية على الشاشة",()=>{controller.SendTestSubtitle();status.Text="أُرسلت جملة اختبار للربط فقط. لترجمة اللعبة اضغط بدء الترجمة.";});quickTest.Tag="screen-test";actions.Children.Add(quickTest);
         actions.Children.Add(Button("خطوات التفعيل",ShowActivationSteps));actions.Children.Add(updateButton);
         Grid.SetRow(actions,1);shell.Children.Add(actions);
         // The old controls row owned start; it is detached before reparenting below.
@@ -429,6 +432,8 @@ public sealed class XboxTestWindow : Window
             else if(readyInstaller==null&&controller.AutoUpdateEnabled)_=CheckForUpdate();
         }
         connectionInfo.Text=$"عنوان الكمبيوتر: {controller.ComputerAddress ?? "غير متصل"} | المنفذ: {controller.ServerPort} | شاشات: {controller.TvClients}";
+        var engineState = !controller.IsRunning ? "جاهز للاختبار" : controller.TranslatorStatus==TranslatorStatus.Ready ? "يعمل" : controller.TranslatorStatus.ToString();
+        connectionBar.Text=$"المحرك: {engineState} | الشاشة: {(controller.TvClients>0 ? "متصلة ("+controller.TvClients+")" : "غير متصلة")} | الترجمة: {(controller.IsRunning ? "تعمل" : "متوقفة")}";
         start.Content = controller.IsRunning ? "■ إيقاف الترجمة" : "▶ بدء الترجمة";
         source.Text = controller.LastSource;
         translated.Text = controller.LastTranslation;

@@ -67,8 +67,18 @@ final class LocalModels {
    verify(target,expected);Files.move(target.toPath(),new File(folder,name).toPath(),StandardCopyOption.REPLACE_EXISTING);
   }}if(seen.size()!=spec.files.length())throw new IOException("حزمة النموذج ناقصة.");
  }
+ static boolean reuseVerifiedFiles(File folder,Spec spec)throws Exception {
+  // Revalidate actual files before considering another archive download, including after an interrupted install.
+  for(int i=0;i<spec.files.length();i++){
+   JSONObject f=spec.files.getJSONObject(i);
+   try{verify(new File(folder,f.getString("name")),f);}catch(IOException missingOrInvalid){return false;}
+  }
+  Files.write(new File(folder,"verified-v1").toPath(),spec.id.getBytes(StandardCharsets.UTF_8));
+  return true;
+ }
  static void install(Context c,String model,android.net.Uri imported,Progress progress)throws Exception {
   Spec s=spec(c,model);File d=directory(c,s);if(!d.isDirectory()&&!d.mkdirs())throw new IOException("تعذر إنشاء مجلد النموذج.");
+  if(imported==null&&reuseVerifiedFiles(d,s)){progress.update("✓ النموذج محفوظ وسليم؛ لا يحتاج إعادة تنزيل.");return;}
   Files.deleteIfExists(new File(d,"verified-v1").toPath());long required=s.size()+20_000_000+(imported!=null?s.size()+20_000_000:s.json.has("archive")?s.json.getJSONObject("archive").getLong("bytes"):0);if(d.getUsableSpace()<required)throw new IOException("المساحة غير كافية؛ وفر مساحة للنموذج والتنزيل.");
   if(imported!=null){File archive=new File(d,"import.zip");try(InputStream in=c.getContentResolver().openInputStream(imported);OutputStream out=new FileOutputStream(archive)){if(in==null)throw new IOException("تعذر فتح الملف.");byte[] b=new byte[65536];long total=0;int n;while((n=in.read(b))!=-1){total+=n;if(total>s.size()+20_000_000)throw new IOException("الحزمة أكبر من النموذج المختار.");out.write(b,0,n);}}try{unpack(archive,d,s);}finally{Files.deleteIfExists(archive.toPath());}}
   else if(s.json.has("archive")){File archive=new File(d,"download.zip");download(s.json.getJSONObject("archive"),archive,progress);try{unpack(archive,d,s);}finally{Files.deleteIfExists(archive.toPath());}}

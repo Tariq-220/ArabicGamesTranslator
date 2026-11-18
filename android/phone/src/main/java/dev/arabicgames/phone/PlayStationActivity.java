@@ -47,7 +47,7 @@ public final class PlayStationActivity extends Activity {
   feedback=Ui.text(this,"",14);root.addView(feedback);
   Ui.button(this,root,"منطقة القراءة — الحوار / القوائم / رسائل الهاتف",false,()->ReadingOptions.show(this));
   if(step>0)Ui.button(this,root,"الخطوة السابقة",false,()->{step=step==4&&!onTv?2:step==2&&!onTv?0:step-1;render();});
-  Ui.button(this,root,"الرئيسية",false,this::finish);ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(Ui.BG);scroll.addView(root);PhoneInsets.fit(scroll);setContentView(scroll);
+  Ui.button(this,root,"الرئيسية",false,this::finish);ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(Ui.BG);scroll.addView(root);LinearLayout dock=ConnectionBar.dock(this,scroll);PhoneInsets.fit(dock);setContentView(dock);
  }
  private void openSony(){Intent launch=getPackageManager().getLaunchIntentForPackage("com.playstation.remoteplay");try{if(launch!=null)startActivity(launch);else startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/apps/details?id=com.playstation.remoteplay")));}catch(ActivityNotFoundException e){feedback.setText("ثبّت تطبيق PS Remote Play الرسمي ثم ارجع هنا.");}}
  private void requestCapture(){
