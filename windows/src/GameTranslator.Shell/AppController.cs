@@ -183,6 +183,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             var old = settings;
             if (!Set(ref settings, value)) return;
             settingsStore.Save(value);
+            if(ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",value.Region);
             server.SendStyle(PresentationStyle);
             if (old.Dubbing != value.Dubbing) DubbingSettingsChanged(old.Dubbing);
             if (isRunning && (old.SourceLanguage != value.SourceLanguage || old.TargetLanguage != value.TargetLanguage
@@ -969,7 +970,14 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
     private SubtitleStyle PresentationStyle => settings.Style with {Placement=ReadingModes.DialogueOnly(ReadingContentMode)?SubtitlePlacement.Fixed:SubtitlePlacement.Cover};
-    public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set=>store.Save("ReadingContentMode",value);}
+    public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??new(.70,.97,.12,.78);
+    public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set {if(value!="dialogue"&&ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",settings.Region);store.Save("ReadingContentMode",value);}}
+    public void PrepareDialogueReading(){
+        if(!store.Load<bool>("DialogueRepairV24")){ResetDialogueReading();store.Save("DialogueRepairV24",true);}
+        else if(ReadingContentMode!="dialogue"){var region=DialogueCaptureRegion;store.Save("ReadingContentMode","dialogue");Settings=settings with{Region=region};}
+    }
+    public void ResetDialogueReading(){Stop();store.Save("ReadingContentMode","dialogue");DesktopOverlayEnabled=false;Settings=settings with{Region=new CropRegion(.70,.97,.12,.78)};}
+
     public string DialogueGame {get=>store.Load<string>("DialogueGame")??"Red Dead Redemption 2";set=>store.Save("DialogueGame",value);}
 
     public event Action<string,string>? TranslationRejected;
@@ -985,11 +993,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (reader is null) return;
         var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
-        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueSource(text,gameProfile):DialogueProfile.English(text,gameProfile);
-        if(settings.TargetLanguage=="ar"&&ReadingModes.DialogueOnly(ReadingContentMode)){built.MinimumStableMs=100;built.DropOffscreenResults=PreferLatestDialogue;}
+        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode);
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
-        built.PendingLineLimit = PreferLatestDialogue ? 1 : SubtitlePipeline.MaxWaiting;
+
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });
         if (settings.TargetLanguage == "tr") built.PackLookup = CommunityPatchManager.Shared.Match;

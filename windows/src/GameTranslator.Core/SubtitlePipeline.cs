@@ -60,7 +60,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     private readonly Func<long> now = clock ?? DefaultClock;
     /// <summary>Varsayılanı her kareyi okur; uygulama gereksiz okumaları atlayan planı verir.</summary>
     private readonly ReadScheduler schedule = scheduler ?? ReadScheduler.Always();
-    private readonly SubtitleStabilizer stabilizer = new(clock: clock ?? DefaultClock, cleanFastPathOnly: true);
+    private readonly SubtitleStabilizer stabilizer = new(clock: clock ?? DefaultClock, cleanFastPathOnly: translator.Prefetches);
     /// <summary>En son önceden çevirisi başlatılan okuma; aynı metin her karede yeniden istenmez.</summary>
     private string lastPrefetched = "";
     /// <summary>
@@ -151,6 +151,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public Func<string,string>? SourceFilter { get; set; }
     public Func<Reading,TextBox,Reading>? ReadingFilter { get; set; }
     public bool GuardDamagedRereads {get;set;}
+    public bool DialogueBlockOnly {get;set;}=true;
     public Func<string,string?>? ReviewedLookup {get;set;}
     private readonly RereadGuard rereadGuard=new();
     public Action<string>? Log { get; set; }
@@ -204,7 +205,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         // Alandaki menü ve köşe göstergeleri de altyazı değildir; yalnız altyazı bloğu çevrilir ve kutusu ona göre olur.
         var area = new TextBox(region.Left, region.Top, region.Right, region.Bottom);
         var filtered=ReadingFilter?.Invoke(raw,area)??raw;
-        var reading = filtered.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area);
+        var reading = DialogueBlockOnly?filtered.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area):filtered.WithoutOcrNoise();
 
         if(SourceFilter is { } filter)reading=new Reading(reading.Lines.Select(line=>line with {Text=filter(line.Text)}));
         Action? after = null;
@@ -228,7 +229,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                     ? $"yeniden-okuma: {SubtitleLog.Excerpt(note.Text)} gösterilenden kötü, yok sayıldı"
                     : $"çöp: {SubtitleLog.Excerpt(note.Text)} kararlı olmadan kalktı, gönderilmedi");
             }
-            var box = reading.Box?.PlacedIn(area).CenteredOnScreen();
+            var box = reading.Box?.PlacedIn(area);if(DialogueBlockOnly)box=box?.CenteredOnScreen();
             // Satır henüz doğrulanmadı: çevirisi şimdiden başlasın, doğrulanınca beklemeden gösterilsin.
             if (action.Kind == StabilizerKind.None && translator.Prefetches && reading.Text.Trim() is { Length: >= 6 } early && early != lastPrefetched)
             {

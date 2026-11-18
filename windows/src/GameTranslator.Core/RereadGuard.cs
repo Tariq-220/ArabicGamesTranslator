@@ -11,7 +11,7 @@ public sealed class RereadGuard {
    // Losing an unfinished tail shortly after a full reading is a common fade-out artifact.
    if(now-seen<=650&&before.Length>=3&&after.Length>=2&&after.Length<before.Length&&!EndsSentence(text)&&IsPrefix(after,before))return last;
    // E.g. "a nice fresh day for flying" -> "anicefreshdayfornying".
-   if(before.Length>=5&&after.Length<=before.Length-2&&after.Max(x=>x.Length)>=19&&after.Max(x=>x.Length)>=before.Max(x=>x.Length)+8){
+   if(before.Length>=5&&after.Length>0&&after.Length<=before.Length-2&&after.Max(x=>x.Length)>=19&&after.Max(x=>x.Length)>=before.Max(x=>x.Length)+8){
     var a=Compact(last);var b=Compact(text);if(a.Length>=20&&Near(a,b))return last;
    }
   }

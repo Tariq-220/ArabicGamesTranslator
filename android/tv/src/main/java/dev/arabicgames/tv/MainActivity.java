@@ -54,7 +54,7 @@ public final class MainActivity extends Activity {
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.11",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.10",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
@@ -65,8 +65,6 @@ public final class MainActivity extends Activity {
   connectionPanel.setVisibility(host.getText().toString().isEmpty()||!desktop.isChecked()&&!Pairing.validCode(code.getText().toString())?View.VISIBLE:View.GONE);
   input=new Spinner(this);refreshInputs();panel.addView(input);hdmiStatus=label("اختر HDMI ثم عرض اللعبة.",12);panel.addView(hdmiStatus);
   button(panel,"عرض اللعبة عبر HDMI",this::tune);
-  button(panel,"HDR الأصلي — ترجمة فوق مدخل الشاشة",this::nativeHdmi);
-  button(panel,"إيقاف وضع HDR الأصلي",()->stopService(new Intent(this,NativeHdmiOverlay.class)));
   button(panel,"إصلاح صورة HDMI السوداء",()->{videoRetries=0;repairVideo();});
   audio=new CheckBox(this);audio.setText("تشغيل صوت HDMI من الشاشة");audio.setTextSize(13);audio.setChecked(getPreferences(0).getBoolean("hdmiAudio",true));audio.setOnCheckedChangeListener((b,on)->{getPreferences(0).edit().putBoolean("hdmiAudio",on).apply();restoreAudio();});panel.addView(audio);
   LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -97,7 +95,7 @@ public final class MainActivity extends Activity {
   FrameLayout.LayoutParams handle=new FrameLayout.LayoutParams(dp(170),dp(44),Gravity.TOP|Gravity.RIGHT);handle.setMargins(dp(12),dp(12),dp(12),dp(12));root.addView(menuHandle,handle);
   setContentView(root);showPanel();dev.arabicgames.update.UpdateActivity.onLaunch(this,"TV");
   if(Build.VERSION.SDK_INT>=33){backCallback=()->{if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();};getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,backCallback);}
-  if(!NativeHdmiOverlay.active&&!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
+  if(!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
   if(host.getText().toString().isEmpty())discoverDesktop();
   inputManager=(TvInputManager)getSystemService(TV_INPUT_SERVICE);if(inputManager!=null)inputManager.registerCallback(inputChanges,ui);
   // Start in the controllable panel. Saved HDMI selection is restored without auto-tuning.
@@ -134,14 +132,6 @@ public final class MainActivity extends Activity {
   if(labels.isEmpty())labels.add("لا توجد مداخل HDMI");input.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));
   String saved=getPreferences(0).getString("hdmi","");for(int i=0;i<inputs.size();i++)if(inputs.get(i).getId().equals(saved))input.setSelection(i);
  }
- private void nativeHdmi(){
-  if(!android.provider.Settings.canDrawOverlays(this)){new AlertDialog.Builder(this).setTitle("إذن الترجمة فوق HDMI").setMessage("فعّل السماح بالظهور فوق التطبيقات لمترجم الألعاب، ثم ارجع واضغط HDR الأصلي مرة ثانية. هذا الوضع يستخدم مدخل التلفزيون الأصلي بدل TvView. قد يمنع نظام الشاشة إظهار الطبقة فوق HDMI.").setPositiveButton("فتح الإذن",(d,w)->{try{startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,android.net.Uri.parse("package:"+getPackageName())));}catch(Exception e){status.setText("افتح إذن الظهور فوق التطبيقات من إعدادات الشاشة.");}}).setNegativeButton("رجوع",null).show();return;}
-  String address=host.getText().toString().trim(),pair=code.getText().toString().trim();if(!NativeHdmiOverlay.validSource(address,pair,desktop.isChecked())){status.setText("اربط المصدر واختبر العربية أولًا، ثم فعّل HDR الأصلي.");return;}
-  getPreferences(0).edit().putString("host",address).putString("code",pair).putBoolean("desktop",desktop.isChecked()).apply();
-  if(input.getSelectedItemPosition()<0||input.getSelectedItemPosition()>=inputs.size()){status.setText("اختر مدخل HDMI أولًا.");return;}
-  Intent nativeInput=new Intent(Intent.ACTION_VIEW,TvContract.buildChannelUriForPassthroughInput(inputs.get(input.getSelectedItemPosition()).getId()));
-  try{session++;if(connection!=null)connection.disconnect();if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();releaseHdmiSession();startForegroundService(new Intent(this,NativeHdmiOverlay.class));startActivity(nativeInput);}catch(Exception e){stopService(new Intent(this,NativeHdmiOverlay.class));status.setText("لم يفتح النظام المدخل الأصلي. استخدم ريموت الشاشة لاختيار HDMI بعد تفعيل وضع HDR.");}
- }
  private void scheduleVideoRecovery(){
   videoAvailable=false;final int ticket=++videoTicket;
   ui.postDelayed(()->{if(destroyed||!resumed||ticket!=videoTicket||videoAvailable)return;if(videoRetries>=2){hdmiStatus.setText("لم تعد صورة HDMI؛ اضغط إصلاح صورة HDMI السوداء أو اختر المدخل الأصلي من ريموت الشاشة.");showPanel();return;}videoRetries++;repairVideo();},4000);
@@ -155,7 +145,6 @@ public final class MainActivity extends Activity {
   restoreSavedHdmi(resumeTicket);if(!videoAvailable)scheduleVideoRecovery();
  }
  private boolean tune(){
-  if(NativeHdmiOverlay.active)stopService(new Intent(this,NativeHdmiOverlay.class));
   if(inputs.isEmpty())refreshInputs();
   if(inputs.isEmpty()){hdmiStatus.setText("بانتظار تهيئة مداخل HDMI. المدخل المحفوظ لم يُحذف؛ أعد المحاولة بعد لحظات.");showPanel();return false;}
   try{int index=input.getSelectedItemPosition();if(index<0||index>=inputs.size())return false;TvInputInfo selected=inputs.get(index);if(selected.getId().equals(tunedInput))return true;
@@ -171,7 +160,6 @@ public final class MainActivity extends Activity {
 
  private void restoreAudio(){if(tv==null||audio==null)return;if(!resumed){tv.setStreamVolume(0f);return;}if(audio.isChecked()){audioManager.requestAudioFocus(audioFocus);tv.setStreamVolume(1f);}else{tv.setStreamVolume(0f);audioManager.abandonAudioFocusRequest(audioFocus);}}
  private void connect(){
-  if(NativeHdmiOverlay.active)stopService(new Intent(this,NativeHdmiOverlay.class));
   String address=host.getText().toString().trim(),pair=desktop.isChecked()?null:code.getText().toString().trim();
   if(!Pairing.privateIpv4(address)||(pair!=null&&!Pairing.validCode(pair))){status.setText("أدخل IPv4 محليًا ورمز الجوال كاملًا.");return;}
   getPreferences(0).edit().putString("host",address).putString("code",pair==null?"":pair).putBoolean("desktop",desktop.isChecked()).apply();int generation=++session;HttpURLConnection old=connection;if(old!=null)old.disconnect();status.setText(desktop.isChecked()?"جارٍ إعادة ربط الكمبيوتر المحفوظ…":"جارٍ إعادة ربط الجوال المحفوظ…");acceptedRevision=0;if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();
@@ -265,7 +253,7 @@ public final class MainActivity extends Activity {
   return super.onKeyDown(key,event);
  }
  @Override public void onBackPressed(){if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();}
- @Override protected void onResume(){super.onResume();resumed=true;if(NativeHdmiOverlay.active){showPanel();return;}final int ticket=++resumeTicket;if(input!=null)refreshInputs();
+ @Override protected void onResume(){super.onResume();resumed=true;final int ticket=++resumeTicket;if(input!=null)refreshInputs();
   if(tunedInput==null&&(restoreHdmi||getPreferences(0).getBoolean("resumeHdmi",false))){showPanel();for(long delay:new long[]{100,400,1000,2000,4000})ui.postDelayed(()->restoreSavedHdmi(ticket),delay);}else if(tv!=null&&audio!=null){restoreAudio();if(!videoAvailable&&restoreHdmi)scheduleVideoRecovery();}
  }
  @Override protected void onPause(){resumed=false;resumeTicket++;super.onPause();}
