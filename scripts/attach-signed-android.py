@@ -3,7 +3,10 @@ from pathlib import Path
 import json,subprocess,os
 root=Path(__file__).resolve().parents[1];info=json.loads((root/'release/version.json').read_text());tag='preview-'+info['version'];repo=info['repository'];out=root/'out/signed-android';manifest=json.loads((out/'verified.json').read_text())
 def gh(*args):return subprocess.check_output(['gh',*args],text=True).strip()
-release=json.loads(gh('release','view',tag,'--repo',repo,'--json','isDraft,assets'))
+try:release=json.loads(gh('release','view',tag,'--repo',repo,'--json','isDraft,assets'))
+except subprocess.CalledProcessError:
+ if os.environ.get('GITHUB_EVENT_NAME')=='workflow_run':print('No preview draft to attach; stable release unchanged.');raise SystemExit(0)
+ raise
 if not release['isDraft']:
  assets={a['name']:a for a in release['assets']}
  assert all(e['name'] in assets for e in manifest['files']),'Published releases are immutable: prepare a new version'
