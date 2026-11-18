@@ -1,6 +1,6 @@
 # التنزيل والتحديث
 
-[تنزيلات الجوال والشاشة الحالية — الملفات منفصلة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/android-v0.4.10-tv0.3.7)
+[تنزيلات الجوال والشاشة الحالية — الملفات منفصلة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/android-v0.4.10-tv0.3.8)
 
 [كل الإصدارات والملفات في GitHub Releases](https://github.com/Tariq-220/ArabicGamesTranslator/releases)
 
@@ -8,8 +8,8 @@
 
 | الجهاز | الملف | النماذج |
 |---|---|---|
-| جوال Android بمعالج arm64 | [ArabicGames-Phone-0.4.10-arm64.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.10-tv0.3.7/ArabicGames-Phone-0.4.10-arm64.apk) | QuickMT وجسر يُنزّلان من التطبيق، أو تستورد حزمة النموذج المطابقة |
-| شاشة Google TV / Android TV | [ArabicGames-TV-0.3.7.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.10-tv0.3.7/ArabicGames-TV-0.3.7.apk) | تستقبل العربية؛ لا تحتاج تنزيل محرك ترجمة للشاشة |
+| جوال Android بمعالج arm64 | [ArabicGames-Phone-0.4.10-arm64.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.10-tv0.3.8/ArabicGames-Phone-0.4.10-arm64.apk) | QuickMT وجسر يُنزّلان من التطبيق، أو تستورد حزمة النموذج المطابقة |
+| شاشة Google TV / Android TV | [ArabicGames-TV-0.3.8.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.10-tv0.3.8/ArabicGames-TV-0.3.8.apk) | تستقبل العربية؛ لا تحتاج تنزيل محرك ترجمة للشاشة |
 | Windows x64 — تحديث النسخة الموجودة | [ArabicGames-Windows-0.4.17-Update.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.17/ArabicGames-Windows-0.4.17-Update.zip) | يحتفظ بالنماذج والإعدادات والمفاتيح |
 | Windows x64 — تثبيت كامل | [ArabicGames-Windows-0.4.17-Full-Install.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.17/ArabicGames-Windows-0.4.17-Full-Install.zip) | يشمل ملفات تشغيل البرنامج؛ تُنزّل أوزان النموذج عند اختياره |
 | LG webOS | ملف `.ipk` | تثبيت أول مرة عبر Developer Mode، وليس APK |
@@ -31,3 +31,5 @@
 الجوال 0.4.10: **إعدادات المحرك ← التحكم بالتأخير وسرعة القراءة المحلية**. اختر **سريع — ابدأ بهذا** ثم احفظ. [نتائج فحص سجل QuickMT وحدود القياس](docs/PHONE-QUICKMT-REVIEW-2026-11-18.md).
 
 جديد 0.4.17 / جوال 0.4.10: قواعد لغوية مراجعة مشتركة وتلميحات معنى دون طلب تدقيق إضافي، وتقييم صحة الترجمة ومقارنة QuickMT وDeepL من السجل على الحوار نفسه. [كيف تعمل التصحيحات الجماعية والمقارنة وحدودها](docs/COMMUNITY-LEARNING-AND-COMPARISON.md).
+
+TV 0.3.8: الحفاظ على جلسة HDMI عند فتح قوائم نظام مؤقتة، وتقليل إعادة رسم الترجمة المتكررة. اختبر لوحة الألعاب والرجوع من Home على شاشتك؛ توافق HDR وVRR و120 Hz عبر TvView يعتمد على الموديل. الجوال 0.4.10 لم يتغير.
