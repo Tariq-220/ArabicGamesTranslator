@@ -67,7 +67,7 @@ public final class MainActivity extends Activity {
   input=new Spinner(this);refreshInputs();panel.addView(input);hdmiStatus=label("اختر HDMI ثم عرض اللعبة.",12);panel.addView(hdmiStatus);
   button(panel,"عرض اللعبة عبر HDMI",this::requestPlayback);
   button(panel,"إيقاف عرض HDMI والرجوع للإعدادات",this::stopPlayback);
-  button(panel,"نسخ تقرير العرض",()->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("تقرير العرض","Google TV 0.3.14 / Android "+Build.VERSION.SDK_INT+"\n"+getPreferences(0).getString("displayTrace","")));status.setText("نُسخ تقرير العرض؛ لا يحتوي عنوان الشبكة أو رمز الربط.");});
+  button(panel,"تقرير العرض — عرض ونسخ",()->{String report="Google TV 0.3.14 / Android "+Build.VERSION.SDK_INT+"\n"+getPreferences(0).getString("displayTrace","");new AlertDialog.Builder(this).setTitle("تقرير العرض — دون بيانات الربط").setMessage(report).setPositiveButton("نسخ",(d,w)->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("تقرير العرض",report));}).setNegativeButton("إغلاق",null).show();});
   button(panel,"إعادة ضبط العرض داخل التطبيق",()->{stopPlayback();hdmiStatus.setText("أُعيد ضبط العرض. اختر مدخل HDMI الصحيح ثم اضغط عرض اللعبة.");});
   audio=new CheckBox(this);audio.setText("تشغيل صوت HDMI من الشاشة");audio.setTextSize(13);audio.setChecked(getPreferences(0).getBoolean("hdmiAudio",true));audio.setOnCheckedChangeListener((b,on)->{getPreferences(0).edit().putBoolean("hdmiAudio",on).apply();restoreAudio();});panel.addView(audio);
   LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
