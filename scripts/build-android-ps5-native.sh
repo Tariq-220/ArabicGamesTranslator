@@ -27,6 +27,8 @@ tar -xzf "$ps5_work/openssl.tar.gz" --strip-components=1 -C "$ps5_work/openssl-s
  make -j 2
  make install_sw
 )
+export PKG_CONFIG_LIBDIR="$ps5_work/openssl-install/lib/pkgconfig"
+export PKG_CONFIG_PATH="$PKG_CONFIG_LIBDIR"
 cmake -S "$repo_dir/android/phone/src/main/cpp" -B "$ps5_work/build" -G Ninja \
  -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 -DANDROID_STL=c++_static -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON \
