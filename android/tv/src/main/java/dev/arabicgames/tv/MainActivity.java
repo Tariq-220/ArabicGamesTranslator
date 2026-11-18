@@ -72,7 +72,7 @@ public final class MainActivity extends Activity {
   audio=new CheckBox(this);audio.setText("تشغيل صوت HDMI من الشاشة");audio.setTextSize(13);audio.setChecked(getPreferences(0).getBoolean("hdmiAudio",true));audio.setOnCheckedChangeListener((b,on)->{getPreferences(0).edit().putBoolean("hdmiAudio",on).apply();restoreAudio();});panel.addView(audio);
   LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
   Button test=button(actions,"اختبار العربية",()->testLocal("اختبار محلي للشاشة — الحروف متصلة؟"));test.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));
-  Button close=button(actions,"عودة للعب",this::hidePanel);close.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));panel.addView(actions);
+  Button close=button(actions,"عودة للعب",this::requestPlayback);close.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));panel.addView(actions);
   TextView hint=label("الربط لا يفتح HDMI · عرض اللعبة يدوي · رجوع يفتح اللوحة أثناء اللعب",11);hint.setTextColor(0xffa9b8ca);connectionPanel.addView(hint);
   button(connectionPanel,"خروج من التطبيق",this::finish);
   button(panel,"حجم وخلفية الترجمة",this::subtitleSettings);
@@ -245,7 +245,7 @@ public final class MainActivity extends Activity {
  }
  @Override public void onBackPressed(){if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();}
  @Override protected void onResume(){super.onResume();resumed=true;resumeTicket++;if(input!=null)refreshInputs();
-  trace("resume; session="+(tunedInput!=null));if(!playRequested||tunedInput==null)showPanel();if(tunedInput!=null)restoreAudio();
+  trace("resume; session="+(tunedInput!=null));if(!playRequested||tunedInput==null)showPanel();if(tunedInput!=null&&playRequested)restoreAudio();
  }
  @Override protected void onPause(){trace("pause; session="+(tunedInput!=null));resumed=false;resumeTicket++;if(tv!=null)tv.setStreamVolume(0f);if(audioManager!=null&&audioFocus!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onPause();}
  private void releaseHdmiSession(){videoAvailable=false;if(tunedInput!=null){restoreHdmi=true;tunedInput=null;}if(tv!=null)tv.reset();dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);}
