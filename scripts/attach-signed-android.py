@@ -27,7 +27,7 @@ subprocess.run(['gh','release','edit',tag,'--repo',repo,'--notes-file',str(root/
 all_releases=json.loads(gh('api',f'repos/{repo}/releases?per_page=20'));current=next(r for r in all_releases if r['tag_name']==tag);assets={a['name']:a for a in current['assets']}
 for e in manifest['files']:
  a=assets[e['name']];assert a['size']==e['bytes'] and a['digest']=='sha256:'+e['sha256']
-labels={e['name']:(('جوال Android '+e['version']+' — arm64 APK') if e['platform']=='phone' else ('شاشة Google TV / TCL '+e['version']+' — APK')) for e in manifest['files']}
+labels={e['name']:(('جوال Android '+e['version']+' — arm64 APK') if e['platform']=='phone' else ('شاشات Google TV / Android TV '+e['version']+' — APK')) for e in manifest['files']}
 if stable:
  required=[f"ArabicGames-Windows-{info['version']}-Full-Install.zip",f"ArabicGames-Windows-{info['version']}-Update.zip",'ArabicGames-Arabic-Guide.zip','ArabicGames-Samsung-0.1.0-Developer-Kit.zip']
  assert all(n in assets for n in required) and any(n.endswith('.ipk') for n in assets),'Some platform packages or guide are missing'
