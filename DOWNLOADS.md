@@ -1,49 +1,22 @@
-# التنزيل والتحديث
+# التنزيل والتحديث — الإصدار 0.4.24
 
-[الموقع والشرح المصور](https://arabic-games-translator-guide.fullcrayon16.chatgpt.site) — يفتح بحساب مالك الموقع حاليًا.
+[الإصدار الحالي وجميع ملفات الأجهزة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/v0.4.24)
 
-Windows 0.4.21: أزرار اختبار المحرك واختبار الشاشة وبدء الترجمة ثابتة بالأعلى. آخر نتيجة اختبار تبقى في شريط الحالة ولا تضيع عند تحديث اتصال الشاشة. وضع القوائم يرسل موضع النص للشاشة؛ يلزم Google TV 0.3.9 لعرضه قرب المصدر.
-
-TV 0.3.9: إصلاح تلقائي محدود عند استمرار فقد إشارة HDMI، مع زر إصلاح يدوي وخيارات موضع القوائم. اختبر الانتقال إلى رئيسية Xbox على شاشتك؛ لم يُفحص هذا على TCL فعلية.
-
-[تنزيلات الجوال والشاشة الحالية — الملفات منفصلة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/v0.4.21)
-
-[كل الإصدارات والملفات في GitHub Releases](https://github.com/Tariq-220/ArabicGamesTranslator/releases)
-
-اختر ملف جهازك فقط؛ لا تحتاج حزمة تجمع كل التطبيقات:
-
-| الجهاز | الملف | النماذج |
+| جهازك | الإصدار والتحميل | متى تستخدمه؟ |
 |---|---|---|
-| جوال Android بمعالج arm64 | [ArabicGames-Phone-0.4.12-arm64.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.21/ArabicGames-Phone-0.4.12-arm64.apk) | QuickMT وجسر يُنزّلان من التطبيق، أو تستورد حزمة النموذج المطابقة |
-| شاشة Google TV / Android TV | [ArabicGames-TV-0.3.9.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.21/ArabicGames-TV-0.3.9.apk) | تستقبل العربية؛ لا تحتاج تنزيل محرك ترجمة للشاشة |
-| Windows x64 — تحديث النسخة الموجودة | [ArabicGames-Windows-0.4.21-Update.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.21/ArabicGames-Windows-0.4.21-Update.zip) | يحتفظ بالنماذج والإعدادات والمفاتيح |
-| Windows x64 — تثبيت كامل | [ArabicGames-Windows-0.4.21-Full-Install.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.21/ArabicGames-Windows-0.4.21-Full-Install.zip) | يشمل ملفات تشغيل البرنامج؛ تُنزّل أوزان النموذج عند اختياره |
-| LG webOS | [حزمة LG 1.0.8](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.21/com.gametranslator.tv_1.0.8_all.ipk) | تثبيت أول مرة عبر Developer Mode، وليس APK |
+| Windows x64 — موجود عندك البرنامج | [0.4.24 — ملف الإصلاح والتحديث](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.24/ArabicGames-Windows-0.4.24-Update.zip) | فك الضغط وشغّل Reading-Fix.cmd؛ يحتفظ بالنماذج والمفاتيح |
+| Windows x64 — أول مرة | [0.4.24 — التثبيت الكامل](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.24/ArabicGames-Windows-0.4.24-Full-Install.zip) | يشمل ملفات تشغيل ويندوز؛ أوزان النماذج تُنزّل عند اختيارها |
+| جوال Android arm64 | [0.4.13 — APK الجوال](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.24/ArabicGames-Phone-0.4.13-arm64.apk) | ثبّت فوق النسخة الموجودة دون حذف البيانات |
+| Google TV / Android TV / TCL | [0.3.10 — APK الشاشة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.24/ArabicGames-TV-0.3.10.apk) | ملف الشاشة؛ لا تحتاج تنزيل نموذج ترجمة لها |
+| LG webOS | [1.0.8 — IPK الشاشة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.24/com.gametranslator.tv_1.0.8_all.ipk) | يحتاج Developer Mode وأداة webOS للتثبيت |
+| Samsung Tizen | [0.1.0 — حزمة المطوّر](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.24/ArabicGames-Samsung-0.1.0-Developer-Kit.zip) | ليست تثبيتًا عاديًا؛ تحتاج شهادة Samsung/DUID خاصة بالشاشة، ولم تُختبر على جهاز فعلي |
 
-| Samsung Tizen — تجريبي للمطوّر | [حزمة سامسونج 0.1.0 مع خطوات التوقيع](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.21/ArabicGames-Samsung-0.1.0-Developer-Kit.zip) | تحتاج شهادة Samsung TV تتضمن DUID للشاشة؛ غير مختبرة على جهاز فعلي وليست تثبيتًا عاديًا أو تحديثًا هوائيًا |
+الإصلاح يستعيد توقيت قراءة الحوار قبل تغييرات القوائم، ويفصل منطقة الحوار عن مناطق القوائم. الجوال يعالج تجمد عدادات فيديو WebView وحجز الإطار المتأخر، ويوفر زر «إصلاح توقف القراءة — استعادة الحوار». لا يُحذف النموذج أو مفتاح API.
 
-[الدليل العربي المصور — فك الضغط وافتح index.html](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.21/ArabicGames-Arabic-Guide.zip)
+في ويندوز اختبر حوار اللعبة مع QuickMT أو DeepL بعد التحديث. زر اختبار المحرك يفحص استجابة نموذج الترجمة؛ زر اختبار الشاشة يفحص إرسال نص جاهز فقط. القوائم وضع اختياري، والتطبيق يعود للحوار عند فتحه.
 
-جديد Windows 0.4.21 والجوال 0.4.12: اختيار قراءة الحوار أو القوائم أو رسائل هاتف اللعبة يمينًا ويسارًا. في Windows افتح تبويب المصدر؛ وفي جلسة الجوال اختر منطقة القراءة. زر بدء الترجمة ثابت وواضح، مع مؤشر وتمرير للخيارات الإضافية. وضع الرسائل يحتاج أن تكون الرسالة ظاهرة في البث؛ لا يقرأ ملفات اللعبة.
+Google TV 0.3.10 كما في الإصدار السابق. هذا الإصدار لا يضيف وضع HDR الأصلي التجريبي، ولا يضمن حل تعارض HDMI/HDR على كل موديلات TCL. اختبارات البرامج محاكاة آلية وتحتاج تجربة فعلية قبل التعميم.
 
-رقم نسخة الجوال والشاشة مستقل عن Windows. الإصدارات التجريبية يُكتب بجانبها **Pre-release**. لا تثبّت ملف هاتف على التلفزيون أو ملف مكتبة تشغيل كنموذج.
+فحص التحديث في ويندوز يعتمد أحدث إصدار مستقر ويتحقق من بصمة ملفه. أوقف جلسة الترجمة قبل تركيب التحديث. أندرويد يطلب موافقة النظام لتثبيت APK؛ لا تحذف التطبيق القديم أولًا.
 
-داخل الجوال والشاشة: صفحة **التحديثات** تفحص وتنزّل ملف التطبيق المناسب تلقائيًا عند فتحه، ويمكن إطفاء الخيار. أندرويد يطلب موافقتك للتثبيت؛ يحدّث النسخة نفسها مع الاحتفاظ ببياناتها. أول انتقال من نسخة قديمة لا تحتوي المحدث يحتاج تثبيت APK مرة واحدة فوقها، دون حذفها.
-
-داخل Windows: فحص وتنزيل خارج جلسة اللعب، ثم زر تثبيت وإعادة التشغيل. لا تحتاج إعادة نسخ المجلد يدويًا بعد الانتقال إلى النسخة المدارة.
-
-[النماذج والسجل والإبلاغ والقيود](docs/LOCAL-MODELS-AND-UPDATES-2026-11-18.md)
-
-فحص التحديث التلقائي يعتمد الإصدارات المستقرة. Windows 0.4.21 إصدار مستقر يتضمن التصحيحات المشتركة؛ تُعرض النسخ التجريبية منفصلة ولا يختارها المحدث تلقائيًا.
-
-حزمة إصلاح الجوال 0.4.8 والشاشة 0.3.7 متاحة أيضًا عبر فحص التحديث من التطبيق. اختيار GTA 6 ثم الحفظ يفعّل تصحيحات حوار البداية المدمجة؛ زر تحديث التصحيحات المراجعة الآن يجلب التصحيحات الجديدة دون إعادة تنزيل أوزان QuickMT.
-
-في Windows 0.4.21: اختر اسم اللعبة **GTA 6** ثم افتح **السجل — تصحيح سطر أو الإبلاغ عن خطأ لغوي ← تحديث التصحيحات المراجعة الآن**. التصحيحات المراجعة المدمجة تعمل دون إنترنت، ويُحدّث البرنامج التصحيحات العامة دوريًا إذا تركت خيارها مفعّلًا. تغيير اللعبة أثناء جلسة مفتوحة يستلزم إيقاف الترجمة وبدءها مجددًا لتطبيق ملف اللعبة الجديد.
-
-الجوال 0.4.10: **إعدادات المحرك ← التحكم بالتأخير وسرعة القراءة المحلية**. اختر **سريع — ابدأ بهذا** ثم احفظ. [نتائج فحص سجل QuickMT وحدود القياس](docs/PHONE-QUICKMT-REVIEW-2026-11-18.md).
-
-جديد 0.4.17 / جوال 0.4.10: قواعد لغوية مراجعة مشتركة وتلميحات معنى دون طلب تدقيق إضافي، وتقييم صحة الترجمة ومقارنة QuickMT وDeepL من السجل على الحوار نفسه. [كيف تعمل التصحيحات الجماعية والمقارنة وحدودها](docs/COMMUNITY-LEARNING-AND-COMPARISON.md).
-
-TV 0.3.9: الحفاظ على جلسة HDMI عند فتح قوائم نظام مؤقتة، وتقليل إعادة رسم الترجمة المتكررة. اختبر لوحة الألعاب والرجوع من Home على شاشتك؛ توافق HDR وVRR و120 Hz عبر TvView يعتمد على الموديل. الجوال 0.4.10 لم يتغير.
-
-Windows 0.4.21: تصدير سجل JSONL، وتشخيص التجاوز والناتج الإنجليزي، واختيار حزمة OCR الإنجليزية المطابقة. اختر GTA 6 من الزر بجانب اسم اللعبة قبل التجربة. [تفاصيل فحص السجل والإصلاحات وحدود المقارنة](docs/WINDOWS-LOG-REVIEW-2026-11-18.md).
+[الشرح العربي المصور دون إنترنت](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.24/ArabicGames-Arabic-Guide.zip) · [كل الإصدارات](https://github.com/Tariq-220/ArabicGamesTranslator/releases)
