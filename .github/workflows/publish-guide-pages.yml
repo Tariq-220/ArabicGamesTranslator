@@ -1,9 +1,6 @@
 name: Publish illustrated Arabic setup guide
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ['Attach verified signed Android downloads']
-    types: [completed]
 permissions:
   contents: read
   pages: write
