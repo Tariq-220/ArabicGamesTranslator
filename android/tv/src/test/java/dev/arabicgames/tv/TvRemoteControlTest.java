@@ -13,7 +13,7 @@ public class TvRemoteControlTest {
  private static void key(MainActivity a,int code){assertTrue(a.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,code)));assertTrue(a.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,code)));}
  @Test public void hdmiCannotTakeNavigationAndKeyUpDoesNotActivateAHiddenButton(){
   try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
-   MainActivity a=c.get();View root=a.getWindow().getDecorView();TvView hdmi=root.findViewWithTag("hdmi-view");Button handle=root.findViewWithTag("menu-handle");assertFalse(hdmi.isFocusable());assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS,hdmi.getDescendantFocusability());
+   MainActivity a=c.get();org.robolectric.util.ReflectionHelpers.setField(a,"tunedInput","test-HDMI");View root=a.getWindow().getDecorView();TvView hdmi=root.findViewWithTag("hdmi-view");Button handle=root.findViewWithTag("menu-handle");assertFalse(hdmi.isFocusable());assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS,hdmi.getDescendantFocusability());
    key(a,KeyEvent.KEYCODE_BACK);assertEquals(View.GONE,handle.getVisibility());
    key(a,KeyEvent.KEYCODE_DPAD_CENTER);assertEquals(View.GONE,handle.getVisibility());assertTrue(find(root,"اكتشاف الجوال أو الكمبيوتر").isFocused());
    key(a,KeyEvent.KEYCODE_MENU);assertEquals(View.GONE,handle.getVisibility());
@@ -24,4 +24,5 @@ public class TvRemoteControlTest {
  @Test public void noHdmiInputDoesNotHideTheOnlyUsableControls(){try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
   View root=c.get().getWindow().getDecorView();find(root,"عرض اللعبة / إخفاء اللوحة").performClick();assertEquals(View.GONE,root.findViewWithTag("menu-handle").getVisibility());
  }}
+ @Test public void backWithoutHdmiKeepsTheControlPanelVisible(){try(var c=Robolectric.buildActivity(MainActivity.class).setup()){c.get().onBackPressed();ScrollView panel=org.robolectric.util.ReflectionHelpers.getField(c.get(),"panelWindow");assertEquals(View.VISIBLE,panel.getVisibility());}}
 }

@@ -3,7 +3,7 @@ android {
  namespace 'dev.arabicgames.tv'
  compileSdk 35
  sourceSets { main.java.srcDir '../shared/src/main/java' }
- defaultConfig { applicationId 'dev.arabicgames.tv'; minSdk 26; targetSdk 35; versionCode 17; versionName '0.3.10' }
+ defaultConfig { applicationId 'dev.arabicgames.tv'; minSdk 26; targetSdk 35; versionCode 19; versionName '0.3.12' }
  buildTypes {
   debug { debuggable false; jniDebuggable false }
   release { debuggable false; jniDebuggable false; minifyEnabled false; signingConfig signingConfigs.debug }
