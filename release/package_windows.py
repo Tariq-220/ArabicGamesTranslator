@@ -23,7 +23,7 @@ def package(root,publish,runtime,output):
             if not p.is_file():continue
             rel=p.relative_to(root)
             if any(s in rel.parts for s in ['.git','bin','obj','build','.gradle','node_modules','publish','out','dist','runtimes','__pycache__','test-user','test-desktop','ArabicGames-Windows']):continue
-            if p.name=='local.properties' or p.suffix.lower() in ['.exe','.dll','.apk','.zip','.nupkg','.jks','.keystore','.p12','.pfx','.gguf','.pyc','.ipk','.wgt']:continue
+            if p.name=='local.properties' or p.suffix.lower() in ['.exe','.dll','.apk','.zip','.nupkg','.jks','.keystore','.p12','.pfx','.gguf','.pyc','.ipk','.wgt','.so','.a','.o']:continue
             z.write(p,'ArabicGames-Source/'+rel.as_posix())
     output.mkdir(parents=True,exist_ok=True)
     archive=output/f'ArabicGames-Windows-{version}-Full-Install.zip'

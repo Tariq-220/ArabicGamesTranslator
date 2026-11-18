@@ -30,6 +30,11 @@
     <Resource Include="Assets\GameTranslator.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\..\native-runtime\windows\*.txt;..\..\..\native-runtime\windows\*.json" Link="ps5-native\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\..\native-runtime\windows\gametranslator_native.dll" Link="gametranslator_native.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\..\native-runtime\windows\gametranslator_native.dll')" />
+  </ItemGroup>
+
   <!-- TV uygulaması paketleri: dist/tv-app ve tv/packages altındaki paketleri tv-app/ klasörüne kopyalar -->
   <ItemGroup>
     <Content Include="..\..\..\dist\tv-app\*.ipk;..\..\..\dist\tv-app\*.wgt;..\..\..\dist\tv-app\*.apk;..\..\..\tv\packages\*.ipk;..\..\..\tv\packages\*.wgt;..\..\..\tv\packages\*.apk" Link="tv-app\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

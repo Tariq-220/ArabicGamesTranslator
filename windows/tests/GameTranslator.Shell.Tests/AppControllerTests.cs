@@ -232,6 +232,21 @@ public class AppControllerTests
     }
 
     [Fact]
+    public async Task NativePs5RegistrationNeverInventsAnAccountAndUpdatesCanBeDisabled()
+    {
+        var services=new FakeServices();var store=new MemoryStore();
+        using(var controller=Make(services,store:store)){
+            Assert.True(controller.AutoUpdateEnabled);controller.AutoUpdateEnabled=false;
+            var error=await Assert.ThrowsAsync<AppException>(()=>controller.RegisterAsync("192.168.1.253","12345678"));
+            Assert.Equal(AppError.MissingAccount,error.Error);Assert.Null(services.Registered);
+        }
+        using var reopened=Make(services,store:store);Assert.False(reopened.AutoUpdateEnabled);
+        store.Save(StoreKeys.AccountId,System.Text.Encoding.ASCII.GetBytes("GTPS5ACC"));
+        using var invalid=Make(services,store:store);Assert.False(invalid.HasAccount);
+        var blocked=await Assert.ThrowsAsync<AppException>(()=>invalid.RegisterAsync("192.168.1.253","12345678"));Assert.Equal(AppError.MissingAccount,blocked.Error);
+    }
+
+    [Fact]
     public void FreshInstallStartsAtWelcome() => Assert.Equal(OnboardingStep.Welcome, Make().Step);
 
     [Fact]

@@ -20,4 +20,5 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup><EmbeddedResource Include="../../../community/reviewed-dialogue.json" LogicalName="reviewed-dialogue.json" /></ItemGroup>
 </Project>

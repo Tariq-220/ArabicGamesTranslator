@@ -141,8 +141,7 @@ public sealed class LiveServices : IAppServices
             return new StreamSession(console, accountId);
         }
 
-        var cons = console ?? new RegisteredConsole("127.0.0.1", "PS5", accountId ?? new byte[16], new byte[16]);
-        return new WindowCaptureStreamSession(cons, accountId);
+        throw new InvalidOperationException("محرك PS5 الأصلي أو بيانات الاقتران غير متاحة. ثبّت تحديث PS5 وأكمل دخول Sony والرمز؛ لن نفتح نافذة خارجية بدل الاتصال المباشر.");
     }
 
     public IKeeper MakeKeeper(LgTv tv, string? key, IReadOnlyDictionary<string, string> parameters, Func<bool> appConnected, Action<LgTv> onMoved)

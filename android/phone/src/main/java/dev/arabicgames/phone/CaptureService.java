@@ -28,12 +28,14 @@ public final class CaptureService extends Service {
  private void loadPack(){try{java.io.File f=new java.io.File(getFilesDir(),"arabic-pack.json");if(f.exists())pack=PackFiles.parse(new String(java.nio.file.Files.readAllBytes(f.toPath()),java.nio.charset.StandardCharsets.UTF_8));}catch(Exception e){pack=ArabicPack.empty();}}
  private final Handler ui=new Handler(Looper.getMainLooper());
  private HandlerThread thread;private Handler frames;
+ private String directSource="xbox";
  private MediaProjection projection;private VirtualDisplay display;private ImageReader reader;
  private TextRecognizer recognizer;private Translator translator;private RelayServer server;
  private PowerManager.WakeLock wake;
  private final AtomicBoolean busy=new AtomicBoolean();
  private final SubtitleGate gate=new SubtitleGate();
  private AiPreferences.Config engine;
+ private volatile LocalModels.Session localSession;private int localLoadEpoch=-1;
  private final java.util.ArrayDeque<String> history=new java.util.ArrayDeque<>();
  private final java.util.concurrent.ExecutorService aiWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
  private long cloudRetryAfter;
@@ -53,13 +55,19 @@ public final class CaptureService extends Service {
    foreground(projection!=null||"capture".equals(intent.getAction()));
    if(server==null){String code=getSharedPreferences("relay",MODE_PRIVATE).getString("pairingCode",null);if(code==null){code=Pairing.createCode();getSharedPreferences("relay",MODE_PRIVATE).edit().putString("pairingCode",code).apply();}server=new RelayServer(code);server.start(15000,false);Status.code=code;ui.post(testLoop);}
    if("test".equals(intent.getAction())){server.subtitle("آرثر: هذا اختبار العربية — 25 دولارًا",5000);Status.message="اختبار الربط فقط؛ لترجمة اللعبة اختر Xbox أو بدء ترجمة PS5. من الشاشة اختر اكتشاف الجوال ووافق على الرمز.";return START_NOT_STICKY;}
+   if("ps5".equals(intent.getAction())) {
+    if(projection!=null){Status.message="أوقف مشاركة الشاشة أولًا قبل تشغيل PS5 المباشر.";return START_NOT_STICKY;}
+    dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);directSource="ps5";epoch++;gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;
+    if(wake==null){wake=((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"ArabicGames:PS5");wake.acquire(4*60*60*1000L);}Ps5Session.start(this);return START_NOT_STICKY;
+   }
    if("direct".equals(intent.getAction())) {
+    Ps5Session.stop();dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);directSource="xbox";
     if(projection!=null){Status.message="أوقف مشاركة الشاشة أولًا قبل فتح وضع Xbox المباشر.";return START_NOT_STICKY;}
     epoch++;gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;return START_NOT_STICKY;
    }
    if(projection!=null)return START_NOT_STICKY;
    if(!"capture".equals(intent.getAction()))return START_NOT_STICKY;
-   directActive=false;Status.captureActive=true;
+   dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);directActive=false;Status.captureActive=true;
    Intent data=Build.VERSION.SDK_INT>=33?intent.getParcelableExtra("data",Intent.class):intent.getParcelableExtra("data");
    projection=((MediaProjectionManager)getSystemService(MEDIA_PROJECTION_SERVICE)).getMediaProjection(intent.getIntExtra("result",Activity.RESULT_CANCELED),data);
    if(projection==null)throw new IllegalStateException("Projection not granted");
@@ -122,12 +130,18 @@ public final class CaptureService extends Service {
  static boolean screenTest(){CaptureService s=current;if(s==null||s.closed||s.server==null)return false;pauseDirect();String text="اختبار إرسال من الجوال إلى الشاشة — "+(SystemClock.elapsedRealtime()/1000%10000);Status.arabic=text;Status.message="اختبار إرسال لمدة 10 ثوانٍ. بعدها اضغط بدء الترجمة.";s.server.subtitle(text,10000);final int generation=s.epoch;s.ui.postDelayed(()->{if(!s.closed&&s.epoch==generation&&Status.arabic.equals(text)){Status.arabic="";s.server.clear();}},10000);return true;}
  static void retryModel(){CaptureService s=current;if(s!=null)s.ensureModel();}
  static void translationChanged(){CaptureService s=current;if(s==null||s.closed)return;
-  s.epoch++;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.ready=false;
+  s.epoch++;if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.ready=false;
   Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
  }
  private void loadTranslationSettings(){try{engine=AiPreferences.read(this);}catch(Exception e){engine=new AiPreferences.Config(AiPreferences.provider(this),"","","",AiPreferences.cloud(this));Status.message="تعذر قراءة مفتاح AI. افتح إعدادات المحرك وأعد إدخاله.";}}
  static String directState(){CaptureService s=current;if(s==null||s.closed)return "خدمة الربط متوقفة";if(!s.directActive)return "اختر وضع Xbox المباشر";if(!s.ready)return s.modelDownloading?"تجهيز نموذج العربية…":"نموذج العربية غير جاهز داخل جلسة القراءة";return s.busy.get()?"معالجة إطار":"جاهز لقراءة الفيديو";}
  private void ensureModel(){
+  if(engine!=null&&AiPreferences.NATIVE.equals(engine.provider)){
+   if(closed||ready||localLoadEpoch==epoch)return;
+   if(!LocalModels.installed(this,engine.model)){Status.message="نزّل حزمة "+engine.model+" من إدارة النماذج المحلية.";return;}
+   final int loadingEpoch=epoch;localLoadEpoch=loadingEpoch;modelDownloading=true;String model=engine.model;Status.message="تحميل "+model+" في ذاكرة الجوال…";
+   aiWorker.execute(()->{try{LocalModels.Session loaded=new LocalModels.Session(this,model);ui.post(()->{if(closed||epoch!=loadingEpoch){loaded.close();if(!closed){modelDownloading=false;localLoadEpoch=-1;ensureModel();}return;}localSession=loaded;modelDownloading=false;ready=true;Status.message=model+" جاهز محليًا على الجوال.";});}catch(Exception|LinkageError e){ui.post(()->{if(closed||epoch!=loadingEpoch)return;modelDownloading=false;localLoadEpoch=-1;ready=false;Status.message="تعذر تحميل النموذج المحلي؛ افحص الحزمة ومحرك التشغيل من إدارة النماذج.";});}});return;
+  }
   if(engine!=null&&engine.cloud()){ready=true;Status.message="محرك "+engine.label()+" جاهز للطلب؛ لم يُختبر الاتصال بعد.";return;}
   if(closed||translator==null||ready||modelDownloading)return;modelDownloading=true;Status.message="تجهيز نموذج العربية للجلسة…";
   translator.downloadModelIfNeeded(new DownloadConditions.Builder().requireWifi().build())
@@ -135,7 +149,16 @@ public final class CaptureService extends Service {
    .addOnFailureListener(e->{if(closed)return;modelDownloading=false;ready=false;Status.message="تعذر تجهيز النموذج للجلسة. افحص تنزيله من الصفحة الرئيسية ثم أعد فتح Xbox المباشر.";});
  }
  static void pauseDirect(){CaptureService s=current;if(s!=null&&s.directActive){s.epoch++;s.gate.absent();s.lease.clear();Status.arabic="";if(s.server!=null)s.server.clear();}}
- static boolean acceptsDirect(){CaptureService s=current;return s!=null&&!s.closed&&s.directActive&&s.ready&&!s.busy.get();}
+ static boolean acceptsDirect(){CaptureService s=current;return s!=null&&!s.closed&&s.directActive&&!"ps5".equals(s.directSource)&&s.ready&&!s.busy.get();}
+ static void ps5Failed(){CaptureService s=current;if(s!=null&&"ps5".equals(s.directSource))s.ui.post(s::stopSelf);}
+ static void ps5Rgba(java.nio.ByteBuffer buffer,int w,int h,int stride){
+  CaptureService s=current;if(s==null||s.closed||!s.directActive||!"ps5".equals(s.directSource)||!s.ready||w<2||h<2||w>3840||h>2160||stride<w*4||stride%4!=0||((long)stride*h)>buffer.capacity()||!s.busy.compareAndSet(false,true))return;
+  int generation=s.epoch;long now=SystemClock.elapsedRealtime();Bitmap full=null,crop=null;
+  try{full=Bitmap.createBitmap(stride/4,h,Bitmap.Config.ARGB_8888);buffer.rewind();full.copyPixelsFromBuffer(buffer);float[] region=ReadingRegion.bounds(s.getSharedPreferences("reading",0).getString("region","subtitles"));
+   crop=Bitmap.createBitmap(full,(int)(w*region[0]),(int)(h*region[1]),Math.max(1,(int)(w*region[2])),Math.max(1,(int)(h*region[3])));if(crop!=full)full.recycle();full=null;Bitmap image=crop;crop=null;
+   s.frames.post(()->{if(s.closed||generation!=s.epoch){image.recycle();s.busy.set(false);return;}s.processBitmap(image,now,generation);});
+  }catch(Exception e){if(crop!=null)crop.recycle();if(full!=null)full.recycle();s.busy.set(false);Status.message="تعذرت قراءة إطار PS5.";}
+ }
  static void directJpeg(byte[] jpeg){directJpeg(jpeg,false,0);}
  static void directJpeg(byte[] jpeg,boolean cropFull,int rotation){
   CaptureService s=current;if(s==null||s.closed||!s.directActive||!s.ready||!s.busy.compareAndSet(false,true))return;
@@ -157,8 +180,8 @@ public final class CaptureService extends Service {
    Status.framesRead++;
    recognizer.process(InputImage.fromBitmap(bitmap,0))
     .addOnSuccessListener(result->{
-     bitmap.recycle();if(closed||generation!=epoch){busy.set(false);return;}
-     String observed=ReadingRegion.sourceLimit(SubtitleGate.normalize(result.getText()));Status.observedOcr=observed;String text=DialogueProfile.english(observed,AiPreferences.game(this));long readDone=SystemClock.elapsedRealtime();
+     int bitmapWidth=bitmap.getWidth();bitmap.recycle();if(closed||generation!=epoch){busy.set(false);return;}
+     String observed=ReadingRegion.sourceLimit(SubtitleGate.normalize(dialogueText(result,bitmapWidth)));Status.observedOcr=observed;String text=DialogueProfile.english(observed,AiPreferences.game(this));long readDone=SystemClock.elapsedRealtime();
      if(text.isEmpty()){
       if(readDone-lastText>1200){gate.absent();lease.clear();if(!Status.arabic.isEmpty()){Status.arabic="";if(server!=null)server.clear();}}
       if(readDone-started>10000&&readDone-lastText>10000)Status.message="لم يظهر نص: فعّل ترجمة اللعبة الإنجليزية. قد يكون البث أسود أو محميًا من الالتقاط؛ لا يمكن قراءة محتوى محمي.";
@@ -167,46 +190,51 @@ public final class CaptureService extends Service {
      lastText=readDone;
      if(gate.alreadyShown(text)){if(lease.renew(text,readDone)){Status.arabic=lease.text();if(server!=null)server.subtitle(lease.text(),5000);}busy.set(false);return;}
      String reviewed=DialogueStore.get(this).reviewed(AiPreferences.game(this),text);
+     if(reviewed==null)reviewed=CommunityCorrections.find(this,AiPreferences.game(this),text);
      if(reviewed!=null){Status.source=text;publish(text,reviewed,now,readDone,readDone,generation,"تصحيحك المعتمد — بدون طلب محرك");return;}
      String packed=pack.find(text);
      if(packed!=null&&!gate.alreadyShown(text)){Status.source=text;publish(text,packed,now,readDone,readDone,generation,"حزمة عربية: "+pack.game);return;}
      if(!gate.accept(text,readDone)){busy.set(false);return;}
      Status.source=text;String known=gate.cached(text);
      if(known!=null){publish(text,known,now,readDone,readDone,generation,"ذاكرة الترجمة — "+(engine!=null&&engine.cloud()?engine.label():"محلي"));return;}
-     if(engine!=null&&engine.cloud()){
+     if(engine!=null&&(engine.cloud()||AiPreferences.NATIVE.equals(engine.provider))){
       if(readDone<cloudRetryAfter){busy.set(false);return;}
       AiPreferences.Config selected=engine;java.util.List<String> context=new java.util.ArrayList<>(history);
       aiWorker.execute(()->{
        long sent=SystemClock.elapsedRealtime();
-       try{String arabic=AiClient.translate(selected,text,context);
+       try{LocalModels.Session local=localSession;String arabic=AiPreferences.NATIVE.equals(selected.provider)?(local==null?"":local.translate(text)):AiClient.translate(selected,text,context);if(arabic.isEmpty())throw new java.io.IOException("ترجمة محلية فارغة.");
         ui.post(()->{
          long finished=SystemClock.elapsedRealtime();
          if(!closed&&generation==epoch)Status.cloudMetrics="آخر طلب AI: "+selected.label()+" | استجابة الطلب: "+(finished-sent)+" ms | قراءة إطاره: "+(readDone-now)+" ms";
          if(!closed&&generation==epoch&&finished-now>4500){gate.remember(text,arabic);busy.set(false);Status.message="تأخرت ترجمة AI؛ حُفظت للسطر المتكرر دون عرض سطر قديم.";return;}
          publish(text,arabic,now,readDone,finished,generation,selected.label());
         });
-       }catch(AiClient.Failure error){ui.post(()->{if(!closed&&generation==epoch){gate.retry();cloudRetryAfter=SystemClock.elapsedRealtime()+15000;Status.message=error.getMessage()+" اختر المحلي من إعدادات المحرك إذا لزم.";}busy.set(false);});}
+       }catch(Exception error){ui.post(()->{if(!closed&&generation==epoch){gate.retry();cloudRetryAfter=SystemClock.elapsedRealtime()+(AiPreferences.NATIVE.equals(selected.provider)?1000:15000);Status.message=AiPreferences.NATIVE.equals(selected.provider)?"تعذرت ترجمة السطر محليًا؛ أعد المحاولة أو اختر نموذجًا آخر.":error.getMessage()+" اختر المحلي من إعدادات المحرك إذا لزم.";}busy.set(false);});}
       });return;
      }
      translator.translate(text).addOnSuccessListener(arabic->publish(text,arabic,now,readDone,SystemClock.elapsedRealtime(),generation,"النموذج المحلي"))
       .addOnFailureListener(e->{gate.retry();Status.message="تعذرت ترجمة هذا السطر محليًا؛ ستُعاد المحاولة.";busy.set(false);});
     }).addOnFailureListener(e->{bitmap.recycle();Status.message="تعذرت قراءة الإطار.";busy.set(false);});
  }
+ private String dialogueText(com.google.mlkit.vision.text.Text result,int width){
+  if(!DialogueProfile.rdr2(AiPreferences.game(this)))return result.getText();StringBuilder text=new StringBuilder();float[] region=ReadingRegion.bounds(getSharedPreferences("reading",0).getString("region","subtitles"));
+  for(com.google.mlkit.vision.text.Text.TextBlock block:result.getTextBlocks())for(com.google.mlkit.vision.text.Text.Line line:block.getLines()){Rect box=line.getBoundingBox();String value=line.getText();float center=box==null?0:region[0]+region[2]*box.exactCenterX()/Math.max(1,width);if(DialogueProfile.interactionPrompt(value,center))continue;if(text.length()>0)text.append('\n');text.append(value);}return text.toString();
+ }
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin){
   if(!origin.startsWith("تصحيحك المعتمد"))arabic=DialogueProfile.arabic(text,arabic,AiPreferences.game(this));
   try{
    if(closed||generation!=epoch)return;
    gate.remember(text,arabic);gate.shown(text);lease.store(text,arabic,translated);Status.arabic=arabic;
-   if(getSharedPreferences("reading",0).getBoolean("history",true))DialogueStore.get(this).add(engine==null?"":engine.game,getSharedPreferences("reading",0).getString("region","subtitles"),text,arabic,origin);
+   if(getSharedPreferences("reading",0).getBoolean("history",true))DialogueStore.get(this).add(engine==null?"":engine.game,getSharedPreferences("reading",0).getString("region","subtitles"),text,arabic,origin,readDone-captured,translated-readDone,translated-captured);
    String context=text+" → "+arabic;if(history.isEmpty()||!history.peekLast().equals(context)){history.addLast(context);while(history.size()>3)history.removeFirst();}
-   Status.metrics="المصدر: "+origin+" | قراءة: "+(readDone-captured)+" ms | ترجمة: "+(translated-readDone)+" ms | تجهيز السطر: "+(translated-captured)+" ms (لا يشمل بث Xbox أو عرض TV)";
+   Status.metrics="المصدر: "+origin+" | قراءة: "+(readDone-captured)+" ms | ترجمة: "+(translated-readDone)+" ms | تجهيز السطر: "+(translated-captured)+" ms (لا يشمل بث Xbox / PS5 أو عرض TV)";
    Status.message="ترجمة نشطة — "+origin;if(server!=null){server.subtitle(arabic,5000);Status.clients=server.clients();}
   }finally{busy.set(false);}
  }
- @Override public void onDestroy(){current=null;directActive=false;closed=true;epoch++;ready=false;Status.running=false;Status.captureActive=false;Status.clients=0;Status.code="";ui.removeCallbacks(testLoop);
+ @Override public void onDestroy(){dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);Ps5Session.stop();current=null;directActive=false;closed=true;epoch++;ready=false;Status.running=false;Status.captureActive=false;Status.clients=0;Status.code="";ui.removeCallbacks(testLoop);
   if(server!=null){server.clear();server.stop();server=null;}
   if(display!=null)display.release();if(reader!=null)reader.close();if(projection!=null)projection.stop();
-  aiWorker.shutdownNow();if(thread!=null)thread.quitSafely();if(recognizer!=null)recognizer.close();if(translator!=null)translator.close();
+  if(localSession!=null){localSession.close();localSession=null;}aiWorker.shutdownNow();if(thread!=null)thread.quitSafely();if(recognizer!=null)recognizer.close();if(translator!=null)translator.close();
   if(wake!=null&&wake.isHeld())wake.release();stopForeground(true);super.onDestroy();
  }
  @Override public IBinder onBind(Intent intent){return null;}

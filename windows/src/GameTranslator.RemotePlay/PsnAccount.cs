@@ -58,7 +58,7 @@ public static class PsnAccount
 
     /// <summary>Çerezsiz: varsayılan HttpClient Sony'nin çerezlerini uygulama açık kaldıkça saklardı; bağlantılar
     /// sıfırlanıp yeniden giriş yapılınca eski oturumun çerezleri gönderilmesin.</summary>
-    private static readonly HttpClient SharedClient = new(new SocketsHttpHandler { UseCookies = false }) { Timeout = TimeSpan.FromSeconds(30) };
+    private static readonly HttpClient SharedClient = new(new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
 
     /// <summary>Uygulama içi tarayıcıda (WebView2) açılacak Sony giriş sayfası.</summary>
     public static Uri AuthorizeUrl { get; } = new("https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/authorize?" + Query(
@@ -90,7 +90,13 @@ public static class PsnAccount
         return error + (string.IsNullOrEmpty(description) ? "" : $": {description}") + (string.IsNullOrEmpty(code) ? "" : $" ({code})");
     }
 
-    private static bool IsRedirect(Uri url) => url.IsAbsoluteUri && url.AbsoluteUri.StartsWith(RedirectPrefix, StringComparison.Ordinal);
+    public static bool IsRedirect(Uri url) => url.IsAbsoluteUri && url.Scheme==Uri.UriSchemeHttps && url.Host.Equals("remoteplay.dl.playstation.net",StringComparison.OrdinalIgnoreCase) && url.AbsolutePath=="/remoteplay/redirect" && url.IsDefaultPort && string.IsNullOrEmpty(url.UserInfo);
+    public static Uri AuthorizeWithState(string state) => new(AuthorizeUrl.AbsoluteUri+"&state="+Uri.EscapeDataString(state));
+    public static bool IsSonyPage(Uri url)=>url.IsAbsoluteUri&&url.Scheme==Uri.UriSchemeHttps&&url.IsDefaultPort&&string.IsNullOrEmpty(url.UserInfo)&&new[]{"sony.com","sonyentertainmentnetwork.com","playstation.com"}.Any(d=>url.Host.Equals(d,StringComparison.OrdinalIgnoreCase)||url.Host.EndsWith("."+d,StringComparison.OrdinalIgnoreCase));
+    public static bool MatchesState(Uri url,string expected){
+        if(!IsRedirect(url)||expected.Length<32)return false;var pairs=url.Query.TrimStart('?').Split('&',StringSplitOptions.RemoveEmptyEntries);var names=pairs.Select(p=>Uri.UnescapeDataString(p.Split('=',2)[0])).ToList();if(names.Distinct(StringComparer.Ordinal).Count()!=names.Count)return false;
+        var actual=QueryValue(url,"state");return actual!=null&&System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected),Encoding.UTF8.GetBytes(actual));
+    }
 
     private static string? QueryValue(Uri url, string wanted)
     {

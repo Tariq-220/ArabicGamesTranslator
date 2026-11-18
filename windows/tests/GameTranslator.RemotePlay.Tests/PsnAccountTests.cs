@@ -44,6 +44,20 @@ public class PsnAccountTests
         Assert.Contains("client_id=ba495a24-818c-472b-b12d-ff231c1b5745", url);
     }
 
+    [Fact]
+    public void LoginNonceAndOriginMustMatchExactly()
+    {
+        var nonce=new string('a',48);
+        var redirect=new Uri(PsnAccount.RedirectPrefix+"?code=abc&state="+nonce);
+        Assert.True(PsnAccount.MatchesState(redirect,nonce));
+        Assert.False(PsnAccount.MatchesState(new Uri(redirect+"&state="+nonce),nonce));
+        Assert.False(PsnAccount.MatchesState(redirect,new string('b',48)));
+        Assert.False(PsnAccount.IsRedirect(new Uri("https://remoteplay.dl.playstation.net.evil/remoteplay/redirect?code=x")));
+        Assert.False(PsnAccount.IsSonyPage(new Uri("https://user@playstation.com/")));
+        Assert.False(PsnAccount.IsSonyPage(new Uri("https://playstation.com:444/")));
+        Assert.True(PsnAccount.IsSonyPage(new Uri("https://auth.api.sonyentertainmentnetwork.com/login")));
+    }
+
     private sealed class FakeSony(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
         public readonly List<(HttpRequestMessage Request, string? Body)> Requests = [];

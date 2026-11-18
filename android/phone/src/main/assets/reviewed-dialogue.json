@@ -1,0 +1,36 @@
+{
+  "format": "arabic-games-reviewed-v1",
+  "revision": 1,
+  "source": "en",
+  "target": "ar",
+  "entries": [
+    {
+      "game": "Red Dead Redemption 2",
+      "source": "Keep going. Through the palms.",
+      "arabic": "تابع التقدم عبر أشجار النخيل.",
+      "reviewed": true,
+      "reason": "Reviewed against the user screenshot and RDR2 scene; exact text only."
+    },
+    {
+      "game": "Red Dead Redemption 2",
+      "source": "You'll be fine... just don't step on it.",
+      "arabic": "ستكون بخير... فقط لا تدس عليه.",
+      "reviewed": true,
+      "reason": "Reviewed against the user screenshot and RDR2 scene; exact text only."
+    },
+    {
+      "game": "Red Dead Redemption 2",
+      "source": "Come on, you big dozy lizard. Rouse yourself.",
+      "arabic": "هيا أيها التمساح الكبير الكسول، استيقظ!",
+      "reviewed": true,
+      "reason": "Reviewed against the user screenshot and RDR2 scene; exact text only."
+    },
+    {
+      "game": "Red Dead Redemption 2",
+      "source": "Got some juicy fat humans for you to eat.",
+      "arabic": "أحضرت لك بشرًا سمانًا شهيين لتلتهمهم.",
+      "reviewed": true,
+      "reason": "Reviewed against the user screenshot and RDR2 scene; exact text only."
+    }
+  ]
+}

@@ -13,6 +13,7 @@
                 <Button Content="{t:T 'Cancel'}" HorizontalAlignment="Right" IsCancel="True" Click="OnCancel" />
             </Grid>
         </Border>
+        <TextBlock x:Name="LoginStatus" DockPanel.Dock="Bottom" Margin="14" TextWrapping="Wrap" Text="سجّل بالحساب الثانوي نفسه الموجود على PS5. كلمة المرور لدى Sony فقط."/>
         <wv2:WebView2 x:Name="Browser" />
     </DockPanel>
 </Window>

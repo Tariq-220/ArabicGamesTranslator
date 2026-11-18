@@ -1,0 +1,7 @@
+package dev.arabicgames.phone;
+import org.junit.Test;import static org.junit.Assert.*;
+public class PsnProtocolTest {
+ @Test public void acceptsOnlySonyRedirectAndMatchingSingleState(){String state="a".repeat(48),base=PsnProtocol.REDIRECT+"?code=test&state="+state;assertEquals("test",PsnProtocol.code(base,state));for(String bad:new String[]{base+"&state="+state,base.replace("https:","http:"),base.replace("playstation.net/","playstation.net.evil/"),base.replace("state=aaa","state=bbb"),base+"&error=denied"})assertThrows(IllegalArgumentException.class,()->PsnProtocol.code(bad,state));}
+ @Test public void preservesUnsignedSonyAccountIdInLittleEndian(){assertArrayEquals(new byte[]{1,0,0,0,0,0,0,0},PsnProtocol.accountId("1"));assertArrayEquals(new byte[]{-1,-1,-1,-1,-1,-1,-1,-1},PsnProtocol.accountId("18446744073709551615"));assertThrows(IllegalArgumentException.class,()->PsnProtocol.accountId("18446744073709551616"));assertThrows(IllegalArgumentException.class,()->PsnProtocol.accountId("-1"));}
+ @Test public void loginBlocksUntrustedOriginsAndCredentials(){assertTrue(PsnProtocol.sonyPage("https://auth.api.sonyentertainmentnetwork.com/login"));for(String bad:new String[]{"https://playstation.com.evil/login","http://playstation.com/","https://user@playstation.com/","https://playstation.com:444/"})assertFalse(PsnProtocol.sonyPage(bad));assertNotEquals(PsnProtocol.nonce(),PsnProtocol.nonce());}
+}

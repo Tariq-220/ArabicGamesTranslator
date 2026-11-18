@@ -1,0 +1,20 @@
+name: خطأ في الترجمة
+description: تسجيل جملة للمراجعة وإضافتها لاحقًا إلى حزمة التصحيحات
+title: '[ترجمة] اسم اللعبة'
+labels: ['translation-review']
+body:
+ - type: markdown
+   attributes:
+     value: 'أرفق نص الحوار فقط. لا ترفق مفاتيح API أو رموز ربط أو بيانات حساب. البلاغ لا يعتمد تلقائيًا؛ نراجعه ثم نضيف التصحيح لحزمة اللعبة.'
+ - type: textarea
+   id: report
+   attributes:
+     label: بيانات البلاغ
+     description: الصق بيانات السطر من زر الإبلاغ في التطبيق أو اكتب الإنجليزي والترجمة والمحرك واسم اللعبة.
+   validations:
+     required: true
+ - type: textarea
+   id: correction
+   attributes:
+     label: التصحيح المقترح والسياق
+     description: التصحيح اختياري. اذكر المقصود في مشهد اللعبة إن أمكن.

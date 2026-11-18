@@ -9,7 +9,7 @@ import android.os.*;
 import android.view.*;
 import android.widget.*;
 
-/** Alternative sources. PS5 uses a user-approved external capture, not a native PS client. */
+/** Direct PS5 entry and explicit external capture alternatives. */
 public final class SourcePathsActivity extends Activity {
  private TextView feedback;
  @Override public void onCreate(Bundle saved){
@@ -29,10 +29,10 @@ public final class SourcePathsActivity extends Activity {
   Ui.button(this,pc,"Xbox Remote Play الرسمي",false,()->open("https://www.xbox.com/remoteplay"));
   Ui.button(this,pc,"chiaki-ng — بديل PS5 للكمبيوتر",false,()->open("https://github.com/chiaki-ng/chiaki-ng/releases"));
   pc.addView(Ui.text(this,"Gemini متاح في حزمة الكمبيوتر: أدخل مفتاحك داخل البرنامج فقط، ثم فعّل استخدام Gemini. يحتاج الإنترنت وقد تترتب تكلفة أو حدود استخدام. البديل العام الحالي تجريبي وقد يتوقف.",14));
-  LinearLayout ps=Ui.card(this,root,"PS5 على الجوال — مشاركة شاشة تجريبية");
-  ps.addView(Ui.text(this,"للتلفزيون واليد: ادخل بالثانوي على PS5 أولًا، وفعّل اللعب عن بُعد. سجّل بالثانوي نفسه في PS Remote Play بالجوال وانتظر الفيديو. بعدها اختر الأساسي من يد PS5، واترك الثانوي للبث. اضغط تفعيل PS5 خطوة بخطوة لترتيب الربط وبدء الترجمة.",15));
+  LinearLayout ps=Ui.card(this,root,"PS5 — الربط المباشر أو البديل الخارجي");
+  ps.addView(Ui.text(this,"الزر المباشر يسجل Sony ويكتشف PS5 ويربط رمز الجهاز داخل مترجمنا. لا يحتاج مشاركة شاشة أو تطبيق Sony الخارجي.\nالبديل الخارجي فقط — للتلفزيون واليد: ادخل بالثانوي على PS5 أولًا، وفعّل اللعب عن بُعد. سجّل بالثانوي نفسه في PS Remote Play بالجوال وانتظر الفيديو. بعدها اختر الأساسي من يد PS5، واترك الثانوي للبث. اضغط تفعيل PS5 خطوة بخطوة لترتيب الربط وبدء الترجمة.",15));
   ps.addView(Ui.text(this,"الجوال يبقى مفتوحًا في هذا المسار. قد يمنع PS Remote Play التقاط الفيديو فتكون القراءة سوداء؛ وقتها جرّب مسار الكمبيوتر. هذا ليس اتصال PS5 أصليًا داخل تطبيقنا، ولم يُختبر على جهاز PS5 فعلي.",14));
-  Ui.button(this,ps,"تفعيل PS5 خطوة بخطوة",true,()->startActivity(new Intent(this,PlayStationActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
+  Ui.button(this,ps,"تفعيل PS5 المباشر خطوة بخطوة",true,()->startActivity(new Intent(this,NativePlayStationActivity.class).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
   Ui.button(this,ps,"فتح / تثبيت PS Remote Play",true,this::openPlayStation);
   Ui.button(this,ps,"بدء مشاركة شاشة PS5",false,this::requestCapture);
   LinearLayout obs=Ui.card(this,root,"بديل OBS / بطاقة التقاط");

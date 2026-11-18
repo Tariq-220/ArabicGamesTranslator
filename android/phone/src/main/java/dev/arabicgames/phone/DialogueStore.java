@@ -15,18 +15,20 @@ final class DialogueStore {
  private final ExecutorService writer=Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"dialogue-storage");t.setDaemon(true);return t;});
  private long revision,nextId;private boolean writing;
  DialogueStore(File file){this.file=file;try{if(file.exists()&&file.length()<4_000_000){JSONArray stored=new JSONArray(new String(java.nio.file.Files.readAllBytes(file.toPath()),StandardCharsets.UTF_8));for(int i=Math.max(0,stored.length()-200);i<stored.length();i++){JSONObject entry=stored.getJSONObject(i);lines.add(entry);nextId=Math.max(nextId,entry.optLong("id"));}}}catch(Exception ignored){lines.clear();}}
- synchronized void add(String game,String mode,String source,String arabic,String engine){
+ synchronized void add(String game,String mode,String source,String arabic,String engine){add(game,mode,source,arabic,engine,0,0,0);}
+ synchronized void add(String game,String mode,String source,String arabic,String engine,long readMs,long translationMs,long totalMs){
   if(source.length()>2000||arabic.length()>3000)return;
   game=game.substring(0,Math.min(200,game.length()));engine=engine.substring(0,Math.min(200,engine.length()));
   if(!lines.isEmpty()){JSONObject previous=lines.get(lines.size()-1);if(source.equals(previous.optString("source"))&&arabic.equals(previous.optString("arabic"))&&game.equals(previous.optString("game"))&&mode.equals(previous.optString("mode")))return;}
-  try{lines.add(new JSONObject().put("id",++nextId).put("time",System.currentTimeMillis()).put("game",game).put("mode",mode).put("source",source).put("arabic",arabic).put("engine",engine).put("reviewed",false));while(lines.size()>200)lines.remove(0);changed();}catch(JSONException ignored){}
+  try{lines.add(new JSONObject().put("id",++nextId).put("time",System.currentTimeMillis()).put("game",game).put("mode",mode).put("source",source).put("arabic",arabic).put("engine",engine).put("reviewed",false).put("read_ms",readMs).put("translation_ms",translationMs).put("total_ms",totalMs).put("quality_warning",TranslationQuality.warning(source,arabic)));while(lines.size()>200)lines.remove(0);changed();}catch(JSONException ignored){}
  }
  synchronized JSONArray snapshot(){try{return new JSONArray(new JSONArray(lines).toString());}catch(JSONException e){return new JSONArray();}}
- synchronized void revise(long id,String arabic){if(arabic.trim().isEmpty()||arabic.length()>3000)throw new IllegalArgumentException();for(JSONObject entry:lines)if(entry.optLong("id")==id){try{entry.put("arabic",arabic.trim()).put("reviewed",true);changed();}catch(JSONException ignored){}return;}}
+ synchronized void revise(long id,String arabic){if(arabic.trim().isEmpty()||arabic.length()>3000)throw new IllegalArgumentException();for(JSONObject entry:lines)if(entry.optLong("id")==id){try{if(!entry.has("original_arabic"))entry.put("original_arabic",entry.optString("arabic"));entry.put("arabic",arabic.trim()).put("reviewed",true);changed();}catch(JSONException ignored){}return;}}
  synchronized String reviewed(String game,String source){
   String key=source.trim().replaceAll("\\s+"," ");if(game==null||game.isBlank()||key.isEmpty())return null;
   for(int i=lines.size()-1;i>=0;i--){JSONObject e=lines.get(i);if(e.optBoolean("reviewed")&&game.equals(e.optString("game"))&&key.equals(e.optString("source").trim().replaceAll("\\s+"," ")))return e.optString("arabic");}return null;
  }
+ synchronized void flag(long id){for(JSONObject e:lines)if(e.optLong("id")==id){try{e.put("reported",true);changed();}catch(JSONException ignored){}return;}}
  synchronized void clear(){lines.clear();changed();}
  synchronized String pack(String game,boolean reviewedOnly)throws Exception{
   JSONObject pairs=new JSONObject();Set<String> conflicts=new HashSet<>();

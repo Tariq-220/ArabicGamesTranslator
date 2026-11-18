@@ -1,0 +1,11 @@
+{
+  "source": "014eb443bce5ddb69ab921a5e839a9d558c02ef9",
+  "hearth": "bc6823b8ec8254eefa222d28e60d70ccdd7d67ce",
+  "ctranslate2": "8c8cab2a954810216a45d65c1b8d56839c846e5b",
+  "abi": "arm64-v8a",
+  "minSdk": 28,
+  "files": {
+    "libtransiber_ct2.so": "8318978b549a69b64da1e38d7bd60488018941ce47cbf062bb96e255737a0224",
+    "libc++_shared.so": "f9992c4ba6b7c5a716e3a202fceb1ce029d6a2b0605838ac6b3219f489dd7970"
+  }
+}

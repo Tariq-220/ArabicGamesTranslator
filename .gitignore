@@ -22,3 +22,5 @@ test-desktop/
 
 # Local Android native build outputs; sources are under cpp/.
 android/phone/src/main/jniLibs/
+
+native-runtime/

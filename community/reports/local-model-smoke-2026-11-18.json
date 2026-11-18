@@ -1,0 +1,136 @@
+{
+  "status": "needs-language-review",
+  "note": "All outputs retained, not approved as correct. Host process timings include model load and are not phone timings.",
+  "results": {
+    "device": "GitHub Linux host CPU, not the user phone/laptop",
+    "quality_reviewed": false,
+    "rows": [
+      {
+        "model": "quickmt-en-ar",
+        "target": "ar",
+        "source": "Keep going. Through the palms.",
+        "arabic": "استمروا في السير عبر راحة اليدين",
+        "host_process_ms_including_model_load": 669
+      },
+      {
+        "model": "quickmt-en-ar",
+        "target": "ar",
+        "source": "You'll be fine... just don't step on it.",
+        "arabic": "ستكون بخير... فقط لا تدوس عليه.",
+        "host_process_ms_including_model_load": 668
+      },
+      {
+        "model": "quickmt-en-ar",
+        "target": "ar",
+        "source": "Come on, you big dozy lizard. Rouse yourself.",
+        "arabic": "هيا، أيتها السحلية الكبيرة، اهتز نفسك",
+        "host_process_ms_including_model_load": 722
+      },
+      {
+        "model": "quickmt-en-ar",
+        "target": "ar",
+        "source": "We need to get above the clouds. Use the burner.",
+        "arabic": "علينا أن نتجاوز الغيوم استخدم الموقد",
+        "host_process_ms_including_model_load": 691
+      },
+      {
+        "model": "quickmt-en-ar",
+        "target": "ar",
+        "source": "We should still have some decent views over the river.",
+        "arabic": "يجب أن يكون لدينا بعض وجهات النظر اللائقة على النهر.",
+        "host_process_ms_including_model_load": 709
+      },
+      {
+        "model": "quickmt-en-ar",
+        "target": "ar",
+        "source": "Now the world is your oyster.",
+        "arabic": "الآن العالم هو المحار الخاص بك.",
+        "host_process_ms_including_model_load": 637
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ar",
+        "source": "Keep going. Through the palms.",
+        "arabic": "استمروا، من خلال النخيل",
+        "host_process_ms_including_model_load": 144
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ar",
+        "source": "You'll be fine... just don't step on it.",
+        "arabic": "سوف تكون بخير... فقط لا تتقدم على ذلك.",
+        "host_process_ms_including_model_load": 153
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ar",
+        "source": "Come on, you big dozy lizard. Rouse yourself.",
+        "arabic": "هيا، أنت كبير دوخاً عليك، اركب نفسك",
+        "host_process_ms_including_model_load": 171
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ar",
+        "source": "We need to get above the clouds. Use the burner.",
+        "arabic": "علينا أن نصل فوق السحابة استخدم الموقد",
+        "host_process_ms_including_model_load": 150
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ar",
+        "source": "We should still have some decent views over the river.",
+        "arabic": "يجب أن يكون لدينا بعض الآراء اللائقة حول النهر.",
+        "host_process_ms_including_model_load": 154
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ar",
+        "source": "Now the world is your oyster.",
+        "arabic": "الآن العالم هو محارمك.",
+        "host_process_ms_including_model_load": 138
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ars",
+        "source": "Keep going. Through the palms.",
+        "arabic": "كمل. من خلال الكفوف.",
+        "host_process_ms_including_model_load": 145
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ars",
+        "source": "You'll be fine... just don't step on it.",
+        "arabic": "بتبقى بخير، بس لا تسوي فيها.",
+        "host_process_ms_including_model_load": 154
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ars",
+        "source": "Come on, you big dozy lizard. Rouse yourself.",
+        "arabic": "يلا يا جنة دوخان كبيرة، رزق نفسك.",
+        "host_process_ms_including_model_load": 167
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ars",
+        "source": "We need to get above the clouds. Use the burner.",
+        "arabic": "نبي نطلع فوق السحابة، استخدموا الموقد.",
+        "host_process_ms_including_model_load": 168
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ars",
+        "source": "We should still have some decent views over the river.",
+        "arabic": "لازم يكون عندنا مناظر كريمة على النهر.",
+        "host_process_ms_including_model_load": 155
+      },
+      {
+        "model": "jisr-int8",
+        "target": "ars",
+        "source": "Now the world is your oyster.",
+        "arabic": "الآن العالم هو محارتك.",
+        "host_process_ms_including_model_load": 131
+      }
+    ]
+  }
+}

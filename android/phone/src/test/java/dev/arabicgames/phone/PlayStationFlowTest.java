@@ -13,7 +13,7 @@ public class PlayStationFlowTest {
  private static Button find(View v,String label){if(v instanceof Button&&label.equals(((Button)v).getText().toString()))return(Button)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){Button b=find(((ViewGroup)v).getChildAt(i),label);if(b!=null)return b;}return null;}
  private static String text(View v){String s=v instanceof TextView?((TextView)v).getText().toString():"";if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)s+="\n"+text(((ViewGroup)v).getChildAt(i));return s;}
  @Test public void primaryHomeButtonOpensAnExplicitPlayStationFlow(){try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
-  find(c.get().getWindow().getDecorView(),"PS5 — ربط Sony وبدء الترجمة").performClick();assertEquals(PlayStationActivity.class.getName(),Shadows.shadowOf(c.get()).getNextStartedActivity().getComponent().getClassName());
+  find(c.get().getWindow().getDecorView(),"PS5 — ربط Sony وبدء الترجمة").performClick();assertEquals(NativePlayStationActivity.class.getName(),Shadows.shadowOf(c.get()).getNextStartedActivity().getComponent().getClassName());
  }}
  @Test public void tvModeExplainsSecondaryAccountButPhoneControlDoesNotRequireIt(){
   try(var c=Robolectric.buildActivity(PlayStationActivity.class).setup()){

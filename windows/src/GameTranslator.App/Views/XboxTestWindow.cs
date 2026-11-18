@@ -51,8 +51,9 @@ public sealed class XboxTestWindow : Window
     private readonly TextBlock engineHint=Label("");
     private readonly Button localLauncher=new(){Content="تنزيل / تشغيل النموذج المحلي",MinHeight=48,Margin=new Thickness(4),Tag="local-launcher"};
     private readonly Button testEngine=new(){Content="حفظ واختبار المحرك",MinHeight=48,Margin=new Thickness(4),Tag="engine-test"};
-    private bool resetWindowPreference;
-    private readonly TextBlock consoleHelp=Label("");
+    private bool resetWindowPreference;private FrameworkElement? capturePicker;
+    private bool DirectPs5=>controller.PreferPlayStation&&controller.NativePlayStationEnabled;
+    private readonly TextBlock consoleHelp=Label("");private readonly TextBlock sourceInstruction=Label("");
     private readonly TextBlock connectionInfo = Label("", 16);
     private readonly Action<string, int, GameTranslator.Core.TextBox?> overlay;
 
@@ -78,15 +79,17 @@ public sealed class XboxTestWindow : Window
             "ربط TCL باللابتوب",MessageBoxButton.OK,MessageBoxImage.Information)));
         root.Children.Add(updateLabel);root.Children.Add(updateButton);
         updateButton.Click+=async(_,_)=>{if(readyInstaller!=null)InstallReadyUpdate();else await CheckForUpdate();};
-        if(!preview)Loaded+=async(_,_)=>await CheckForUpdate();
+        var automaticUpdates=new CheckBox{Content="فحص وتنزيل التحديث تلقائيًا خارج اللعب",IsChecked=controller.AutoUpdateEnabled,Margin=new Thickness(4),MinHeight=40};automaticUpdates.Checked+=(_,_)=>controller.AutoUpdateEnabled=true;automaticUpdates.Unchecked+=(_,_)=>controller.AutoUpdateEnabled=false;root.Children.Add(automaticUpdates);
+        if(!preview)Loaded+=async(_,_)=>{_=CommunityCorrections.RefreshAsync();if(controller.AutoUpdateEnabled)await CheckForUpdate();};
         root.Children.Add(Label("1 · مصدر اللعبة — Xbox أو PS5"));
-        var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح مصدر اللعبة",()=>{controller.Stop();controller.PreferPlayStation=false;resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();OpenUrl("https://www.xbox.com/remoteplay");}));
-        consoleActions.Children.Add(Button("PS5 — تشغيل Remote Play",LaunchPlayStation));root.Children.Add(consoleActions);
+        var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح مصدر اللعبة",()=>{controller.Stop();controller.PreferPlayStation=false;controller.NativePlayStationEnabled=false;resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();OpenUrl("https://www.xbox.com/remoteplay");}));
+        consoleActions.Children.Add(Button("PS5 — اقتران مباشر",ConfigurePlayStation));root.Children.Add(consoleActions);
         var consoleDetails=new StackPanel();consoleDetails.Children.Add(consoleHelp);UpdateConsoleHelp();
+        consoleDetails.Children.Add(Button("بديل: قراءة Sony Remote Play الخارجي",LaunchPlayStation));
         consoleDetails.Children.Add(Button("خطوات ربط PS5 الرسمية",()=>OpenUrl("https://remoteplay.dl.playstation.net/remoteplay/lang/en/ps5_win.html")));
-        root.Children.Add(Label("فعّل النص الإنجليزي في اللعبة، وافتح البث ثم اختر نافذته."));
+        root.Children.Add(sourceInstruction);
         consoleDetails.Children.Add(Label("المحركات السحابية ترسل النص المقروء للمزوّد؛ اختر نافذة اللعبة لتجنّب قراءة إشعاراتك. QuickMT المحلي لا يحتاج خدمة ترجمة سحابية."));
-        var pick = Row(); pick.Children.Add(windows); pick.Children.Add(Button("تحديث النوافذ", RefreshWindows)); root.Children.Add(pick);
+        var pick = Row(); pick.Children.Add(windows); pick.Children.Add(Button("تحديث النوافذ", RefreshWindows)); capturePicker=pick;pick.Visibility=DirectPs5?Visibility.Collapsed:Visibility.Visible;root.Children.Add(pick);
         consoleDetails.Children.Add(Label("عند ظهور صورة سوداء جرّب التقاط الشاشة كاملة. عند اللعب على التلفزيون تصغر هذه الواجهة تلقائيًا؛ أبقِ نافذة البث ظاهرة."));
         root.Children.Add(new Expander{Header="تفاصيل ربط الكونسول والخصوصية",Content=consoleDetails,Foreground=Brushes.White,Margin=new Thickness(4,8,4,8)});
         var crop = Row(); crop.Children.Add(Label("بداية منطقة القراءة من أعلى الصورة (%)")); crop.Children.Add(top); root.Children.Add(crop);
@@ -110,6 +113,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(fastCapture);
         root.Children.Add(Label("هذا يغيّر فاصل قراءة الإطارات فقط، ولا يسرّع Remote Play أو محرك الترجمة. اتركه مطفأً إذا ارتفع الحمل."));
         root.Children.Add(recordComparison);root.Children.Add(logState);
+        root.Children.Add(Button("السجل — تصحيح سطر أو الإبلاغ عن خطأ لغوي",()=>new TranslationHistoryWindow(comparison.FilePath){Owner=this}.ShowDialog()));
         root.Children.Add(Button("فتح مجلد سجل المقارنة",()=>{var folder=System.IO.Path.GetDirectoryName(comparison.FilePath)!;System.IO.Directory.CreateDirectory(folder);System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe",folder){UseShellExecute=true});}));
         root.Children.Add(Label("لريد ديد 2: ابدأ من 62% إلى 97%، ثم ارفع البداية لتقليل مساحة القراءة إذا كانت الترجمة واضحة."));
         var controls = Row(); controls.Children.Add(start); controls.Children.Add(Button("اختبار الحروف العربية", () => controller.SendTestSubtitle()));
@@ -227,7 +231,9 @@ public sealed class XboxTestWindow : Window
         start.Click += async (_, _) =>
         {
             if (controller.IsRunning) { controller.Stop(); return; }
-            if (windows.SelectedItem is not ComboBoxItem { Tag: string target }) { status.Text = "اختر نافذة البث أولًا."; return; }
+            string? target=(windows.SelectedItem as ComboBoxItem)?.Tag as string;
+            if(DirectPs5){if(!controller.HasAccount||controller.Console==null||!GameTranslator.RemotePlay.StreamSession.IsNativeAvailable){status.Text="أكمل اقتران PS5 المباشر وتأكد من وجود المحرك الأصلي.";return;}}
+            else if(target==null){status.Text="اختر نافذة البث أولًا.";return;}
             if((engineChoice.SelectedIndex==0||engineChoice.SelectedIndex==5)&&!controller.HasGeminiKey || engineChoice.SelectedIndex==1&&!controller.HasDeepLKey){status.Text="أدخل مفتاح المحرك المختار واحفظه أولًا؛ لن نستبدله بمترجم آخر تلقائيًا.";return;}
             if(engineChoice.SelectedIndex>=8 && string.IsNullOrWhiteSpace(SecureStore.Default.Load<string>(ProviderKeyId))){status.Text="أدخل مفتاح هذا المزوّد واحفظه أولًا.";return;}
             try {
@@ -238,7 +244,7 @@ public sealed class XboxTestWindow : Window
             {
                 controller.Settings = controller.Settings with
                 {
-                    SourceLanguage = "en", TargetLanguage = "ar", VideoSource = VideoSourceType.DesktopScreen,
+                    SourceLanguage = "en", TargetLanguage = "ar", VideoSource = DirectPs5?VideoSourceType.RemotePlay:VideoSourceType.DesktopScreen,
                     DesktopWindowName = target, Region = new CropRegion(top.Value / 100, 0.97, readLeft.Value/100, readRight.Value/100),
                     DubbingEnabled = false, Engine = engineChoice.SelectedIndex==1 ? TranslationEngine.DeepL : TranslationEngine.Gemini
                 };
@@ -362,13 +368,19 @@ public sealed class XboxTestWindow : Window
     }
     private void UpdateConsoleHelp()
     {
-        consoleHelp.Text=controller.PreferPlayStation
+        if(capturePicker!=null)capturePicker.Visibility=DirectPs5?Visibility.Collapsed:Visibility.Visible;
+        sourceInstruction.Text=DirectPs5?"PS5 مباشر: أكمل الاقتران ثم اختر المحرك وابدأ الترجمة؛ لا تختار نافذة فيديو.":"فعّل النص الإنجليزي في اللعبة، وافتح البث ثم اختر نافذته.";
+        consoleHelp.Text=DirectPs5?"PS5 مباشر: تسجيل Sony بالثانوي، اكتشاف الجهاز ورمز الاقتران داخل المترجم. الأساسي للعبة واليد؛ لا تحتاج فتح Sony Remote Play أو نافذة فيديو خارجية.":controller.PreferPlayStation
             ? "مصدر PS5: فعّل Settings > System > Remote Play > Enable Remote Play في الجهاز. افتح PS Remote Play على Windows وسجّل الدخول بحسابك الرسمي، ثم اختر PS5 وانتظر الفيديو. اضغط تحديث النوافذ إذا لم تُحدّد نافذته. ربط التلفزيون والمحركات كما هما؛ هذا ليس اتصالًا أصليًا داخل المترجم."
             : "مصدر Xbox: افتح جلسة Remote Play الرسمية واختر نافذة الفيديو. العب على HDMI مباشرة واجعل البث للقراءة فقط إذا رغبت.";
     }
+    private void ConfigurePlayStation(){
+        controller.Stop();controller.PreferPlayStation=true;controller.NativePlayStationEnabled=true;UpdateConsoleHelp();
+        new NativePlayStationWindow(controller){Owner=this}.ShowDialog();UpdateConsoleHelp();
+    }
     private void LaunchPlayStation()
     {
-        controller.Stop();controller.PreferPlayStation=true;resetWindowPreference=true;UpdateConsoleHelp();
+        controller.Stop();controller.PreferPlayStation=true;controller.NativePlayStationEnabled=false;resetWindowPreference=true;UpdateConsoleHelp();
         var paths=new[]{Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)}
             .Select(root=>System.IO.Path.Combine(root,"Sony","PS Remote Play","RemotePlay.exe"));
         var installed=paths.FirstOrDefault(System.IO.File.Exists);
@@ -404,7 +416,7 @@ public sealed class XboxTestWindow : Window
     {
         if(e.PropertyName==nameof(AppController.IsRunning)) {
             if(controller.IsRunning)activeUpdateDownload?.Cancel();
-            else if(readyInstaller==null)_=CheckForUpdate();
+            else if(readyInstaller==null&&controller.AutoUpdateEnabled)_=CheckForUpdate();
         }
         connectionInfo.Text=$"عنوان الكمبيوتر: {controller.ComputerAddress ?? "غير متصل"} | المنفذ: {controller.ServerPort} | شاشات: {controller.TvClients}";
         start.Content = controller.IsRunning ? "إيقاف الترجمة" : "بدء الترجمة";
@@ -427,8 +439,8 @@ public sealed class XboxTestWindow : Window
         var tabs=new TabControl{Margin=new Thickness(12)};
         void Page(string title,string text){tabs.Items.Add(new TabItem{Header=title,Content=new ScrollViewer{Content=Label(text,17),VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});}
         Page("Xbox","1. Xbox: الإعدادات ← الأجهزة والاتصالات ← الميزات البعيدة، ثم فعّلها.\n2. افتح Xbox Remote Play في المتصفح أو تطبيق Xbox الرسمي بنفس الحساب؛ لا تحتاج كتابة عنوان الكونسول هنا.\n3. ابدأ البث ثم اختر نافذته من تحديث النوافذ.\n4. للعب بأقل تأخير، العب على HDMI مباشرة واترك البث للقراءة فقط.\nربط Microsoft بالكود داخل مترجمنا لم يُدمج بعد؛ لا تدخل كلمة المرور فيه.");
-        Page("PS5","1. PS5: الإعدادات ← النظام ← اللعب عن بُعد ← تمكين اللعب عن بُعد.\n2. اضغط زر PS5 لتشغيل PS Remote Play. أكمل تسجيل Sony والاقتران في تطبيقه الرسمي.\n3. إذا فصل اتصال البث يد التحكم، جرّب حساب PSN ثانيًا مضافًا للكونسول للبث واترك حساب اللعب لليد.\n4. اختر نافذة PS Remote Play أو chiaki-ng، وفعّل الترجمة الإنجليزية داخل اللعبة.\nلاختبار النص: اختبار العربية ثم ابدأ الترجمة أثناء حوار.");
-        Page("الشاشة","TCL / Google TV: ثبّت تطبيق الشاشة 0.3.3، افتحه على نفس الشبكة، وسيبحث عن الكمبيوتر. إذا تعددت الأجهزة تختار واحدًا.\nLG webOS: ثبّت حزمة LG عبر Developer Mode وwebOS Dev Manager مرة واحدة؛ بعدها استخدم اكتشاف الشاشات ووافق على الاقتران. دعم HDMI يختلف حسب موديل LG.\nMonitor: العربية فوق نافذة اللعبة على الكمبيوتر، أو امسح QR من جوال/تابلت لعرض النص بجانب شاشة الكونسول. الباركود لا يجعل شاشة HDMI العادية تعرض طبقة ترجمة.\nعند عدم الاتصال: اسمح للتطبيق في جدار حماية Windows على الشبكة الخاصة، وأوقف عزل أجهزة Wi-Fi في الراوتر إن كان مفعّلًا.");
+        Page("PS5","1. أضف حساب PSN ثانويًا مجانيًا على PS5 وفعّل اللعب عن بُعد وأنت به.\n2. اضغط PS5 — اقتران مباشر في مترجمنا وسجّل بالحساب الثانوي نفسه في صفحة Sony.\n3. اكتشف PS5 تلقائيًا، وافتح ربط جهاز على الكونسول واكتب رمز الـ8 أرقام هنا.\n4. ارجع للأساسي من يد PS5 وافتح لعبتك، واترك الثانوي للبث.\n5. اختر المحرك وابدأ الترجمة؛ لا تحتاج نافذة Sony أو مشاركة الشاشة. أغلق جلسات Remote Play الخارجية.\nيحفظ الحساب والربط مشفّرًا؛ لا نحتفظ بكلمة مرور Sony.");
+        Page("الشاشة","TCL / Google TV: ثبّت تطبيق الشاشة 0.3.5، افتحه على نفس الشبكة، وسيبحث عن الكمبيوتر. إذا تعددت الأجهزة تختار واحدًا.\nLG webOS: ثبّت حزمة LG عبر Developer Mode وwebOS Dev Manager مرة واحدة؛ بعدها استخدم اكتشاف الشاشات ووافق على الاقتران. دعم HDMI يختلف حسب موديل LG.\nMonitor: العربية فوق نافذة اللعبة على الكمبيوتر، أو امسح QR من جوال/تابلت لعرض النص بجانب شاشة الكونسول. الباركود لا يجعل شاشة HDMI العادية تعرض طبقة ترجمة.\nعند عدم الاتصال: اسمح للتطبيق في جدار حماية Windows على الشبكة الخاصة، وأوقف عزل أجهزة Wi-Fi في الراوتر إن كان مفعّلًا.");
         Page("المحرك والسرعة","1. ابدأ بـ QuickMT المحلي: اختره ثم تشغيل النموذج، وانتظر Ready، ثم حفظ واختبار. لا يحتاج API.\n2. Gemini / OpenAI / Claude / DeepL: اختر المزوّد ثم الحصول على المفتاح. المفتاح لكل مزوّد مستقل، ولا تستعمل اشتراك تطبيق المحادثة بدل رصيد API.\n3. اختر النموذج ثم حفظ واختبار. الخانة الفارغة بعد الحفظ تستخدم المفتاح المحفوظ؛ لا تحتاج إدخاله كل مرة.\n4. 429: الحصة أو معدل الطلبات؛ 503: الخدمة غير متاحة مؤقتًا. تغيير المفتاح داخل المشروع نفسه لا يزيد الحصة.\n5. للحوار فقط: استبعد أزرار اليمين. فعّل تقليل ازدحام الطلبات قبل البدء، وجرّب التقاط 40ms إذا كان حمل اللابتوب مناسبًا.\n6. قارن المشهد نفسه بمحركين من سجل المقارنة؛ زمن البرنامج لا يشمل تأخير البث أو التلفزيون. اختيار نموذج جديد لا يضمن جودة أعلى.");
         new Window{Title="التفعيل خطوة بخطوة",Owner=this,Width=760,Height=630,Content=tabs,Background=Background,Foreground=Foreground,FlowDirection=FlowDirection.RightToLeft}.ShowDialog();
     }

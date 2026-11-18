@@ -7,10 +7,11 @@ import android.view.*;
 import android.widget.*;
 
 public final class AiSettingsActivity extends Activity {
- private final String[] providers={AiPreferences.LOCAL,AiPreferences.GEMINI,AiPreferences.OPENAI,AiPreferences.DEEPL,AiPreferences.LAN,AiPreferences.GOOGLE};
+ private final String[] providers={AiPreferences.LOCAL,AiPreferences.GEMINI,AiPreferences.OPENAI,AiPreferences.DEEPL,AiPreferences.LAN,AiPreferences.GOOGLE,AiPreferences.NATIVE};
  private Spinner provider,modelChoice;private EditText model,game,key,address;private CheckBox consent;private TextView feedback;
  private String editingProvider;
  private final java.util.Map<String,String> keyDrafts=new java.util.HashMap<>(),modelDrafts=new java.util.HashMap<>();
+ private TextView keyCaption;private Button apiLink;
  private CheckBox fast;
  private Button saveButton;
  private static final class Draft {
@@ -25,10 +26,11 @@ public final class AiSettingsActivity extends Activity {
   root.addView(Ui.text(this,"محرك الترجمة",26));
   root.addView(Ui.text(this,"المحلي بلا إنترنت. Gemini وOpenAI وDeepL تترجم نص الحوار مع السياق؛ لا نرسل صور اللعبة. تحتاج مفتاح API خاصًا بالخدمة، وقد تُحتسب تكلفة حسب حسابك. الترجمة تحتاج تجربة فعلية للمقارنة.",15));
   root.addView(Ui.text(this,"المحرك",16));provider=new Spinner(this);
-  provider.setAdapter(optionAdapter(new String[]{"محلي — بدون إنترنت","Gemini — سحابي","OpenAI — سحابي","DeepL — ترجمة متخصصة","QuickMT / Jisr على الكمبيوتر","Google — إنترنت بدون مفتاح"}));LinearLayout engineRow=new LinearLayout(this);engineRow.setOrientation(LinearLayout.HORIZONTAL);engineRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+  provider.setAdapter(optionAdapter(new String[]{"محلي — بدون إنترنت","Gemini — سحابي","OpenAI — سحابي","DeepL — ترجمة متخصصة","QuickMT / Jisr على الكمبيوتر","Google — إنترنت بدون مفتاح","QuickMT / جسر — على الجوال بدون إنترنت"}));LinearLayout engineRow=new LinearLayout(this);engineRow.setOrientation(LinearLayout.HORIZONTAL);engineRow.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
   engineRow.addView(provider,new LinearLayout.LayoutParams(0,-2,1));
-  Button apiLink=Ui.button(this,engineRow,"API ↗",false,()->{
+  apiLink=Ui.button(this,engineRow,"API ↗",false,()->{
    String selected=providers[provider.getSelectedItemPosition()];String url;
+   if(AiPreferences.NATIVE.equals(selected)){startActivity(new android.content.Intent(this,LocalModelsActivity.class));return;}
    if(AiPreferences.GEMINI.equals(selected))url="https://aistudio.google.com/apikey";
    else if(AiPreferences.OPENAI.equals(selected))url="https://platform.openai.com/api-keys";
    else if(AiPreferences.DEEPL.equals(selected))url="https://www.deepl.com/your-account/keys";
@@ -38,12 +40,13 @@ public final class AiSettingsActivity extends Activity {
   apiLink.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));apiLink.setMinWidth(Ui.dp(this,76));
   root.addView(engineRow);
   address=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI);address.setHint("عنوان خادم كمبيوترك: http://192.168.0.10:8790");address.setText(AiPreferences.prefs(this).getString("lanAddress",""));address.setVisibility(View.GONE);
-  root.addView(Ui.text(this,"QuickMT وJisr يحتاجان تشغيل الخادم المرفق على الكمبيوتر؛ ليست نماذج مدمجة بالجوال. الاتصال المحلي HTTP لشبكتك المنزلية الموثوقة فقط؛ رمز الربط هو خانة المفتاح.",13));
+  root.addView(Ui.text(this,"اختر «على الجوال» للتشغيل المحلي، أو «على الكمبيوتر» لاستخدام خادم اللابتوب. الاتصال بالخادم المنزلي يحتاج رمز الربط فقط.",13));
+  Ui.button(this,root,"تنزيل / إدارة QuickMT وجسر على الجوال",false,()->startActivity(new android.content.Intent(this,LocalModelsActivity.class)));
   root.addView(Ui.text(this,"اختر النموذج من القائمة — لا تحتاج كتابة اسمه",15));
   modelChoice=new Spinner(this);modelChoice.setTag("model-choice");modelChoice.setMinimumHeight(Ui.dp(this,52));modelChoice.setBackground(Ui.background(this,Ui.CARD));root.addView(modelChoice,new LinearLayout.LayoutParams(-1,-2));
   model=field(root,InputType.TYPE_CLASS_TEXT);model.setHint("اسم نموذج مخصص — خيار متقدم فقط");model.setVisibility(View.GONE);
   root.addView(Ui.text(this,"اسم اللعبة للسياق",15));game=field(root,InputType.TYPE_CLASS_TEXT);game.setText(AiPreferences.prefs(this).getString("game","Red Dead Redemption 2"));
-  root.addView(Ui.text(this,"مفتاح API — داخل التطبيق فقط، وليس في المحادثة",15));key=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
+  keyCaption=Ui.text(this,"مفتاح API — داخل التطبيق فقط، وليس في المحادثة",15);root.addView(keyCaption);key=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
   key.setTag("api-key");model.setTag("api-model");provider.setTag("api-provider");key.setSaveEnabled(false);key.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
   consent=new CheckBox(this);consent.setText("أوافق على إرسال نص الحوار والسياق إلى الخدمة المختارة وتطبيق تكلفتها وسياساتها.");consent.setTextColor(Ui.TEXT);consent.setChecked(AiPreferences.cloud(this));root.addView(consent);
   fast=new CheckBox(this);fast.setText("وضع أسرع لـGemini: سياق سطر واحد بدل ثلاثة؛ قد تقل دقة ربط الحوار. سرعة الخدمة غير مضمونة.");fast.setTextColor(Ui.TEXT);fast.setChecked(AiPreferences.prefs(this).getBoolean("geminiFast",false));root.addView(fast);
@@ -57,7 +60,7 @@ public final class AiSettingsActivity extends Activity {
    public void onItemSelected(android.widget.AdapterView<?> parent,View v,int position,long id){
     String p=providers[position];if(p.equals(editingProvider))return;
     if(editingProvider!=null){keyDrafts.put(editingProvider,key.getText().toString());modelDrafts.put(editingProvider,model.getText().toString());}
-    editingProvider=p;boolean online=position!=0,needsKey=online&&!AiPreferences.GOOGLE.equals(p);model.setEnabled(needsKey&&!AiPreferences.DEEPL.equals(p));key.setEnabled(needsKey);consent.setEnabled(online);
+    editingProvider=p;boolean online=position!=0&&position!=6,needsKey=online&&!AiPreferences.GOOGLE.equals(p);model.setEnabled(needsKey&&!AiPreferences.DEEPL.equals(p));keyCaption.setVisibility(needsKey?View.VISIBLE:View.GONE);apiLink.setText(AiPreferences.NATIVE.equals(p)?"نماذج ↓":"API ↗");key.setEnabled(needsKey);key.setVisibility(online?View.VISIBLE:View.GONE);consent.setEnabled(online);consent.setVisibility(online?View.VISIBLE:View.GONE);
     address.setVisibility(AiPreferences.LAN.equals(p)?View.VISIBLE:View.GONE);
     model.setText(modelDrafts.getOrDefault(p,AiPreferences.prefs(AiSettingsActivity.this).getString(p+".model",AiPreferences.defaultModel(p))));key.setText(keyDrafts.getOrDefault(p,""));showModelChoices(p,model.getText().toString());
     boolean stored=!AiPreferences.prefs(AiSettingsActivity.this).getString(p+".key","").isEmpty();
@@ -65,9 +68,9 @@ public final class AiSettingsActivity extends Activity {
     feedback.setText(AiPreferences.GOOGLE.equals(p)?"Google يرسل النص عبر الإنترنت بدون مفتاح، وليس Google Cloud API الرسمي. يحتاج موافقتك وقد يتوقف أو يحدد الطلبات. لا يُرسل سياق الحوارات السابقة.":AiPreferences.sessionOnly(p)?"المفتاح يعمل لهذه الجلسة فقط، وسيحتاج إدخالًا بعد إنهاء عملية التطبيق.":stored?"يوجد مفتاح محفوظ لـ"+AiPreferences.label(p)+". الخانة الفارغة لا تعني أنه انحذف؛ الصق مفتاحًا جديدًا لاستبداله.":online?"لا يوجد مفتاح محفوظ لـ"+AiPreferences.label(p)+". الصق المفتاح وفعّل الموافقة ثم احفظ.":"المحلي لا يحتاج مفتاح API.");
    }
   });
-  String active=retained!=null?retained.provider:AiPreferences.provider(this);provider.setSelection(AiPreferences.GOOGLE.equals(active)?5:AiPreferences.LAN.equals(active)?4:AiPreferences.DEEPL.equals(active)?3:AiPreferences.OPENAI.equals(active)?2:AiPreferences.GEMINI.equals(active)?1:0);
+  String active=retained!=null?retained.provider:AiPreferences.provider(this);provider.setSelection(AiPreferences.NATIVE.equals(active)?6:AiPreferences.GOOGLE.equals(active)?5:AiPreferences.LAN.equals(active)?4:AiPreferences.DEEPL.equals(active)?3:AiPreferences.OPENAI.equals(active)?2:AiPreferences.GEMINI.equals(active)?1:0);
   saveButton=Ui.button(this,root,"حفظ المحرك والعودة",true,()->{
-   if(provider.getSelectedItemPosition()!=0&&!consent.isChecked()){
+   if(provider.getSelectedItemPosition()!=0&&provider.getSelectedItemPosition()!=6&&!consent.isChecked()){
     new android.app.AlertDialog.Builder(this).setTitle("الموافقة على إرسال الحوار")
      .setMessage("سيرسل التطبيق نص حوار اللعبة وسياقه إلى "+AiPreferences.label(providers[provider.getSelectedItemPosition()])+" لترجمته. تطبق سياسة الخدمة وتكلفة حسابك. هل توافق على حفظ هذا الاختيار؟")
      .setPositiveButton("أوافق وأحفظ",(dialog,which)->{consent.setChecked(true);saveButton.performClick();})

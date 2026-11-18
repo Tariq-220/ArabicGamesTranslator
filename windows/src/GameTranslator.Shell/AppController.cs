@@ -115,7 +115,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public static int StepCount => (int)OnboardingStep.Done;
     public int StepNumber => Math.Min((int)step + 1, StepCount);
     public IAppServices Services => services;
-    public bool HasAccount => accountId is not null;
+    public bool HasAccount => accountId is {Length:8} && !accountId.SequenceEqual(System.Text.Encoding.ASCII.GetBytes("GTPS5ACC"));
     public byte[]? AccountId => accountId;
     public string? AccountIdBase64 => accountId != null && accountId.Length > 0 ? Convert.ToBase64String(accountId) : null;
     public RegisteredConsole? Console => console;
@@ -260,13 +260,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         var digits = new string([.. pin.Where(char.IsDigit)]);
         if (digits.Length != 8 || !uint.TryParse(digits, out var value)) throw Error(AppError.InvalidPin);
-        if (accountId is null)
-        {
-            // Eğer PSN girişi yapılmadıysa varsayılan yerel eşleşme kimliği ata
-            accountId = System.Text.Encoding.ASCII.GetBytes("GTPS5ACC");
-            store.Save(StoreKeys.AccountId, accountId);
-            Changed(nameof(HasAccount));
-        }
+        if (accountId is null || accountId.Length!=8 || accountId.SequenceEqual(System.Text.Encoding.ASCII.GetBytes("GTPS5ACC"))) throw Error(AppError.MissingAccount);
         RegisteredConsole registered;
         try
         {
@@ -987,7 +981,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>DialogueProfile.DialogueOnly(reading,area,gameProfile);built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
-        if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>DialogueProfile.Reviewed(text,gameProfile);
+        if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??DialogueProfile.Reviewed(text,gameProfile);
         built.PendingLineLimit = PreferLatestDialogue ? 1 : SubtitlePipeline.MaxWaiting;
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });
@@ -1051,6 +1045,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool HasGeminiKey => store.Load<string>(StoreKeys.GeminiKey) is { Length: > 0 };
 
     /// <summary>Gemini anahtarını dener; geçerliyse kaydeder ve Gemini'yi aktif model yapar.</summary>
+    public bool AutoUpdateEnabled { get=>store.Load<bool?>("autoUpdate")??true; set {store.Save("autoUpdate",value);Changed();} }
+    public bool NativePlayStationEnabled {get=>store.Load<bool>("NativePlayStationEnabled");set=>store.Save("NativePlayStationEnabled",value);}
     public bool PreferPlayStation {get=>store.Load<bool>("PreferPlayStation");set=>store.Save("PreferPlayStation",value);}
     public int DeepLModeChoice {get=>store.Load<int>("DeepLModeChoice");set=>store.Save("DeepLModeChoice",value);}
     public async Task<string> TestSavedDeepLTranslationAsync(){

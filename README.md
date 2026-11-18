@@ -1,3 +1,5 @@
+[التنزيل حسب الجهاز والتحديث الهوائي](DOWNLOADS.md) · [تشغيل PS5 المباشر](docs/PS5-TV-REPAIR-2026-11-18.md)
+
 # ArabicGamesTranslator
 
 مترجم ترجمات الألعاب إلى العربية على Windows وAndroid. مبني على Sefflex/GameTranslator (AGPL-3.0-only)، مع قارئ Xbox عبر Remote Play وخيارات Google بدون مفتاح، Gemini، DeepL، والنماذج المحلية QuickMT/Jisr/HY-MT على الكمبيوتر.
