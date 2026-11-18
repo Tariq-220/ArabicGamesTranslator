@@ -22,7 +22,7 @@ cp "$ct2_work/hearth/LICENSE" out/ct2-native/Hearth-LICENSE.txt
 cp "$ct2_work/hearth/build/ct2-runtime/android-arm64-v8a/hearth-ct2-sources.json" out/ct2-native/
 "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip" --strip-unneeded out/ct2-native/libtransiber_ct2.so
 # Prove model packages and wording on the host separately from Android timing.
-bash "$ct2_work/hearth/scripts/translation/ct2/build-runtime.sh" host
+CXXFLAGS="-include cstdint" bash "$ct2_work/hearth/scripts/translation/ct2/build-runtime.sh" host
 python "$repo_dir/scripts/check-native-local-models.py" --manifest "$repo_dir/android/phone/src/main/assets/native-local-models.json" --work "$ct2_work/models" --smoke "$ct2_work/hearth/build/ct2-runtime/host/ct2_smoke" --output out/ct2-native/model-smoke.json
 python - <<'PY'
 from pathlib import Path

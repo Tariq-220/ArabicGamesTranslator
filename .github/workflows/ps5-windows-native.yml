@@ -17,7 +17,7 @@ jobs:
             git make mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja mingw-w64-x86_64-openssl mingw-w64-x86_64-nasm
             mingw-w64-x86_64-python mingw-w64-x86_64-python-protobuf
-            mingw-w64-x86_64-libevent
+            mingw-w64-x86_64-libevent mingw-w64-x86_64-miniupnpc
       - name: Build PS5 engine and run native decoder tests
         shell: msys2 {0}
         run: bash scripts/build-windows-ps5-native.sh
