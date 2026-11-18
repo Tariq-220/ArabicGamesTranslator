@@ -97,7 +97,7 @@ public final class MainActivity extends Activity {
   FrameLayout.LayoutParams handle=new FrameLayout.LayoutParams(dp(170),dp(44),Gravity.TOP|Gravity.RIGHT);handle.setMargins(dp(12),dp(12),dp(12),dp(12));root.addView(menuHandle,handle);
   setContentView(root);showPanel();dev.arabicgames.update.UpdateActivity.onLaunch(this,"TV");
   if(Build.VERSION.SDK_INT>=33){backCallback=()->{if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();};getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,backCallback);}
-  if(!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
+  if(!NativeHdmiOverlay.active&&!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
   if(host.getText().toString().isEmpty())discoverDesktop();
   inputManager=(TvInputManager)getSystemService(TV_INPUT_SERVICE);if(inputManager!=null)inputManager.registerCallback(inputChanges,ui);
   // Start in the controllable panel. Saved HDMI selection is restored without auto-tuning.
@@ -140,7 +140,7 @@ public final class MainActivity extends Activity {
   getPreferences(0).edit().putString("host",address).putString("code",pair).putBoolean("desktop",desktop.isChecked()).apply();
   if(input.getSelectedItemPosition()<0||input.getSelectedItemPosition()>=inputs.size()){status.setText("اختر مدخل HDMI أولًا.");return;}
   Intent nativeInput=new Intent(Intent.ACTION_VIEW,TvContract.buildChannelUriForPassthroughInput(inputs.get(input.getSelectedItemPosition()).getId()));
-  try{releaseHdmiSession();startForegroundService(new Intent(this,NativeHdmiOverlay.class));startActivity(nativeInput);}catch(Exception e){stopService(new Intent(this,NativeHdmiOverlay.class));status.setText("لم يفتح النظام المدخل الأصلي. استخدم ريموت الشاشة لاختيار HDMI بعد تفعيل وضع HDR.");}
+  try{session++;if(connection!=null)connection.disconnect();if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();releaseHdmiSession();startForegroundService(new Intent(this,NativeHdmiOverlay.class));startActivity(nativeInput);}catch(Exception e){stopService(new Intent(this,NativeHdmiOverlay.class));status.setText("لم يفتح النظام المدخل الأصلي. استخدم ريموت الشاشة لاختيار HDMI بعد تفعيل وضع HDR.");}
  }
  private void scheduleVideoRecovery(){
   videoAvailable=false;final int ticket=++videoTicket;
@@ -155,6 +155,7 @@ public final class MainActivity extends Activity {
   restoreSavedHdmi(resumeTicket);if(!videoAvailable)scheduleVideoRecovery();
  }
  private boolean tune(){
+  if(NativeHdmiOverlay.active)stopService(new Intent(this,NativeHdmiOverlay.class));
   if(inputs.isEmpty())refreshInputs();
   if(inputs.isEmpty()){hdmiStatus.setText("بانتظار تهيئة مداخل HDMI. المدخل المحفوظ لم يُحذف؛ أعد المحاولة بعد لحظات.");showPanel();return false;}
   try{int index=input.getSelectedItemPosition();if(index<0||index>=inputs.size())return false;TvInputInfo selected=inputs.get(index);if(selected.getId().equals(tunedInput))return true;
@@ -170,6 +171,7 @@ public final class MainActivity extends Activity {
 
  private void restoreAudio(){if(tv==null||audio==null)return;if(!resumed){tv.setStreamVolume(0f);return;}if(audio.isChecked()){audioManager.requestAudioFocus(audioFocus);tv.setStreamVolume(1f);}else{tv.setStreamVolume(0f);audioManager.abandonAudioFocusRequest(audioFocus);}}
  private void connect(){
+  if(NativeHdmiOverlay.active)stopService(new Intent(this,NativeHdmiOverlay.class));
   String address=host.getText().toString().trim(),pair=desktop.isChecked()?null:code.getText().toString().trim();
   if(!Pairing.privateIpv4(address)||(pair!=null&&!Pairing.validCode(pair))){status.setText("أدخل IPv4 محليًا ورمز الجوال كاملًا.");return;}
   getPreferences(0).edit().putString("host",address).putString("code",pair==null?"":pair).putBoolean("desktop",desktop.isChecked()).apply();int generation=++session;HttpURLConnection old=connection;if(old!=null)old.disconnect();status.setText(desktop.isChecked()?"جارٍ إعادة ربط الكمبيوتر المحفوظ…":"جارٍ إعادة ربط الجوال المحفوظ…");acceptedRevision=0;if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();
