@@ -48,7 +48,7 @@ public final class MainActivity extends Activity {
   videoCallbacks=new TvView.TvInputCallback(){
    @Override public void onVideoAvailable(String id){if(!id.equals(tunedInput))return;restoreHdmi=false;videoAvailable=true;videoTicket++;videoRetries=0;hdmiStatus.setText("✓ صورة HDMI جاهزة");restoreAudio();}
    @Override public void onConnectionFailed(String id){if(!id.equals(tunedInput))return;tunedInput=null;restoreHdmi=true;hdmiStatus.setText("تعذر استرجاع جلسة HDMI؛ جارٍ إصلاح المدخل المحفوظ.");scheduleVideoRecovery();}
-   @Override public void onVideoUnavailable(String id,int reason){if(!id.equals(tunedInput))return;videoAvailable=false;hdmiStatus.setText("تغيّرت إشارة HDMI ("+reason+")؛ بانتظار الصورة…");scheduleVideoRecovery();}
+   @Override public void onVideoUnavailable(String id,int reason){if(!id.equals(tunedInput))return;videoAvailable=false;restoreHdmi=true;hdmiStatus.setText("تغيّرت إشارة HDMI ("+reason+")؛ بانتظار الصورة…");scheduleVideoRecovery();}
    @Override public void onDisconnected(String id){if(!id.equals(tunedInput))return;videoAvailable=false;tunedInput=null;restoreHdmi=true;scheduleVideoRecovery();}
   };tv.setCallback(videoCallbacks);
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
