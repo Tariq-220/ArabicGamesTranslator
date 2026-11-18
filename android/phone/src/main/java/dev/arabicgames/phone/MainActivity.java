@@ -23,6 +23,7 @@ public final class MainActivity extends Activity {
   start.setEnabled((modelReady||AiPreferences.cloud(MainActivity.this))&&!Status.captureActive);handler.postDelayed(this,700);
  }};
  public void onCreate(Bundle state){super.onCreate(state);
+  if(!AiPreferences.prefs(this).getBoolean("dialogueRepair413",false)){ReadingOptions.select(this,0);LocalTiming.save(this,150,80,4500);AiPreferences.prefs(this).edit().putBoolean("dialogueRepair413",true).apply();}
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().setNavigationBarColor(Ui.BG);getWindow().setStatusBarColor(Ui.BG);
   LinearLayout root=Ui.column(this);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,20));root.setBackgroundColor(Ui.BG);
   TextView title=Ui.text(this,"مترجم الألعاب",27);title.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(title);
