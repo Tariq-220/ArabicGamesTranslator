@@ -20,10 +20,10 @@
       "package": "dev.arabicgames.tv",
       "path": "tv/0.3.14/ArabicGames-TV-0.3.14.apk",
       "name": "ArabicGames-TV-0.3.14.apk",
-      "bytes": 115536,
-      "sha256": "96162ddfb7540caa043c6b7175221c4050f585ca5eefe182a3d839950d58ed58",
+      "bytes": 115724,
+      "sha256": "19ca5d7d0b77e762d5fc1e22a9d6b176fce426cfbdc12bd808297cfb6a57b40b",
       "certificate_sha256": "8bfb9b64929ed8a0565eaf89ab61469ef91370ce968e5a99873fa437d62e02ca",
-      "source": "5e4b88f8a3d34fc344beaf49d656a6c0bd7ecf1d"
+      "source": "efd87fa68e87f2fe67488e65feb553e5493a4e24"
     }
   ]
 }
