@@ -30,6 +30,7 @@ final class AiPreferences {
   session=new Config(provider,model,game,value,consent,fast,endpoint);
  }
  static boolean canTranslate(Context c){return NATIVE.equals(provider(c))?LocalModels.runtime()&&LocalModels.installed(c,LocalModels.selected(c)):Status.modelReady||cloud(c);}
+ static void selectGame(Context c,String game){prefs(c).edit().putString("game",game).apply();Config active=session;if(active!=null)session=new Config(active.provider,active.model,game,active.key,active.consent,active.fast,active.endpoint);}
  static String game(Context c){Config active=session;return active!=null?active.game:prefs(c).getString("game","Red Dead Redemption 2");}
  static final class Config {
   final String provider,model,game,key,endpoint;final boolean consent,fast;

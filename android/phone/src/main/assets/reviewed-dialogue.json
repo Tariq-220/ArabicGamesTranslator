@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 1,
+  "revision": 4,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -31,6 +31,677 @@
       "arabic": "أحضرت لك بشرًا سمانًا شهيين لتلتهمهم.",
       "reviewed": true,
       "reason": "Reviewed against the user screenshot and RDR2 scene; exact text only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Just follow my lead and we'll be outta this shit, okay?",
+      "arabic": "اتّبعي خطاي وسنخرج من هذه الورطة اللعينة، اتفقنا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Wow.\nShut up.",
+      "arabic": "واو.\nاخرس.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Do you know this guy?",
+      "arabic": "هذا الشخص من معارفك؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Do you know this quy?",
+      "arabic": "هذا الشخص من معارفك؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah, he's... my boyfriend.",
+      "arabic": "نعم، إنه... حبيبي.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah, he's.. my boyfriend.",
+      "arabic": "نعم، إنه... حبيبي.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "but he drives like a bitch, so..\nWhat?",
+      "arabic": "لكنه يقود كجبان لعين، لذا...\nماذا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Don't you call me crazy, bro.",
+      "arabic": "لا تنعتني بالمجنون يا صاح.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Why? Crazy?\nI said that's enough.",
+      "arabic": "لماذا؟ مجنون؟\nقلت: كفى.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "One more time, man.",
+      "arabic": "قلها مرة أخرى يا رجل.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay, alright. Yeah, just messing around.",
+      "arabic": "حسنًا، حسنًا. كنت أمزح فحسب.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "She's fuckin' crazy, though.",
+      "arabic": "لكنها مجنونة فعلًا، بحق الجحيم.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You're fucking dead!",
+      "arabic": "انتهى أمرك، أيها اللعين!",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah, I'm good.",
+      "arabic": "أجل، أنا بخير.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Wanna get out of here?",
+      "arabic": "ما رأيك أن نغادر هذا المكان؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yep.",
+      "arabic": "أجل.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I'm driving.",
+      "arabic": "أتولى القيادة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay.",
+      "arabic": "حسنًا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay, pull in here.",
+      "arabic": "حسنًا، توقّف هنا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Now kill the engine, get down.",
+      "arabic": "الآن أطفئ المحرك وانخفض.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "They coming?\nHang tight.",
+      "arabic": "هل هم قادمون؟\nانتظر قليلًا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You really stole this for your mom?",
+      "arabic": "حقًا سرقت هذه السيارة من أجل أمك؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "She's tryin' to become a real estate broker.",
+      "arabic": "إنها تحاول أن تصبح وسيطة عقارات.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You wanna win in that game, you gotta look the part.",
+      "arabic": "النجاح في هذا المجال يتطلب المظهر المناسب.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah, well, maybe change the plates before you give it to her.",
+      "arabic": "أجل، لكن ربما عليك تغيير لوحات السيارة قبل أن تعطيها إياها.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Thanks for the tip.",
+      "arabic": "شكرًا على النصيحة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay, I think we're good.",
+      "arabic": "حسنًا، أظن أننا أصبحنا بأمان.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I'm gonna get outta your hair so you can..",
+      "arabic": "سأتركك وشأنك لكي...",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Go to bed?",
+      "arabic": "للنوم؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Bed? You fuckin' kidding me?",
+      "arabic": "النوم؟ أهذه مزحة، بحق الجحيم؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I'm Jason.",
+      "arabic": "أنا جيسون.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Lucia.",
+      "arabic": "لوسيا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Let's go have some fun.",
+      "arabic": "لنخرج ونستمتع قليلًا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I still can't believe I shacked up with a car thief.",
+      "arabic": "ما زلت لا أصدق أنني ارتبطت بلص سيارات.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Wn shoemaken\nNeiL WaLKeR\nI still can't believe I shacked up with a car thief.",
+      "arabic": "ما زلت لا أصدق أنني ارتبطت بلص سيارات.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Successful car thief, and that wasn't even for me.",
+      "arabic": "بلص سيارات ناجح، ثم إنني لم أسرقها من أجلي أصلًا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I know what you get up to with those guys.",
+      "arabic": "أعرف ما يجري بينك وبين أولئك الرجال.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What guys?",
+      "arabic": "أي رجال؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "The guys that picked you up the other day.",
+      "arabic": "الرجال الذين اصطحبوك في ذلك اليوم.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You come back all keyed up, with a roll of bills.",
+      "arabic": "تعود متحمسًا ومندفعًا، ومعك رزمة نقود.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You come back all keyed up, with a roll of bills.\n15",
+      "arabic": "تعود متحمسًا ومندفعًا، ومعك رزمة نقود.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "That's just easy money.",
+      "arabic": "إنه مجرد مال سهل.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I need money. Why don't you take me?",
+      "arabic": "أحتاج إلى المال. لماذا لا تصطحبني معك؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Then we can take the time to make a plan that's not fuckin'\nstupid.",
+      "arabic": "إذن لنتأنَّ ونضع خطة ليست غبية إلى هذا الحد، بحق الجحيم.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "This is bullshit.",
+      "arabic": "هذا هراء.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I'll just go out on my own.",
+      "arabic": "سأتدبر أمري وحدي إذن.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Il just go out on my own.",
+      "arabic": "سأتدبر أمري وحدي إذن.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "No, you won't",
+      "arabic": "لا، هذا لن يحدث.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Says fuckin' who?",
+      "arabic": "ومن الذي قرّر ذلك، بحق الجحيم؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hello?",
+      "arabic": "مرحبًا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Lucia, is that really you?",
+      "arabic": "لوسيا، هل هذه أنتِ حقًا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Shit.",
+      "arabic": "اللعنة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "In Spanish: One coffee. please.",
+      "arabic": "بالإسبانية: قهوة واحدة، من فضلك.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "In Spanish: Make it two and the menu.",
+      "arabic": "بالإسبانية: اجعلهما كوبين، وأحضر قائمة الطعام.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Could I have another ice water, please?",
+      "arabic": "هل يمكنني الحصول على كوب آخر من الماء المثلج، من فضلك؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Another one? You don't want a leche caliente, or something?",
+      "arabic": "كوب آخر؟ ما رأيك بحليب ساخن أو شيء آخر؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Just water.",
+      "arabic": "الماء فقط.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I don't like to do this, but my boss told me..\nto ask you to settle up.",
+      "arabic": "لا أحب فعل هذا، لكن مديري طلب مني...\nأن أطلب منك دفع الحساب.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Idon't like to do this, but my boss told me..\nto ask you to settle up.",
+      "arabic": "لا أحب فعل هذا، لكن مديري طلب مني...\nأن أطلب منك دفع الحساب.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "He doesn't mind you taking the table, but you know..",
+      "arabic": "لا يمانع بقاءك هنا، لكن... أنت على علم بالأمر.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "He doesn't mind you taking the table, but you know.",
+      "arabic": "لا يمانع بقاءك هنا، لكن... أنت على علم بالأمر.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I get it. It's no problem.",
+      "arabic": "أتفهم ذلك. لا مشكلة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Lu, you staring at that window again?",
+      "arabic": "لو، أتحدقين في تلك النافذة مجددًا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Mm-hmm.",
+      "arabic": "أجل.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You can look out there all day, girl.",
+      "arabic": "يمكنك التحديق إلى الخارج طوال اليوم يا فتاة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Ain't nothin' gonna change.",
+      "arabic": "لن يتغير شيء.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Uhh, sorry about that.",
+      "arabic": "آه، المعذرة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Really?",
+      "arabic": "حقًا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "They're late.",
+      "arabic": "لقد تأخروا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah? Damn.",
+      "arabic": "حقًا؟ اللعنة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "IN\nYeah? Damn.",
+      "arabic": "حقًا؟ اللعنة.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Oh, you still doin that? Lay one on me.",
+      "arabic": "أوه، أما زلتِ تحلّين الألغاز؟ هاتي واحدًا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Oh, you still doin' that? Lay one on me.",
+      "arabic": "أوه، أما زلتِ تحلّين الألغاز؟ هاتي واحدًا.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Clue is \"planet of love.\"",
+      "arabic": "التلميح هو «كوكب الحب».",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Ain't this planet, that's for damn sure.",
+      "arabic": "بالتأكيد ليس هذا الكوكب، بحق الجحيم.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Nah, nah, it's five letters.",
+      "arabic": "لا، لا، الحل من خمسة أحرف.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Caminos!",
+      "arabic": "كامينوس!",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Caminos, door!",
+      "arabic": "كامينوس، إلى الباب!",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "How 'bout Uranus?",
+      "arabic": "ماذا عن أورانوس؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "How 'bout your anus? Girl, that's too many letters.",
+      "arabic": "وماذا عن مؤخرتك أنتِ؟ يا فتاة، هذا عدد أحرف أكثر من اللازم.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yo, I don't know.",
+      "arabic": "آه، لا أعرف.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I think it starts with a \"V.\"",
+      "arabic": "أظن أنه يبدأ بحرف V.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Go with the prison guard",
+      "arabic": "اذهبي مع حارس السجن.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Go with the prison quard",
+      "arabic": "اذهبي مع حارس السجن.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Finally, about fuckin' time!\nGo with the prison guard",
+      "arabic": "أخيرًا، بعد كل هذا الانتظار اللعين!\nاذهبي مع حارس السجن.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Finally, about fuckin' time!\nGo with the prison quard",
+      "arabic": "أخيرًا، بعد كل هذا الانتظار اللعين!\nاذهبي مع حارس السجن.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yo, why's everything running so late?",
+      "arabic": "يا جماعة، لماذا تأخر كل شيء هكذا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "IN\nYo, why's everything running so late?",
+      "arabic": "يا جماعة، لماذا تأخر كل شيء هكذا؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Shit, you haven't heard? Counselor Reigns got canned.",
+      "arabic": "اللعنة، ألم تسمعي؟ لقد فُصل المستشار رينز.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Oh, shit. So who they got me with now?",
+      "arabic": "تبًا. إذن مع من وضعوني الآن؟",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Somebody named \"Gates.\" I don't know anything about her..",
+      "arabic": "امرأة تُدعى «غيتس». لا أعرف عنها شيئًا...",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Then we can take the time to make a plan that's not fuckin\nstupid.",
+      "arabic": "إذن لنتأنَّ ونضع خطة ليست غبية إلى هذا الحد، بحق الجحيم.",
+      "reviewed": true,
+      "reason": "Reviewed against user-provided opening log; exact dialogue and explicit OCR alias only."
     }
+  ],
+  "ignored_sources": [
+    "An inmate at:",
+    "JOSerh eLVin",
+    "JOnathan hodge",
+    "James nichoLson",
+    "Jason hayes",
+    "John macrhenson",
+    "NeiL WaLKeR",
+    "PhiLiP deane",
+    "RObeRGa gatti",
+    "SEUDSAII",
+    "SGeVen Reed",
+    "Sam henman",
+    "SiMon bAamweLL",
+    "Wn shoemaken",
+    "aaRon gaRbus",
+    "adam smith",
+    "an cocKCROFG",
+    "an cocKGROFG",
+    "chais bROWn",
+    "di POoh",
+    "iDey henson",
+    "james Geixei",
+    "neiL WaLKeR",
+    "nieL yeLLand",
+    "van michaeLs"
   ]
 }

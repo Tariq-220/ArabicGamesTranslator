@@ -1,0 +1,5 @@
+package dev.arabicgames.phone;
+import org.junit.*;import static org.junit.Assert.*;import java.io.*;
+public class DurableCorrectionTest {
+ @Test public void approvedCorrectionSurvivesHistoryEvictionAndRestart()throws Exception{File file=File.createTempFile("durable-dialogue-",".json");file.delete();DialogueStore store=new DialogueStore(file);store.add("GTA 6","subtitles","Now kill the engine, get down.","اقتل المحرك","QuickMT");store.revise(store.snapshot().getJSONObject(0).getLong("id"),"أطفئ المحرك وانخفض.");for(int i=0;i<220;i++)store.add("GTA 6","subtitles","Unrelated line "+i,"سطر آخر","QuickMT");assertEquals(200,store.snapshot().length());assertEquals("أطفئ المحرك وانخفض.",store.reviewed("Grand Theft Auto VI","Now kill the engine, get down."));DialogueStore restarted=new DialogueStore(file);assertEquals("أطفئ المحرك وانخفض.",restarted.reviewed("GTA6","Now kill the engine, get down."));assertNull(restarted.reviewed("RDR2","Now kill the engine, get down."));assertTrue(restarted.pack("GTA 6",true).contains("أطفئ المحرك"));restarted.clear();assertNull(new DialogueStore(file).reviewed("GTA 6","Now kill the engine, get down."));}
+}

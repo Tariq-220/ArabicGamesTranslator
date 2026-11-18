@@ -47,6 +47,7 @@ public final class AiSettingsActivity extends Activity {
   modelChoice=new Spinner(this);modelChoice.setTag("model-choice");modelChoice.setMinimumHeight(Ui.dp(this,52));modelChoice.setBackground(Ui.background(this,Ui.CARD));root.addView(modelChoice,new LinearLayout.LayoutParams(-1,-2));
   model=field(root,InputType.TYPE_CLASS_TEXT);model.setHint("اسم نموذج مخصص — خيار متقدم فقط");model.setVisibility(View.GONE);
   root.addView(Ui.text(this,"اسم اللعبة للسياق",15));game=field(root,InputType.TYPE_CLASS_TEXT);game.setText(AiPreferences.prefs(this).getString("game","Red Dead Redemption 2"));
+  LinearLayout games=new LinearLayout(this);games.setOrientation(LinearLayout.HORIZONTAL);Button gta=Ui.button(this,games,"GTA 6",false,()->game.setText("Grand Theft Auto VI"));Button rdr=Ui.button(this,games,"Red Dead 2",false,()->game.setText("Red Dead Redemption 2"));gta.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));rdr.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));root.addView(games);
   keyCaption=Ui.text(this,"مفتاح API — داخل التطبيق فقط، وليس في المحادثة",15);root.addView(keyCaption);key=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
   key.setTag("api-key");model.setTag("api-model");provider.setTag("api-provider");key.setSaveEnabled(false);key.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
   testButton=Ui.button(this,root,"حفظ واختبار API",true,this::testApi);testButton.setTag("api-test");

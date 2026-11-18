@@ -2,6 +2,10 @@ name: Attach verified signed Android downloads
 on:
   workflow_dispatch:
     inputs:
+      android_only:
+        description: 'Release only the phone and TV repair without rebuilding Windows'
+        type: boolean
+        default: false
       publish_preview:
         description: 'Publish the verified preview after both desktop packages are ready'
         type: boolean
@@ -31,5 +35,6 @@ jobs:
       - name: Attach separate APK files and optionally publish the preview
         env:
           GH_TOKEN: ${{ github.token }}
+          ANDROID_ONLY: ${{ inputs.android_only || false }}
           PUBLISH_PREVIEW: ${{ inputs.publish_preview || false }}
         run: python scripts/attach-signed-android.py

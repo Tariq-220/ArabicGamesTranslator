@@ -20,7 +20,13 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public final class MainActivity extends Activity {
- private String tunedInput;
+ private String tunedInput;private boolean resumed,restoreHdmi;private int resumeTicket;private TvInputManager inputManager;
+ private final TvInputManager.TvInputCallback inputChanges=new TvInputManager.TvInputCallback(){
+  @Override public void onInputAdded(String id){inputsChanged();}
+  @Override public void onInputRemoved(String id){if(id.equals(tunedInput)){tunedInput=null;restoreHdmi=true;}inputsChanged();}
+  @Override public void onInputUpdated(String id){inputsChanged();}
+  @Override public void onInputStateChanged(String id,int state){inputsChanged();}
+ };
  private TvView tv;private LinearLayout panel,connectionPanel;private ScrollView panelWindow;
  private TextView subtitle,status,received,hdmiStatus;private Button menuHandle;private int swallowedKey=-1;private android.window.OnBackInvokedCallback backCallback;
  private EditText host,code;private Spinner input;private CheckBox desktop,audio;
@@ -35,17 +41,17 @@ public final class MainActivity extends Activity {
  private final Runnable hide=()->subtitle.setVisibility(View.INVISIBLE);
  @Override public void onCreate(Bundle saved){super.onCreate(saved);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
   receiverId=getPreferences(0).getString("receiverId",null);if(receiverId==null){receiverId=UUID.randomUUID().toString();getPreferences(0).edit().putString("receiverId",receiverId).apply();}
-  audioManager=getSystemService(AudioManager.class);audioFocus=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build()).setOnAudioFocusChangeListener(change->{if(tv!=null)tv.setStreamVolume(audio!=null&&audio.isChecked()?(change==AudioManager.AUDIOFOCUS_GAIN?1f:change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK?.25f:0f):0f);},ui).build();
+  audioManager=getSystemService(AudioManager.class);audioFocus=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build()).setOnAudioFocusChangeListener(change->{if(tv!=null)tv.setStreamVolume(resumed&&audio!=null&&audio.isChecked()?(change==AudioManager.AUDIOFOCUS_GAIN?1f:change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK?.25f:0f):0f);},ui).build();
   FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);tv=new TvView(this);tv.setTag("hdmi-view");tv.setFocusable(false);tv.setFocusableInTouchMode(false);tv.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);root.addView(tv,new FrameLayout.LayoutParams(-1,-1));
   tv.setCallback(new TvView.TvInputCallback(){
-   @Override public void onVideoAvailable(String id){hdmiStatus.setText("✓ صورة HDMI جاهزة");restoreAudio();ui.post(()->{if(panelWindow!=null&&panelWindow.getVisibility()==View.VISIBLE)showPanel();else if(menuHandle!=null)menuHandle.requestFocus();});}
-   @Override public void onConnectionFailed(String id){hdmiStatus.setText("تعذر فتح HDMI على هذه الشاشة.");}
+   @Override public void onVideoAvailable(String id){if(!resumed||!id.equals(tunedInput))return;restoreHdmi=false;hdmiStatus.setText("✓ صورة HDMI جاهزة");restoreAudio();ui.post(()->{if(panelWindow!=null&&panelWindow.getVisibility()==View.VISIBLE)showPanel();else if(menuHandle!=null)menuHandle.requestFocus();});}
+   @Override public void onConnectionFailed(String id){if(!id.equals(tunedInput))return;tunedInput=null;restoreHdmi=true;hdmiStatus.setText("تعذر استرجاع جلسة HDMI؛ المدخل محفوظ. أعد عرض اللعبة أو انتظر إعادة تهيئة المدخل.");showPanel();}
    @Override public void onVideoUnavailable(String id,int reason){hdmiStatus.setText("HDMI غير متاح ("+reason+")؛ تأكد من المدخل.");}
   });
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.5",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.6",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
@@ -76,7 +82,7 @@ public final class MainActivity extends Activity {
   connectionPanel.setVisibility(View.GONE);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(settings,"عنوان ورمز يدوي — بديل",()->connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
-  button(panel,"عرض اللعبة / إخفاء اللوحة",()->{if(tunedInput!=null||tune())hidePanel();});
+  button(panel,"عرض اللعبة / إخفاء اللوحة",()->{if(tune())hidePanel();});
   button(panel,"إصلاح ظهور الترجمة",this::repairDisplay);
   button(panel,"الإعدادات: الربط والخط والصوت",()->settings.setVisibility(settings.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
   button(settings,"التحديثات — فحص وتنزيل تلقائي",()->startActivity(new android.content.Intent(this,dev.arabicgames.update.UpdateActivity.class)));
@@ -87,6 +93,7 @@ public final class MainActivity extends Activity {
   if(Build.VERSION.SDK_INT>=33){backCallback=()->{if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();};getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,backCallback);}
   if(!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
   if(host.getText().toString().isEmpty())discoverDesktop();
+  inputManager=(TvInputManager)getSystemService(TV_INPUT_SERVICE);if(inputManager!=null)inputManager.registerCallback(inputChanges,ui);
   // Start in the controllable panel. Saved HDMI selection is restored without auto-tuning.
   if(inputs.isEmpty())hdmiStatus.setText("لا توجد مداخل HDMI متاحة للتطبيق على هذه الشاشة.");
  }
@@ -116,14 +123,26 @@ public final class MainActivity extends Activity {
  }
  private void useDesktop(String address){host.setText(address);desktop.setChecked(true);connect();}
  private void refreshInputs(){
-  List<String> labels=new ArrayList<>();TvInputManager manager=(TvInputManager)getSystemService(TV_INPUT_SERVICE);
+  inputs.clear();List<String> labels=new ArrayList<>();TvInputManager manager=(TvInputManager)getSystemService(TV_INPUT_SERVICE);
   List<TvInputInfo> list=manager==null?null:manager.getTvInputList();if(list!=null)for(TvInputInfo i:list)if(i.getType()==TvInputInfo.TYPE_HDMI&&i.isPassthroughInput()){inputs.add(i);labels.add(i.loadLabel(this).toString());}
   if(labels.isEmpty())labels.add("لا توجد مداخل HDMI");input.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));
   String saved=getPreferences(0).getString("hdmi","");for(int i=0;i<inputs.size();i++)if(inputs.get(i).getId().equals(saved))input.setSelection(i);
  }
- private boolean tune(){if(inputs.isEmpty()){hdmiStatus.setText("اختر مدخل HDMI متاحًا أولًا؛ اللوحة تبقى مفتوحة.");return false;}try{TvInputInfo selected=inputs.get(input.getSelectedItemPosition());if(selected.getId().equals(tunedInput))return true;getPreferences(0).edit().putString("hdmi",selected.getId()).apply();restoreAudio();tv.tune(selected.getId(),TvContract.buildChannelUriForPassthroughInput(selected.getId()));tunedInput=selected.getId();dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);return true;}catch(SecurityException e){hdmiStatus.setText("نظام الشاشة يمنع فتح HDMI من التطبيق.");}catch(Exception e){hdmiStatus.setText("تعذر فتح المدخل المختار.");}return false;}
+ private boolean tune(){
+  if(inputs.isEmpty())refreshInputs();
+  if(inputs.isEmpty()){hdmiStatus.setText("بانتظار تهيئة مداخل HDMI. المدخل المحفوظ لم يُحذف؛ أعد المحاولة بعد لحظات.");showPanel();return false;}
+  try{int index=input.getSelectedItemPosition();if(index<0||index>=inputs.size())return false;TvInputInfo selected=inputs.get(index);if(selected.getId().equals(tunedInput))return true;
+   getPreferences(0).edit().putString("hdmi",selected.getId()).putBoolean("resumeHdmi",true).apply();tunedInput=selected.getId();restoreHdmi=true;tv.tune(tunedInput,TvContract.buildChannelUriForPassthroughInput(tunedInput));restoreAudio();dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);return true;
+  }catch(SecurityException e){tunedInput=null;hdmiStatus.setText("نظام الشاشة يمنع فتح HDMI من التطبيق.");}catch(Exception e){tunedInput=null;hdmiStatus.setText("تعذر فتح المدخل المختار؛ لم يُحذف المدخل المحفوظ.");}showPanel();return false;
+ }
+ private void inputsChanged(){if(destroyed||input==null)return;refreshInputs();if(resumed&&tunedInput==null&&getPreferences(0).getBoolean("resumeHdmi",false))restoreSavedHdmi(resumeTicket);}
+ private void restoreSavedHdmi(int ticket){
+  if(!resumed||destroyed||ticket!=resumeTicket||tunedInput!=null)return;refreshInputs();String saved=getPreferences(0).getString("hdmi","");if(saved.isEmpty())return;
+  for(int i=0;i<inputs.size();i++)if(saved.equals(inputs.get(i).getId())){input.setSelection(i);hdmiStatus.setText("جارٍ استرجاع HDMI المحفوظ…");tune();return;}
+  hdmiStatus.setText("بانتظار ظهور مدخل HDMI المحفوظ؛ لن نختار مدخلًا آخر بدلًا منه.");
+ }
 
- private void restoreAudio(){if(tv==null||audio==null)return;if(audio.isChecked()){audioManager.requestAudioFocus(audioFocus);tv.setStreamVolume(1f);}else{tv.setStreamVolume(0f);audioManager.abandonAudioFocusRequest(audioFocus);}}
+ private void restoreAudio(){if(tv==null||audio==null)return;if(!resumed){tv.setStreamVolume(0f);return;}if(audio.isChecked()){audioManager.requestAudioFocus(audioFocus);tv.setStreamVolume(1f);}else{tv.setStreamVolume(0f);audioManager.abandonAudioFocusRequest(audioFocus);}}
  private void connect(){
   String address=host.getText().toString().trim(),pair=desktop.isChecked()?null:code.getText().toString().trim();
   if(!Pairing.privateIpv4(address)||(pair!=null&&!Pairing.validCode(pair))){status.setText("أدخل IPv4 محليًا ورمز الجوال كاملًا.");return;}
@@ -207,9 +226,13 @@ public final class MainActivity extends Activity {
   return super.onKeyDown(key,event);
  }
  @Override public void onBackPressed(){if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();}
- @Override protected void onResume(){super.onResume();if(tv!=null&&audio!=null&&!getPreferences(0).getString("hdmi","").isEmpty())restoreAudio();}
- @Override protected void onPause(){if(tv!=null)tv.setStreamVolume(0f);if(audioManager!=null&&audioFocus!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onPause();}
- @Override public void onDestroy(){dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);destroyed=true;if(Build.VERSION.SDK_INT>=33&&backCallback!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);pairingAttempt++;if(pollTask!=null)pollTask.cancel(true);poller.shutdownNow();if(pollingConnection!=null)pollingConnection.disconnect();session++;if(connection!=null)connection.disconnect();ui.removeCallbacksAndMessages(null);tv.reset();if(audioManager!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onDestroy();}
+ @Override protected void onResume(){super.onResume();resumed=true;final int ticket=++resumeTicket;if(input!=null)refreshInputs();
+  if(restoreHdmi||getPreferences(0).getBoolean("resumeHdmi",false)){showPanel();for(long delay:new long[]{100,400,1000,2000,4000})ui.postDelayed(()->restoreSavedHdmi(ticket),delay);}else if(tv!=null&&audio!=null)restoreAudio();
+ }
+ @Override protected void onPause(){resumed=false;resumeTicket++;releaseHdmiSession();if(tv!=null)tv.setStreamVolume(0f);if(audioManager!=null&&audioFocus!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onPause();}
+ private void releaseHdmiSession(){if(tunedInput!=null){restoreHdmi=true;getPreferences(0).edit().putBoolean("resumeHdmi",true).apply();tunedInput=null;if(tv!=null)tv.reset();}dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);}
+ @Override protected void onStop(){releaseHdmiSession();super.onStop();}
+ @Override public void onDestroy(){if(inputManager!=null)inputManager.unregisterCallback(inputChanges);dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);destroyed=true;if(Build.VERSION.SDK_INT>=33&&backCallback!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);pairingAttempt++;if(pollTask!=null)pollTask.cancel(true);poller.shutdownNow();if(pollingConnection!=null)pollingConnection.disconnect();session++;if(connection!=null)connection.disconnect();ui.removeCallbacksAndMessages(null);tv.reset();if(audioManager!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onDestroy();}
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
  private TextView label(String text,int size){TextView v=new TextView(this);v.setText(text);v.setTextColor(Color.WHITE);v.setTextSize(size);v.setPadding(0,dp(3),0,dp(3));return v;}
  private LinearLayout column(){LinearLayout v=new LinearLayout(this);v.setOrientation(LinearLayout.VERTICAL);v.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);return v;}

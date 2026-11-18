@@ -17,7 +17,7 @@ public final class MainActivity extends Activity {
  private void checkPairing(){RelayServer relay=RelayServer.active;if(relay==null)return;String challenge=relay.pendingChallenge();if(challenge==null||challenge.equals(promptedPair)||pairingDialog!=null)return;promptedPair=challenge;pairingDialog=new AlertDialog.Builder(this).setTitle("ربط الشاشة بدون كتابة").setMessage("تأكد أن الرمز نفسه ظاهر على شاشتك: "+challenge+"\nوافق فقط إذا أنت طلبت الربط الآن من الشاشة.").setPositiveButton("ربط شاشتي",(d,w)->relay.approve(challenge,true)).setNegativeButton("رفض",(d,w)->relay.approve(challenge,false)).create();pairingDialog.setOnDismissListener(d->pairingDialog=null);pairingDialog.show();}
  private final Runnable refresh=new Runnable(){public void run(){
   checkPairing();modelReady=AiPreferences.NATIVE.equals(AiPreferences.provider(MainActivity.this))?AiPreferences.canTranslate(MainActivity.this):modelReady||Status.modelReady;
-  modelLabel.setText(AiPreferences.cloud(MainActivity.this)?"المحرك المختار: "+AiPreferences.label(AiPreferences.provider(MainActivity.this))+" — لا يلزم النموذج المحلي":modelReady?"✓ نموذج العربية جاهز":"افحص النموذج المحلي أو اختر AI");modelLabel.setTextColor(modelReady?Ui.ACCENT:Ui.MUTED);
+  modelLabel.setText(AiPreferences.cloud(MainActivity.this)?"المحرك المختار: "+AiPreferences.label(AiPreferences.provider(MainActivity.this))+" — لا يلزم النموذج المحلي":modelReady?"✓ نموذج العربية جاهز":"افحص النموذج المحلي أو اختر AI");modelLabel.append("\nاللعبة: "+AiPreferences.game(MainActivity.this));modelLabel.setTextColor(modelReady?Ui.ACCENT:Ui.MUTED);
   summary.setText("الجوال: "+Status.address()+"\nرمز الربط: "+(Status.code.isEmpty()?"شغّل الربط أولًا":Status.code)+"\nشاشات متصلة: "+Status.clients);
   status.setText(Status.message+"\n"+Status.metrics+"\nEnglish: "+Status.observedOcr+"\nالعربية: "+Status.arabic);
   start.setEnabled((modelReady||AiPreferences.cloud(MainActivity.this))&&!Status.captureActive);handler.postDelayed(this,700);
@@ -26,7 +26,7 @@ public final class MainActivity extends Activity {
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().setNavigationBarColor(Ui.BG);getWindow().setStatusBarColor(Ui.BG);
   LinearLayout root=Ui.column(this);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,20));root.setBackgroundColor(Ui.BG);
   TextView title=Ui.text(this,"مترجم الألعاب",27);title.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(title);
-  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — نسخة اختبار 0.4.7",14));
+  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — نسخة اختبار 0.4.8",14));
 
   LinearLayout model=Ui.card(this,root,"1 · تجهيز العربية");modelLabel=Ui.text(this,"افحص نموذج الترجمة أولًا",15);model.addView(modelLabel);
   download=Ui.button(this,model,"المحلي فقط: فحص / تنزيل العربية",false,this::prepare);
@@ -78,6 +78,7 @@ public final class MainActivity extends Activity {
     try(java.io.FileOutputStream file=new java.io.FileOutputStream(temporary)){file.write(bytes);}
     java.nio.file.Files.move(temporary.toPath(),destination.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     CaptureService.refreshPack();Status.message="تم استيراد "+pack.size()+" سطر عربي للعبة "+pack.game;
+    if(!GameNames.same(pack.game,AiPreferences.game(this))&&!pack.game.isEmpty())new AlertDialog.Builder(this).setTitle("اسم اللعبة لا يطابق الحزمة").setMessage("الحزمة للعبة "+pack.game+" بينما الإعداد الحالي "+AiPreferences.game(this)+". لن نستخدم حزمة لعبة مع لعبة أخرى.").setPositiveButton("اختيار لعبة الحزمة",(dialog,which)->{AiPreferences.selectGame(this,pack.game);CaptureService.translationChanged();Status.message="تم اختيار "+pack.game+" وتفعيل حزمتها.";}).setNegativeButton("الإبقاء على اللعبة الحالية",null).show();
    }catch(Exception e){Status.message="تعذر استيراد الحزمة: يجب أن تكون JSON بتنسيق arabic-games-pack-v1 ومن الإنجليزية إلى العربية، وبحد أقصى 8 MB و20 ألف سطر.";}}
    return;
   }
