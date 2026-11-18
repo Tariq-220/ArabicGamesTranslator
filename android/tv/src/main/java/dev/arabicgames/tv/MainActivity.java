@@ -28,6 +28,7 @@ public final class MainActivity extends Activity {
   @Override public void onInputUpdated(String id){inputsChanged();}
   @Override public void onInputStateChanged(String id,int state){inputsChanged();}
  };
+ private TvView.TvInputCallback videoCallbacks;
  private TvView tv;private LinearLayout panel,connectionPanel;private ScrollView panelWindow;
  private TextView subtitle,status,received,hdmiStatus;private Button menuHandle;private int swallowedKey=-1;private android.window.OnBackInvokedCallback backCallback;
  private EditText host,code;private Spinner input;private CheckBox desktop,audio;
@@ -44,16 +45,16 @@ public final class MainActivity extends Activity {
   receiverId=getPreferences(0).getString("receiverId",null);if(receiverId==null){receiverId=UUID.randomUUID().toString();getPreferences(0).edit().putString("receiverId",receiverId).apply();}
   audioManager=getSystemService(AudioManager.class);audioFocus=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build()).setOnAudioFocusChangeListener(change->{if(tv!=null)tv.setStreamVolume(resumed&&audio!=null&&audio.isChecked()?(change==AudioManager.AUDIOFOCUS_GAIN?1f:change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK?.25f:0f):0f);},ui).build();
   FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);tv=new TvView(this);tv.setTag("hdmi-view");tv.setFocusable(false);tv.setFocusableInTouchMode(false);tv.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);root.addView(tv,new FrameLayout.LayoutParams(-1,-1));
-  tv.setCallback(new TvView.TvInputCallback(){
+  videoCallbacks=new TvView.TvInputCallback(){
    @Override public void onVideoAvailable(String id){if(!resumed||!id.equals(tunedInput))return;restoreHdmi=false;videoAvailable=true;videoTicket++;videoRetries=0;hdmiStatus.setText("✓ صورة HDMI جاهزة");restoreAudio();}
    @Override public void onConnectionFailed(String id){if(!id.equals(tunedInput))return;tunedInput=null;restoreHdmi=true;hdmiStatus.setText("تعذر استرجاع جلسة HDMI؛ جارٍ إصلاح المدخل المحفوظ.");scheduleVideoRecovery();}
    @Override public void onVideoUnavailable(String id,int reason){if(!id.equals(tunedInput))return;videoAvailable=false;hdmiStatus.setText("تغيّرت إشارة HDMI ("+reason+")؛ بانتظار الصورة…");scheduleVideoRecovery();}
    @Override public void onDisconnected(String id){if(!id.equals(tunedInput))return;videoAvailable=false;tunedInput=null;restoreHdmi=true;scheduleVideoRecovery();}
-  });
+  };tv.setCallback(videoCallbacks);
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.9",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.10",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
@@ -137,7 +138,11 @@ public final class MainActivity extends Activity {
  }
  private void repairVideo(){
   if(!resumed||destroyed)return;videoTicket++;videoAvailable=false;String saved=getPreferences(0).getString("hdmi","");if(saved.isEmpty())return;
-  tunedInput=null;restoreHdmi=true;tv.reset();restoreSavedHdmi(resumeTicket);scheduleVideoRecovery();
+  tunedInput=null;restoreHdmi=true;
+  // TCL may retain an invalid video Surface across HDR/dashboard format changes.
+  TvView previous=tv;FrameLayout parent=(FrameLayout)previous.getParent();previous.setCallback(null);previous.reset();parent.removeView(previous);
+  tv=new TvView(this);tv.setTag("hdmi-view");tv.setFocusable(false);tv.setFocusableInTouchMode(false);tv.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);tv.setCallback(videoCallbacks);parent.addView(tv,0,new FrameLayout.LayoutParams(-1,-1));
+  restoreSavedHdmi(resumeTicket);if(!videoAvailable)scheduleVideoRecovery();
  }
  private boolean tune(){
   if(inputs.isEmpty())refreshInputs();
@@ -249,7 +254,7 @@ public final class MainActivity extends Activity {
  }
  @Override public void onBackPressed(){if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();}
  @Override protected void onResume(){super.onResume();resumed=true;final int ticket=++resumeTicket;if(input!=null)refreshInputs();
-  if(tunedInput==null&&(restoreHdmi||getPreferences(0).getBoolean("resumeHdmi",false))){showPanel();for(long delay:new long[]{100,400,1000,2000,4000})ui.postDelayed(()->restoreSavedHdmi(ticket),delay);}else if(tv!=null&&audio!=null)restoreAudio();
+  if(tunedInput==null&&(restoreHdmi||getPreferences(0).getBoolean("resumeHdmi",false))){showPanel();for(long delay:new long[]{100,400,1000,2000,4000})ui.postDelayed(()->restoreSavedHdmi(ticket),delay);}else if(tv!=null&&audio!=null){restoreAudio();if(!videoAvailable&&restoreHdmi)scheduleVideoRecovery();}
  }
  @Override protected void onPause(){resumed=false;resumeTicket++;super.onPause();}
  private void releaseHdmiSession(){videoTicket++;videoAvailable=false;if(tunedInput!=null){restoreHdmi=true;getPreferences(0).edit().putBoolean("resumeHdmi",true).apply();tunedInput=null;if(tv!=null)tv.reset();}dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);}

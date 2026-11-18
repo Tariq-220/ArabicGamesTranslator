@@ -624,7 +624,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         // Oyunda henüz altyazı görülmediyse altyazı bölgesinin altına yakın tipik bir yer kullanılır.
         var region = settings.Region;
         var box = lastSubtitleBox ?? new TextBox(0.3, region.Bottom - 0.1, 0.7, region.Bottom - 0.03);
-        var msg = "هذه ترجمة تجريبية — آرثر: لديّ 25 دولارًا. هل تظهر الحروف متصلة؟";
+        var msg = "هذه رسالة اختبار من الكمبيوتر. إذا ظهرت على شاشتك فالربط يعمل.";
         server.SendSubtitle(msg, 8000, box);
         post(() => LiveSubtitleShown?.Invoke(msg, 8000, box));
     }

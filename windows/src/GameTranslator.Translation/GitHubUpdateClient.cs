@@ -27,8 +27,8 @@ public sealed class GitHubUpdateClient {
   if(root.TryGetProperty("draft",out var draft)&&draft.GetBoolean()||root.TryGetProperty("prerelease",out var pre)&&pre.GetBoolean())return null;
   var tag=root.GetProperty("tag_name").GetString()??"";
   if(!Regex.IsMatch(tag,@"^v\d+\.\d+\.\d+$")||!Version.TryParse(tag[1..],out var version)||version<=current)return null;
-  var filename=$"ArabicGames-Windows-{version}-Full-Install.zip";
-  foreach(var asset in root.GetProperty("assets").EnumerateArray()){
+  var filenames=new[]{$"ArabicGames-Windows-{version}-Update.zip",$"ArabicGames-Windows-{version}-Full-Install.zip"};
+  foreach(var filename in filenames)foreach(var asset in root.GetProperty("assets").EnumerateArray()){
    if(asset.GetProperty("name").GetString()!=filename)continue;
    var size=asset.GetProperty("size").GetInt64();var digest=asset.GetProperty("digest").GetString()??"";
    if(size<1||size>1024L*1024*1024||!Regex.IsMatch(digest,@"^sha256:[0-9a-fA-F]{64}$"))throw new InvalidDataException("Missing trusted asset checksum or invalid size.");
@@ -67,7 +67,9 @@ public sealed class GitHubUpdateClient {
    var path=entry.FullName.Replace('\\','/');if(path.StartsWith('/')||path.Contains(':')||path.Split('/').Any(p=>p=="..")||((entry.ExternalAttributes>>16)&0xF000)==0xA000)throw new InvalidDataException("Unsafe archive path.");
    total+=entry.Length;if(total>2L*1024*1024*1024)throw new InvalidDataException("Unpacked update too large.");
   }
-  if(zip.GetEntry("Install.ps1") is null||zip.GetEntry("manifest.json") is null||zip.GetEntry("ArabicGames-Windows/GameTranslator.exe") is null)throw new InvalidDataException("Incomplete update package.");
+  bool full=zip.GetEntry("Install.ps1") is not null&&zip.GetEntry("manifest.json") is not null&&zip.GetEntry("ArabicGames-Windows/GameTranslator.exe") is not null;
+  bool repair=zip.GetEntry("Reading-Fix.ps1") is not null&&zip.GetEntry("patch.json") is not null&&zip.GetEntry("files/GameTranslator.exe") is not null;
+  if(!full&&!repair)throw new InvalidDataException("Incomplete update package.");
   Directory.CreateDirectory(target);zip.ExtractToDirectory(target);
  }
 }

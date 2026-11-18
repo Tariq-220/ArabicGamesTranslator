@@ -41,6 +41,7 @@ public sealed class XboxTestWindow : Window
     private readonly PasswordBox key = new() { Width = 320, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
     private readonly ComboBox engineChoice = new() { MinWidth = 350, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)) };
     private string lastEngineCheck="لم يُختبر المحرك بعد";
+    private bool engineTestPassed;
     private bool testingKey;
     private readonly ComboBox deepLMode=new(){MinWidth=350,MinHeight=48};
     private readonly Button engineHelp=new(){Content="كيف تحصل على API؟ ↗",MinHeight=48,Padding=new Thickness(14,8,14,8),Margin=new Thickness(8,0,0,0)};
@@ -80,7 +81,7 @@ public sealed class XboxTestWindow : Window
             $"عنوان اللابتوب: {controller.ComputerAddress??"غير متصل"}\nالمنفذ: {controller.ServerPort}\n\nعلى TCL: OK ثم إعدادات الربط.\nفعّل مصدر كمبيوتر (بدون رمز الجوال).\nاكتب عنوان اللابتوب بدل عنوان الجوال، ثم حفظ وربط الجوال.\nاختر HDMI ثم عرض اللعبة وعودة للعب.\nمن اللابتوب اضغط اختبار الحروف العربية.\n\nالجهازان على نفس الشبكة الخاصة. لا تفتح منفذ الراوتر للإنترنت.",
             "ربط TCL باللابتوب",MessageBoxButton.OK,MessageBoxImage.Information)));
         root.Children.Add(updateLabel);root.Children.Add(updateButton);
-        updateButton.Click+=async(_,_)=>{if(readyInstaller!=null)InstallReadyUpdate();else await CheckForUpdate();};
+        updateButton.Click+=async(_,_)=>{if(checkingUpdate){activeUpdateDownload?.Cancel();return;}if(readyInstaller!=null)InstallReadyUpdate();else await CheckForUpdate();};
         var automaticUpdates=new CheckBox{Content="فحص وتنزيل التحديث تلقائيًا خارج اللعب",IsChecked=controller.AutoUpdateEnabled,Margin=new Thickness(4),MinHeight=40};automaticUpdates.Checked+=(_,_)=>controller.AutoUpdateEnabled=true;automaticUpdates.Unchecked+=(_,_)=>controller.AutoUpdateEnabled=false;root.Children.Add(automaticUpdates);
         if(!preview)Loaded+=async(_,_)=>{_=CommunityCorrections.RefreshAsync();if(controller.AutoUpdateEnabled)await CheckForUpdate();};
         root.Children.Add(Label("1 · مصدر اللعبة — Xbox أو PS5"));
@@ -190,7 +191,8 @@ public sealed class XboxTestWindow : Window
         shell.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});
         shell.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
         var heading=new StackPanel{Margin=new Thickness(10)};
-        heading.Children.Add(Label("ArabicGames · ترجمة الألعاب",24));
+        heading.Children.Add(Label("ArabicGames · ترجمة الألعاب · الإصدار "+ArabicRelease.Version,24));
+        updateLabel.Tag="update-status";heading.Children.Add(updateLabel);
         connectionBar.Tag="connection-status"; heading.Children.Add(connectionBar);
         heading.Children.Add(Label("① اختر المصدر  ② اختر المحرك واللعبة  ③ اربط الشاشة  ثم اضغط بدء الترجمة.",14));
         var ambient=new Border{CornerRadius=new CornerRadius(18),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
@@ -222,11 +224,11 @@ public sealed class XboxTestWindow : Window
         Grid.SetRow(tabs,2);shell.Children.Add(tabs);
         var live=new StackPanel{Margin=new Thickness(8)};
         live.Children.Add(new ScrollViewer{Content=status,MaxHeight=54,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly});
-        var livePreview=new StackPanel();livePreview.Children.Add(timing);livePreview.Children.Add(updateLabel);livePreview.Children.Add(Card(source));livePreview.Children.Add(Card(translated));
+        var livePreview=new StackPanel();livePreview.Children.Add(timing);livePreview.Children.Add(Card(source));livePreview.Children.Add(Card(translated));
         // Source and translated were inside cards in the former flat list.
         live.Children.Add(new Expander{Header="النص المقروء والترجمة — تفاصيل الجلسة",Content=new ScrollViewer{Content=livePreview,MaxHeight=170,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly},IsExpanded=false,Foreground=Brushes.White});
         Grid.SetRow(live,3);shell.Children.Add(live);
-        Content=shell;
+        Content=shell;UpdateConnectionBar();
         DesktopSubtitleOverlay.IsOverlayEnabled = controller.DesktopOverlayEnabled;
         if(!preview)DesktopSubtitleOverlay.Initialize();
         Action<string,string> rejected=(english,arabic)=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,arabic,null,controller.Settings.Region,comparisonLatest,"rejected_untranslated",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,"untranslated_output",CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));logState.Text="المحرك أعاد جملة إنجليزية بدل العربية؛ لم نعرضها. سُجلت للتشخيص، وافحص لغة القراءة والمحرك.";};
@@ -282,7 +284,7 @@ public sealed class XboxTestWindow : Window
         if(checkingUpdate||readyInstaller!=null)return;
         if(controller.IsRunning){updateLabel.Text="فحص وتنزيل التحديث مؤجلان إلى ما بعد جلسة اللعب.";return;}
         if(string.IsNullOrWhiteSpace(ArabicRelease.Repository)){updateLabel.Text="قناة GitHub غير مرتبطة بعد.";return;}
-        checkingUpdate=true;updateButton.IsEnabled=false;
+        checkingUpdate=true;updateButton.IsEnabled=true;updateButton.Content="إلغاء الفحص / التنزيل";
         using var operation=System.Threading.CancellationTokenSource.CreateLinkedTokenSource(updateCancel.Token);activeUpdateDownload=operation;
         try {
             updateLabel.Text="جارٍ فحص إصدارات GitHub…";
@@ -295,13 +297,13 @@ public sealed class XboxTestWindow : Window
             await client.DownloadAsync(release,zip,new Progress<double>(value=>updateLabel.Text=$"تنزيل التحديث {release.Version}: {(int)(value*100)}%"),operation.Token);
             var extracted=System.IO.Path.Combine(folder,"package");
             await Task.Run(()=>GitHubUpdateClient.Extract(zip,extracted),operation.Token);
-            readyInstaller=System.IO.Path.Combine(extracted,"Install.ps1");
+            readyInstaller=System.IO.File.Exists(System.IO.Path.Combine(extracted,"Reading-Fix.ps1"))?System.IO.Path.Combine(extracted,"Reading-Fix.ps1"):System.IO.Path.Combine(extracted,"Install.ps1");
             updateLabel.Text="التحديث "+release.Version+" جاهز ومتحقق منه. ثبته عندما تنتهي من اللعب.";
             updateButton.Content="تثبيت التحديث وإعادة التشغيل";
         }
         catch(OperationCanceledException){if(!updateCancel.IsCancellationRequested)updateLabel.Text="انتهت مهلة التحديث. ترجمة اللعبة مستمرة؛ أعد الفحص لاحقًا.";}
         catch { updateLabel.Text="تعذر فحص أو تنزيل تحديث موثوق. ترجمة اللعبة مستمرة؛ حاول لاحقًا."; }
-        finally{activeUpdateDownload=null;checkingUpdate=false;updateButton.IsEnabled=true;}
+        finally{activeUpdateDownload=null;checkingUpdate=false;updateButton.IsEnabled=true;if(readyInstaller==null)updateButton.Content="فحص التحديث";}
     }
     private void InstallReadyUpdate()
     {
@@ -309,11 +311,12 @@ public sealed class XboxTestWindow : Window
         try {
             var process=new System.Diagnostics.ProcessStartInfo("powershell.exe"){UseShellExecute=false};
             foreach(var argument in new[]{"-NoProfile","-ExecutionPolicy","Bypass","-File",readyInstaller})process.ArgumentList.Add(argument);
+            if(System.IO.Path.GetFileName(readyInstaller)=="Reading-Fix.ps1"){process.ArgumentList.Add("-BasePath");process.ArgumentList.Add(AppContext.BaseDirectory);}
             System.Diagnostics.Process.Start(process);Close();
         }catch{updateLabel.Text="تعذر تشغيل المثبت؛ أعد المحاولة. النسخة الحالية لم تتغير.";}
     }
     private void ChooseEngine()
-    { lastEngineCheck="لم يُختبر المحرك المختار بعد";key.Clear();controller.Stop();UpdateConnectionBar();controller.ArabicEngineChoice=engineChoice.SelectedIndex;LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;controller.SessionTranslator=null;controller.Settings=controller.Settings with {Engine=engineChoice.SelectedIndex==1?TranslationEngine.DeepL:TranslationEngine.Gemini};RefreshCloudModels(); }
+    { engineTestPassed=false;lastEngineCheck="لم يُختبر المحرك المختار بعد";key.Clear();controller.Stop();UpdateConnectionBar();controller.ArabicEngineChoice=engineChoice.SelectedIndex;LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;controller.SessionTranslator=null;controller.Settings=controller.Settings with {Engine=engineChoice.SelectedIndex==1?TranslationEngine.DeepL:TranslationEngine.Gemini};RefreshCloudModels(); }
     private bool IsLocalModel => engineChoice.SelectedIndex is >=2 and <=4 or 6;
     private string LocalModel => engineChoice.SelectedIndex==6?"hy-mt": engineChoice.SelectedIndex==3?"jisr-msa":engineChoice.SelectedIndex==4?"jisr-saudi":"quickmt";
     private ITextTranslator LocalTranslator()
@@ -334,8 +337,12 @@ public sealed class XboxTestWindow : Window
         catch{status.Text="ملفات تشغيل النموذج غير موجودة بجانب البرنامج. فك حزمة التحديث كاملة في مجلد البرنامج.";}
     }
     private async void SaveKey(){
-        if(testingKey)return;testingKey=true;lastEngineCheck="جارٍ اختبار المحرك…";UpdateConnectionBar();start.IsEnabled=false;testEngine.IsEnabled=false;azureRegion.IsEnabled=false;engineChoice.IsEnabled=false;cloudModel.IsEnabled=false;deepLMode.IsEnabled=false;key.IsEnabled=false;
-        try{await SaveKeyCore();}finally{lastEngineCheck=status.Text.Split('\n')[0];testingKey=false;UpdateConnectionBar();start.IsEnabled=true;testEngine.IsEnabled=true;azureRegion.IsEnabled=true;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
+        if(testingKey)return;engineTestPassed=false;testingKey=true;lastEngineCheck="جارٍ اختبار المحرك…";UpdateConnectionBar();start.IsEnabled=false;testEngine.IsEnabled=false;azureRegion.IsEnabled=false;engineChoice.IsEnabled=false;cloudModel.IsEnabled=false;deepLMode.IsEnabled=false;key.IsEnabled=false;
+        try{await SaveKeyCore();}finally{lastEngineCheck=status.Text;testingKey=false;UpdateConnectionBar();start.IsEnabled=true;testEngine.IsEnabled=true;azureRegion.IsEnabled=true;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
+    }
+    private void EngineSuccess(string? sample=null){
+        if(sample!=null&&!System.Text.RegularExpressions.Regex.IsMatch(sample,@"[ء-ي]")){engineTestPassed=false;status.Text="وصل رد من المحرك لكنه ليس ترجمة عربية صالحة. أعد الاختبار أو اختر محركًا آخر.";return;}
+        engineTestPassed=true;status.Text="✓ نجح اختبار محرك الترجمة — أصبح جاهزًا لترجمة نص اللعبة. هذا لا يختبر ظهور النص على الشاشة.";
     }
     private async Task SaveKeyCore()
     {
@@ -347,7 +354,7 @@ public sealed class XboxTestWindow : Window
                 SecureStore.Default.Save(ProviderKeyId,value);SecureStore.Default.Save("arabic-azure-region",azureRegion.Text.Trim());key.Clear();
                 status.Text="مفتاح Azure محفوظ؛ جارٍ اختبار الترجمة…";
                 var watch=System.Diagnostics.Stopwatch.StartNew();var sample=await translator.TranslateAsync("Keep going. Through the palms.");watch.Stop();
-                status.Text=$"Azure جاهز — استجابة الاختبار {watch.ElapsedMilliseconds} ms\n{sample}";
+                EngineSuccess(sample);
             }catch(TranslatorException error){status.Text="المفتاح محفوظ. Azure: "+error.Status+". عند الرفض تأكد من مفتاح مورد Translator ومنطقته؛ عند الحصة أو تعذر الخدمة أعد المحاولة لاحقًا.";}
              catch(ArgumentException){status.Text="تحقق من المفتاح ومنطقة Azure: حروف إنجليزية وأرقام وشرطة فقط، أو فارغة للمورد العالمي.";}
              catch{status.Text="تعذر حفظ أو اختبار Azure. لا تعاود إدخال المفتاح إن كان محفوظًا.";}return;
@@ -358,11 +365,11 @@ public sealed class XboxTestWindow : Window
                 if(string.IsNullOrWhiteSpace(value)){status.Text="أدخل مفتاح هذا المزوّد مرة واحدة.";return;}
                 SecureStore.Default.Save(ProviderKeyId,value);key.Clear();status.Text="حُفظ المفتاح بتشفير Windows؛ جارٍ اختبار النموذج…";
                 var result=await AiTranslator.TestAsync(CloudProvider,value,SelectedCloudModel);
-                status.Text="المفتاح محفوظ. نتيجة النموذج: "+result.State+(result.Sample==null?"":"\n"+result.Sample);
+                if(result.State==OnlineKeyState.Valid)EngineSuccess(result.Sample);else status.Text="لم ينجح اختبار المحرك: "+result.State+". المفتاح محفوظ؛ تحقق من الحصة والاتصال واسم النموذج.";
             }catch{status.Text="تعذر حفظ المفتاح أو اختبار النموذج؛ تحقق من الاتصال والمزوّد.";}return;
         }
-        if(engineChoice.SelectedIndex==7){status.Text="جارٍ اختبار Google بدون مفتاح…";try{status.Text="Google: "+await new GoogleGtxTranslator().TranslateAsync("Keep going.");}catch{status.Text="تعذر اختبار Google. تحقق من الإنترنت أو جرّب لاحقًا.";}return;}
-        if(IsLocalModel){try{var sample=await LocalTranslator().TranslateAsync("Keep going. Through the palms.");status.Text="اختبار محلي: "+sample;}catch(Exception error){status.Text=LocalError(error);}return;}
+        if(engineChoice.SelectedIndex==7){status.Text="جارٍ اختبار Google بدون مفتاح…";try{EngineSuccess(await new GoogleGtxTranslator().TranslateAsync("Hello. How are you?"));}catch{status.Text="تعذر اختبار Google. تحقق من الإنترنت أو جرّب لاحقًا.";}return;}
+        if(IsLocalModel){try{var sample=await LocalTranslator().TranslateAsync("Hello. How are you?");EngineSuccess(sample);}catch(Exception error){status.Text=LocalError(error);}return;}
         if (string.IsNullOrWhiteSpace(key.Password) && !(engineChoice.SelectedIndex==1?controller.HasDeepLKey:controller.HasGeminiKey)) { status.Text = "أدخل المفتاح مرة واحدة؛ لا يوجد مفتاح محفوظ لهذا المحرك."; return; }
         status.Text = "جارٍ اختبار المفتاح؛ قد يستغرق الطلب الأول حتى 25 ثانية…";
         try
@@ -371,12 +378,13 @@ public sealed class XboxTestWindow : Window
             bool saved=result.State==OnlineKeyState.Valid;
             if(saved)key.Clear();
             if(saved&&engineChoice.SelectedIndex==1){
-                try{var watch=System.Diagnostics.Stopwatch.StartNew();var sample=await controller.TestSavedDeepLTranslationAsync();watch.Stop();status.Text="مفتاح DeepL محفوظ. اختبار الوضع المختار: "+watch.ElapsedMilliseconds+" ms\n"+sample;}
+                try{var watch=System.Diagnostics.Stopwatch.StartNew();var sample=await controller.TestSavedDeepLTranslationAsync();watch.Stop();EngineSuccess(sample);}
                 catch(TranslatorException error){status.Text="المفتاح محفوظ لكن اختبار وضع DeepL فشل: "+error.Status+". إذا كان الوضع غير مدعوم اختر تلقائيًا وأعد الاختبار.";}
                 catch{status.Text="مفتاح DeepL محفوظ؛ تعذر اختبار الترجمة الآن. جرّب الوضع التلقائي أو أعد المحاولة لاحقًا.";}
                 return;
             }
-            status.Text=saved ? "المفتاح محفوظ محليًا بتشفير Windows. اختر النافذة ثم ابدأ الترجمة." : (controller.HasGeminiKey && engineChoice.SelectedIndex!=1?"المفتاح محفوظ. نتيجة الاتصال: ":"نتيجة الاختبار: ")+result.State+(engineChoice.SelectedIndex!=1?"\n"+LiveServices.LastKeyCheckDetail:"");
+            if(saved){EngineSuccess();return;}
+            status.Text= (controller.HasGeminiKey && engineChoice.SelectedIndex!=1?"المفتاح محفوظ. نتيجة الاتصال: ":"نتيجة الاختبار: ")+result.State+(engineChoice.SelectedIndex!=1?"\n"+LiveServices.LastKeyCheckDetail:"");
         }
         catch { status.Text = "تعذر الاتصال بالمحرك المختار. المفتاح ما زال في الخانة."; }
     }
@@ -429,7 +437,8 @@ public sealed class XboxTestWindow : Window
     private void UpdateConnectionBar()
     {
         var engineState = testingKey ? "جارٍ الاختبار" : !controller.IsRunning ? "متوقف" : controller.TranslatorStatus==TranslatorStatus.Ready ? "يعمل" : controller.TranslatorStatus.ToString();
-        var check=lastEngineCheck.Length>120?lastEngineCheck[..120]+"…":lastEngineCheck;
+        var check=lastEngineCheck.Replace("\n"," · ");if(check.Length>150)check=check[..150]+"…";
+        bool connected=controller.TvClients>0;connectionBar.Background=new SolidColorBrush(testingKey?Color.FromRgb(255,226,154):engineTestPassed&&connected?Color.FromRgb(141,231,182):connected?Color.FromRgb(173,216,255):Color.FromRgb(227,232,242));connectionBar.Foreground=new SolidColorBrush(Color.FromRgb(18,34,48));connectionBar.FontWeight=FontWeights.Bold;connectionBar.Padding=new Thickness(10,6,10,6);
         connectionBar.Text=$"المحرك: {engineState} | الشاشة: {(controller.TvClients>0 ? "متصلة ("+controller.TvClients+")" : "غير متصلة")} | الترجمة: {(controller.IsRunning ? "تعمل" : "متوقفة")}\nآخر اختبار: {check}";connectionBar.ToolTip=lastEngineCheck;
     }
     private void Changed(object? sender, PropertyChangedEventArgs e)

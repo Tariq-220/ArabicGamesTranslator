@@ -36,9 +36,9 @@ public class TvHdmiResumeTest {
  @Test public void duplicateCaptionRenewalsDoNotRelayoutText()throws Exception{try(var c=controller()){MainActivity a=c.get();TextView subtitle=org.robolectric.util.ReflectionHelpers.getField(a,"subtitle");int[] changes={0};subtitle.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){changes[0]++;}public void afterTextChanged(android.text.Editable e){}});for(int i=0;i<20;i++)org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"show",org.robolectric.util.ReflectionHelpers.ClassParameter.from(String.class,"نفس الترجمة"),org.robolectric.util.ReflectionHelpers.ClassParameter.from(int.class,5000));assertEquals(1,changes[0]);}}
  @Test public void dashboardSignalChangeWaitsThenRetunesAndStopsWhenVideoReturns(){add();try(var c=controller()){
   button(c.get().getWindow().getDecorView(),"عرض اللعبة / إخفاء اللوحة").performClick();Video.callback.onVideoAvailable("tcl-HDMI-2");
-  Video.callback.onVideoUnavailable("tcl-HDMI-2",TvInputManager.VIDEO_UNAVAILABLE_REASON_UNKNOWN);
+  TvView oldView=org.robolectric.util.ReflectionHelpers.getField(c.get(),"tv");Video.callback.onVideoUnavailable("tcl-HDMI-2",TvInputManager.VIDEO_UNAVAILABLE_REASON_UNKNOWN);
   Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2));assertEquals(1,Video.tunes);
-  Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2));assertEquals(2,Video.tunes);
+  Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2));assertEquals(2,Video.tunes);assertNotSame(oldView,org.robolectric.util.ReflectionHelpers.getField(c.get(),"tv"));
   Video.callback.onVideoAvailable("tcl-HDMI-2");Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(15));assertEquals(2,Video.tunes);
  }}
  @Test public void shortFormatSwitchDoesNotRetuneOrReset(){add();try(var c=controller()){
