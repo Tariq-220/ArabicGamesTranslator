@@ -103,7 +103,7 @@ jobs:
           ./installer/Test-Reading-Fix.ps1 -Package (Resolve-Path out/reading-fix)
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Reading-Fix-0.4.15
+          name: Reading-Fix-0.4.16
           path: out/reading-fix/
           retention-days: 90
       - name: Download verified runtime dependencies
@@ -127,7 +127,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $info=Get-Content release/version.json -Raw|ConvertFrom-Json
-          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip tv/packages/*.ipk --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes-file release/NOTES.md
+          Compress-Archive -Path out/reading-fix/* -DestinationPath "out/ArabicGames-Windows-$($info.version)-Update.zip"
+          gh release create "v$($info.version)" "out/ArabicGames-Windows-$($info.version)-Full-Install.zip" "out/ArabicGames-Windows-$($info.version)-Update.zip" out/SHA256SUMS.txt out/ArabicGames-Enable-AutoUpdate.zip tv/packages/*.ipk --repo '${{ github.repository }}' --target '${{ github.sha }}' --title "ArabicGames $($info.version)" --notes-file release/NOTES.md
           if($LASTEXITCODE -ne 0){throw 'Release upload failed'}
 
       - name: Prepare separate GitHub preview downloads
