@@ -1,0 +1,36 @@
+name: Build pinned Windows PS5 native engine
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git make mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja mingw-w64-x86_64-openssl mingw-w64-x86_64-nasm
+            mingw-w64-x86_64-python mingw-w64-x86_64-python-protobuf
+            mingw-w64-x86_64-libevent
+      - name: Build PS5 engine and run native decoder tests
+        shell: msys2 {0}
+        run: bash scripts/build-windows-ps5-native.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ps5-native-windows
+          path: out/ps5-windows-native.zip
+          retention-days: 30
+      - name: Public native library transport fallback
+        shell: msys2 {0}
+        run: |
+          python - <<'PY'
+          import base64
+          data=base64.b64encode(open('out/ps5-windows-native.zip','rb').read()).decode()
+          for i in range(0,len(data),120):print('PS5_WINDOWS64 '+data[i:i+120])
+          PY
