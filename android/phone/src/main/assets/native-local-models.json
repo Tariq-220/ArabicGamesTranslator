@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "source": "Hearth Ct2Catalog bc6823b8ec8254eefa222d28e60d70ccdd7d67ce",
+  "models": [
+    {
+      "id": "quickmt-en-ar",
+      "label": "QuickMT · الإنجليزية إلى العربية",
+      "mode": 0,
+      "files": [
+        {
+          "name": "model.bin",
+          "bytes": 360843109,
+          "sha256": "2b053bf9e989a3685f902eafac1d8128f8fcf833b90fdd142254f08bd73ca5af",
+          "url": "https://huggingface.co/quickmt/quickmt-en-ar/resolve/37f2b37486c29b457971295d7711b5ac1869775d/model.bin"
+        },
+        {
+          "name": "config.json",
+          "bytes": 223,
+          "sha256": "66edc5d58ceb812a41b4b784497001f815c35400884f40984b19de29e1bc3d69",
+          "url": "https://huggingface.co/quickmt/quickmt-en-ar/resolve/37f2b37486c29b457971295d7711b5ac1869775d/config.json"
+        },
+        {
+          "name": "source_vocabulary.json",
+          "bytes": 339573,
+          "sha256": "59b2accfaba2b0a8171deed0cce56afdf41d5d724da68c63057b2035c512cbbe",
+          "url": "https://huggingface.co/quickmt/quickmt-en-ar/resolve/37f2b37486c29b457971295d7711b5ac1869775d/source_vocabulary.json"
+        },
+        {
+          "name": "target_vocabulary.json",
+          "bytes": 731023,
+          "sha256": "5437c4de92543211144f9319f234bf2bcacda2ea454c3b26453da97d4d76e833",
+          "url": "https://huggingface.co/quickmt/quickmt-en-ar/resolve/37f2b37486c29b457971295d7711b5ac1869775d/target_vocabulary.json"
+        },
+        {
+          "name": "src.spm.model",
+          "bytes": 589684,
+          "sha256": "acf054421b5ed52bd6aee14564fb8595b9a6b492df669e971d43fba9edb33c16",
+          "url": "https://huggingface.co/quickmt/quickmt-en-ar/resolve/37f2b37486c29b457971295d7711b5ac1869775d/src.spm.model"
+        },
+        {
+          "name": "tgt.spm.model",
+          "bytes": 642429,
+          "sha256": "c7b8bf117088a901628696f60ddd15e047057ccbdcf9b0996ca19e2779a234c7",
+          "url": "https://huggingface.co/quickmt/quickmt-en-ar/resolve/37f2b37486c29b457971295d7711b5ac1869775d/tgt.spm.model"
+        }
+      ],
+      "license": "CC-BY-4.0"
+    },
+    {
+      "id": "jisr-int8",
+      "label": "Jisr 50M · INT8",
+      "mode": 2,
+      "files": [
+        {
+          "name": "config.json",
+          "bytes": 226,
+          "sha256": "99fa08f9ae4fe585ace28258a3420d4d19d59e2b99d3e8dd2bc7dff70aa408cf",
+          "url": "https://huggingface.co/oddadmix/Jisr-MT-50M-AllDialects/resolve/8803d9d4e3b53e96783968237aa32425eb83922e/config.json"
+        },
+        {
+          "name": "model.bin",
+          "bytes": 50619043,
+          "sha256": "6b8b5286c7edc7eb711a17c0b9c644314e41740d1e4e7d93f799980771791375",
+          "url": "https://huggingface.co/oddadmix/Jisr-MT-50M-AllDialects/resolve/8803d9d4e3b53e96783968237aa32425eb83922e/model.bin"
+        },
+        {
+          "name": "shared_vocabulary.json",
+          "bytes": 1318566,
+          "sha256": "12b45628eae6d2949aa85e430d6a2c7f033400f894f9ec2e521466aa82006e5a",
+          "url": "https://huggingface.co/oddadmix/Jisr-MT-50M-AllDialects/resolve/8803d9d4e3b53e96783968237aa32425eb83922e/shared_vocabulary.json"
+        },
+        {
+          "name": "tokenizer.json",
+          "bytes": 2670172,
+          "sha256": "6f45717637add9564d0bd905209208d1aafa55a2e4ec3b8a817309e0384cb307",
+          "url": "https://huggingface.co/oddadmix/Jisr-MT-50M-AllDialects/resolve/8803d9d4e3b53e96783968237aa32425eb83922e/tokenizer.json"
+        },
+        {
+          "name": "LICENSE",
+          "bytes": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "url": "https://huggingface.co/oddadmix/Jisr-MT-50M-AllDialects/resolve/8803d9d4e3b53e96783968237aa32425eb83922e/LICENSE"
+        },
+        {
+          "name": "NOTICE",
+          "bytes": 559,
+          "sha256": "d83d54c3ffa0eba669e616af1a0ab8fa775059a6d916206b51b00b7372f88d38",
+          "url": "https://huggingface.co/oddadmix/Jisr-MT-50M-AllDialects/resolve/8803d9d4e3b53e96783968237aa32425eb83922e/NOTICE"
+        }
+      ],
+      "license": "Apache-2.0",
+      "archive": {
+        "url": "https://github.com/Sal7one/Hearth/releases/download/v0.27.3/ct2-jisr-50m-en-ar-int8-0.27.3.zip",
+        "bytes": 54620720,
+        "sha256": "54f9ea30f5b08fed33b09b8a6c2985133b2d03d0ae1b51a4b008c7ecd7b22556"
+      }
+    }
+  ]
+}
