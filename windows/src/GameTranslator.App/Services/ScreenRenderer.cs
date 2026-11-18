@@ -149,7 +149,8 @@ public static class ScreenRenderer
         System.Windows.Threading.Dispatcher.PushFrame(frame);
 
         var bitmap = new RenderTargetBitmap(width * 2, height * 2, 192, 192, PixelFormats.Pbgra32);
-        bitmap.Render((Visual)window.Content);
+        // Render the RTL parent too: rendering Content alone omits its mirroring transform.
+        bitmap.Render(window);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var file = File.Create(path);
