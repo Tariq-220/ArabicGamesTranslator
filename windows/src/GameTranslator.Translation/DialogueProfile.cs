@@ -4,7 +4,7 @@ using GameTranslator.Core;
 namespace GameTranslator.Translation;
 /// <summary>Conservative RDR2-only corrections reviewed from the supplied comparison log.</summary>
 public static class DialogueProfile {
- public static bool IsInterfaceText(string text)=>Regex.IsMatch(text,@"SessionState|\bStreaming[.,]?\s+Reason\b|^Ready\s+.{0,12}[{|=]|^ms\s|^Comparison\s*[-–]|^Compa\s+iso\s*[-–]",RegexOptions.IgnoreCase)
+ public static bool IsInterfaceText(string text)=>Regex.IsMatch(text,@"^(?:Privacy & Cookies|Turn (?:Right|Left)|[0-9]+\s*(?:ft|m|km|mi))$",RegexOptions.IgnoreCase)||Regex.IsMatch(text,@"SessionState|\bStreaming[.,]?\s+Reason\b|^Ready\s+.{0,12}[{|=]|^ms\s|^Comparison\s*[-–]|^Compa\s+iso\s*[-–]",RegexOptions.IgnoreCase)
   ||(!Regex.IsMatch(text,@"[.!?]")&&Regex.IsMatch(text,@"^PHOTO\b",RegexOptions.IgnoreCase)&&Regex.IsMatch(text,@"\b(?:SELECT|BACK|BACH|MODE)\b",RegexOptions.IgnoreCase))
   ||Regex.IsMatch(text,@"^(?:[O0]\s+)?(?:RETRY\s*CHECKPOINT|CANCEL MISSION)(?:\s+[O0])?(?:\s+CANCEL MISSION\s*[O0]?)?$",RegexOptions.IgnoreCase);
 
@@ -22,6 +22,12 @@ public static class DialogueProfile {
    // Only the known interaction labels at the right edge; dialogue containing these words survives.
    return !words.Any(w=>w is "greet" or "antagonize" or "rob")||!words.All(prompts.Contains);
   }));
+ }
+ public static string DialogueSource(string text,string game){
+  var letters=text.Where(char.IsLetter).ToArray();var symbols=text.Count(c=>!char.IsWhiteSpace(c)&&!char.IsLetterOrDigit(c)&&!".,!?':;—-’…\"".Contains(c));
+  if(System.Text.RegularExpressions.Regex.IsMatch(text,@"(?:[A-Za-z]\d|\d[A-Za-z])")&&letters.Any(c=>c>127))return "";
+  if(letters.Length>0&&(letters.Count(c=>c is >= 'A' and <= 'Z' or >= 'a' and <= 'z')<letters.Length*.8||symbols>Math.Max(2,text.Length*.15)))return "";
+  return English(text,game);
  }
  public static string English(string text,string game){
   if(!Rdr2(game))return text;

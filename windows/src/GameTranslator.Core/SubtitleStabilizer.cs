@@ -51,6 +51,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
     /// knpw. shit, I m", GTA V, #26); süslü ama gerçekten öyle duran yazı yine çevrilir.
     /// </summary>
     public const int GarbledStableMs = 700;
+    public int MinimumStableMs { get; set; }
     private const int HistorySize = 5;
 
     private readonly Func<long> now = clock ?? (() => Environment.TickCount64);
@@ -140,6 +141,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
         var ready = garbled
             ? candidateCount >= stableFrames && time - candidateSince >= GarbledStableMs
             : candidateCount >= stableFrames || (EndsSentence(rawText) && (!cleanFastPathOnly || LooksClean(rawText)));
+        ready = ready && time-candidateSince>=MinimumStableMs;
         // Gönderilenin gürültülü yeniden okuması yeni satır değildir; TV'de aynı cümle iki kez görünmesin.
         if (IsSame(text, sent)) return StabilizerAction.None;
         if (!ready)

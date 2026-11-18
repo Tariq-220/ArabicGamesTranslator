@@ -19,4 +19,6 @@ public class ReadingRecoveryTests
   var crop=new TextBox(.12,.62,.98,.98);var read=new Reading([new("Antagonize",new(.85,.4,.98,.5))]);
   Assert.Empty(DialogueProfile.DialogueOnly(read,crop,"RDR2").Lines);
  }
+ [Fact]public void RejectsObservedCorruptSourceWithoutRejectingNormalEnglish(){Assert.Equal("",DialogueProfile.DialogueSource("'-42.1Jl I-iA si )Ä-il","Grand Theft Auto VI"));Assert.Equal("I have 20 dollars.",DialogueProfile.DialogueSource("I have 20 dollars.","Grand Theft Auto VI"));}
+ [Fact]public void DialogueRequiresBriefStabilityEvenWithPunctuation(){long time=0;var s=new SubtitleStabilizer(clock:()=>time,cleanFastPathOnly:true){MinimumStableMs=100};Assert.Equal(StabilizerAction.None,s.Feed("Hey!"));time=50;Assert.Equal(StabilizerAction.None,s.Feed("Hey!"));time=100;Assert.Equal(StabilizerAction.Translate("Hey!"),s.Feed("Hey!"));}
 }

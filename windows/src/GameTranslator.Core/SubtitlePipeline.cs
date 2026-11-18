@@ -18,6 +18,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     /// <summary>Çeviri sürerken sırada en çok bu kadar satır bekler; daha eskisi atlanır (kuyruk konuşma hızıyla büyümesin).</summary>
     public const int MaxWaiting = 2;
     public int PendingLineLimit { get; set; } = MaxWaiting;
+    public bool DropOffscreenResults {get;set;}
+    public int MinimumStableMs {get=>stabilizer.MinimumStableMs;set=>stabilizer.MinimumStableMs=Math.Max(0,value); }
     /// <summary>
     /// Paketler açıkken bozuk okunan (OCR izi taşıyan) ve pakette bulunmayan satır en çok bu kadar bekletilir: aynı
     /// satırın düzgün okuması gelirse paketteki Türkçesi gösterilir, gelmezse satır her zamanki gibi çevrilir.
@@ -722,6 +724,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                 return;
             }
             var onScreen = request.Number == lineOnScreen;
+            if(DropOffscreenResults&&!onScreen){LineDiscarded?.Invoke(source,"offscreen_latest_mode");return;}
             // Satır ekrandan çoktan kalktıysa çevirisi sonraki sahnenin üstüne düşmesin.
             if (!onScreen && request.LeftAt is { } left && now() - left > LateResultMs)
             {

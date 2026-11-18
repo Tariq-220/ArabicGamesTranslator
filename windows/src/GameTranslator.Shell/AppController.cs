@@ -985,7 +985,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (reader is null) return;
         var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
-        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueSource(text,gameProfile):DialogueProfile.English(text,gameProfile);
+        if(settings.TargetLanguage=="ar"&&ReadingModes.DialogueOnly(ReadingContentMode)){built.MinimumStableMs=100;built.DropOffscreenResults=PreferLatestDialogue;}
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
         built.PendingLineLimit = PreferLatestDialogue ? 1 : SubtitlePipeline.MaxWaiting;
