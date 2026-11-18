@@ -5,7 +5,7 @@
  <uses-feature android:name="android.software.live_tv" android:required="false"/>
  <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
  <application android:icon="@drawable/app_icon" android:label="مترجم الألعاب — التلفزيون" android:banner="@drawable/app_banner" android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" android:allowBackup="false" android:supportsRtl="true" android:usesCleartextTraffic="true">
-  <activity android:name="dev.arabicgames.tv.MainActivity" android:exported="true" android:screenOrientation="landscape"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent-filter></activity>
+  <activity android:name="dev.arabicgames.tv.MainActivity" android:exported="true" android:screenOrientation="landscape" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|colorMode"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent-filter></activity>
    <activity android:name="dev.arabicgames.update.UpdateActivity" android:exported="false"/>
   <activity android:name="dev.arabicgames.update.InstallResultActivity" android:exported="false"/>
  </application>
