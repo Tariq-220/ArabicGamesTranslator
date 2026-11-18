@@ -14,9 +14,9 @@ public class TvRemoteControlTest {
  @Test public void hdmiCannotTakeNavigationAndKeyUpDoesNotActivateAHiddenButton(){
   try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
    MainActivity a=c.get();View root=a.getWindow().getDecorView();TvView hdmi=root.findViewWithTag("hdmi-view");Button handle=root.findViewWithTag("menu-handle");assertFalse(hdmi.isFocusable());assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS,hdmi.getDescendantFocusability());
-   key(a,KeyEvent.KEYCODE_BACK);assertEquals(View.VISIBLE,handle.getVisibility());
+   key(a,KeyEvent.KEYCODE_BACK);assertEquals(View.GONE,handle.getVisibility());
    key(a,KeyEvent.KEYCODE_DPAD_CENTER);assertEquals(View.GONE,handle.getVisibility());assertTrue(find(root,"اكتشاف الجوال أو الكمبيوتر").isFocused());
-   key(a,KeyEvent.KEYCODE_MENU);assertEquals(View.VISIBLE,handle.getVisibility());
+   key(a,KeyEvent.KEYCODE_MENU);assertEquals(View.GONE,handle.getVisibility());
    key(a,KeyEvent.KEYCODE_DPAD_DOWN);assertEquals(View.GONE,handle.getVisibility());
    key(a,KeyEvent.KEYCODE_BACK);key(a,KeyEvent.KEYCODE_INFO);assertEquals(View.GONE,handle.getVisibility());
   }

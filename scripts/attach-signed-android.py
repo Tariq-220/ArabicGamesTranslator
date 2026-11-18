@@ -1,7 +1,7 @@
 """Publish signed public binaries through CI's scoped release token, never a signing secret."""
 from pathlib import Path
 import json,subprocess,os
-root=Path(__file__).resolve().parents[1];info=json.loads((root/'release/version.json').read_text());repo=info['repository'];out=root/'out/signed-android';manifest=json.loads((out/'verified.json').read_text());standalone=os.environ.get('ANDROID_ONLY')=='true';tag='android-v'+manifest['files'][0]['version'] if standalone else 'preview-'+info['version']
+root=Path(__file__).resolve().parents[1];info=json.loads((root/'release/version.json').read_text());repo=info['repository'];out=root/'out/signed-android';manifest=json.loads((out/'verified.json').read_text());standalone=os.environ.get('ANDROID_ONLY')=='true';tag='android-v'+manifest['files'][0]['version']+'-tv'+manifest['files'][1]['version'] if standalone else 'preview-'+info['version']
 def gh(*args):return subprocess.check_output(['gh',*args],text=True).strip()
 try:release=json.loads(gh('release','view',tag,'--repo',repo,'--json','isDraft,assets'))
 except subprocess.CalledProcessError:

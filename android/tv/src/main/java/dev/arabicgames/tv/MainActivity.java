@@ -51,7 +51,7 @@ public final class MainActivity extends Activity {
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.6",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.7",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
@@ -209,7 +209,7 @@ public final class MainActivity extends Activity {
   testLocal("اختبار الإصلاح — الترجمة العربية تظهر هنا");
   if(Pairing.privateIpv4(host.getText().toString().trim())&&(desktop.isChecked()||Pairing.validCode(code.getText().toString().trim())))connect();else discoverDesktop();
  }
- private void hidePanel(){panelWindow.setVisibility(View.GONE);menuHandle.setVisibility(View.VISIBLE);menuHandle.bringToFront();menuHandle.requestFocus();}
+ private void hidePanel(){panelWindow.setVisibility(View.GONE);menuHandle.setVisibility(View.GONE);View root=(View)panelWindow.getParent();root.setFocusableInTouchMode(true);root.setDefaultFocusHighlightEnabled(false);root.requestFocus();}
  private void showPanel(){panelWindow.setVisibility(View.VISIBLE);panelWindow.bringToFront();if(menuHandle!=null)menuHandle.setVisibility(View.GONE);panelWindow.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);for(int n=0;n<panel.getChildCount();n++){View v=panel.getChildAt(n);if(v instanceof Button&&v.getVisibility()==View.VISIBLE){v.requestFocus();break;}}}
  @Override public boolean dispatchKeyEvent(KeyEvent event){
   int key=event.getKeyCode();if(key==swallowedKey){if(event.getAction()==KeyEvent.ACTION_UP)swallowedKey=-1;return true;}
