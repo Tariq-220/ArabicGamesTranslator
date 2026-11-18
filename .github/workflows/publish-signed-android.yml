@@ -1,0 +1,35 @@
+name: Attach verified signed Android downloads
+on:
+  workflow_dispatch:
+    inputs:
+      publish_preview:
+        description: 'Publish the verified preview after both desktop packages are ready'
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: ['Build and prepare ArabicGames Windows']
+    types: [completed]
+permissions:
+  contents: write
+concurrency:
+  group: signed-android-downloads
+  cancel-in-progress: false
+jobs:
+  attach:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: downloads
+          path: signed-deliveries
+          persist-credentials: false
+      - name: Verify hashes, Android identities and update signing certificate
+        run: python scripts/verify-signed-android.py
+      - name: Attach separate APK files and optionally publish the preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_PREVIEW: ${{ inputs.publish_preview || false }}
+        run: python scripts/attach-signed-android.py
