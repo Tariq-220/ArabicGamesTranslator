@@ -1,2 +1,2 @@
 20a461e0b02eb1b5ebf76383d3c823ff38a12de32ef2972bae8f99875a3740e0  phone/0.4.14/ArabicGames-Phone-0.4.14-arm64.apk
-d502d96e4dae8c098160100b8c7c41d80eb1a0bbf48f8aff72d1c52bc5fb3b32  tv/0.3.12/ArabicGames-TV-0.3.12.apk
+97d56291f900243bde3fef35055577334ddca810ee04908a290d619b32caf481  tv/0.3.13/ArabicGames-TV-0.3.13.apk
