@@ -30,6 +30,7 @@ final class DialogueStore {
   String durable=persistentReviewed.get(game,source);if(durable!=null)return durable;
   for(int i=lines.size()-1;i>=0;i--){JSONObject e=lines.get(i);if(e.optBoolean("reviewed")&&game.equals(e.optString("game"))&&key.equals(e.optString("source").trim().replaceAll("\\s+"," ")))return e.optString("arabic");}return null;
  }
+ synchronized void rate(long id,int rating){if(rating!=1&&rating!=-1)throw new IllegalArgumentException();for(JSONObject e:lines)if(e.optLong("id")==id){try{e.put("rating",rating);changed();}catch(JSONException ignored){}return;}}
  synchronized void flag(long id){for(JSONObject e:lines)if(e.optLong("id")==id){try{e.put("reported",true);changed();}catch(JSONException ignored){}return;}}
  synchronized void clear(){persistentReviewed.clear();lines.clear();changed();try{java.nio.file.Files.write(file.toPath(),"[]".getBytes(StandardCharsets.UTF_8));}catch(IOException e){throw new IllegalStateException("Cannot clear history",e);}}
  void flush()throws Exception{writer.submit(()->{}).get(10,TimeUnit.SECONDS);}

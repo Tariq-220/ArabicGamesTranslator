@@ -238,7 +238,7 @@ public final class CaptureService extends Service {
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin){publish(text,arabic,captured,readDone,translated,generation,origin,true);}
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin,boolean releaseFrame){publish(text,arabic,captured,readDone,translated,generation,origin,releaseFrame,-1,0);}
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin,boolean releaseFrame,long inferenceMs,long queueMs){
-  if(!origin.startsWith("تصحيحك المعتمد"))arabic=DialogueProfile.arabic(text,arabic,AiPreferences.game(this));
+  if(!origin.startsWith("تصحيحك المعتمد"))arabic=CommunityCorrections.improve(this,AiPreferences.game(this),text,DialogueProfile.arabic(text,arabic,AiPreferences.game(this)));
   try{
    if(closed||generation!=epoch)return;
    PipelineMetrics.published.incrementAndGet();gate.remember(text,arabic);gate.shown(text);lease.store(text,arabic,translated);Status.arabic=arabic;

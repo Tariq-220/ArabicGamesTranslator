@@ -14,12 +14,14 @@ final class AiRequest {
     for(String line:(c.fast&&context.size()>1?context.subList(context.size()-1,context.size()):context)){int divider=line.lastIndexOf(" → ");english.add(divider<0?line:line.substring(0,divider));}
     body.put("context",String.join("\n",english));
    }
+   String hint=CommunityCorrections.hints(c.game,source);if(!hint.isEmpty())body.put("context",(body.optString("context","")+"\n"+hint).trim());
    if("latency_optimized".equals(c.model)||"prefer_quality_optimized".equals(c.model))body.put("model_type",c.model);
    return body;
   }
   boolean fast=c.fast&&AiPreferences.GEMINI.equals(c.provider);
   List<String> previous=fast&&context.size()>1?context.subList(context.size()-1,context.size()):context;
   JSONObject input=new JSONObject().put("game",c.game).put("previous_dialogue_context_only",new JSONArray(previous)).put("current_subtitle",source);
+  String hint=CommunityCorrections.hints(c.game,source);if(!hint.isEmpty())input.put("reviewed_meaning_hints",hint);
   if(AiPreferences.OPENAI.equals(c.provider)){
    JSONObject request=new JSONObject().put("model",c.model).put("messages",new JSONArray()
     .put(new JSONObject().put("role",c.model.startsWith("gpt-4o")?"system":"developer").put("content",INSTRUCTION))

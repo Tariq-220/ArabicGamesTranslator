@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 5,
+  "revision": 6,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -1396,5 +1396,57 @@
     "neiL WaLKeR",
     "nieL yeLLand",
     "van michaeLs"
+  ],
+  "rules": [
+    {
+      "id": "kill-engine",
+      "reviewed": true,
+      "game": "*",
+      "source_phrase": "kill the engine",
+      "bad_arabic": "اقتل المحرك",
+      "replacement": "أطفئ المحرك",
+      "reason": "Engine shutdown idiom; only replaces the observed literal error.",
+      "source_meaning": "shut off the vehicle engine"
+    },
+    {
+      "id": "haul-ass",
+      "reviewed": true,
+      "game": "*",
+      "source_phrase": "haul ass",
+      "bad_arabic": "اسحب المؤخرة",
+      "replacement": "أسرع",
+      "reason": "Hurry idiom; requires the English idiom and observed literal Arabic.",
+      "source_meaning": "hurry up"
+    },
+    {
+      "id": "haul-ass-imperative",
+      "reviewed": true,
+      "game": "*",
+      "source_phrase": "haul ass",
+      "bad_arabic": "اسحب مؤخرتك",
+      "replacement": "أسرع",
+      "reason": "Hurry idiom; observed imperative literal form.",
+      "source_meaning": "hurry up"
+    },
+    {
+      "id": "head-plane",
+      "reviewed": true,
+      "game": "*",
+      "source_phrase": "head for the plane",
+      "bad_arabic": "رئيس الطائرة",
+      "replacement": "توجّه إلى الطائرة",
+      "reason": "Direction verb, not the noun head.",
+      "source_meaning": "go toward the aircraft"
+    },
+    {
+      "id": "keep-together",
+      "reviewed": true,
+      "game": "*",
+      "source_phrase": "keep it together",
+      "bad_arabic": "ابقي الأمور سوية",
+      "replacement": "تماسك",
+      "reason": "Composure idiom; observed literal output only.",
+      "source_meaning": "stay calm and composed"
+    }
   ]
 }

@@ -57,7 +57,7 @@ public static class DialogueProfile {
  }
 }
 public sealed class ProfileTranslator(ITextTranslator inner,string game):ITextTranslator {
- public async Task<string> TranslateAsync(string text,CancellationToken token=default)=>DialogueProfile.Arabic(text,await inner.TranslateAsync(text,token),game);
+ public async Task<string> TranslateAsync(string text,CancellationToken token=default)=>CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(text,token),game));
  public bool Prefetches=>inner.Prefetches;
  public void Prefetch(string text)=>inner.Prefetch(text);
  public IReadOnlyList<GameTranslator.Core.Dubbing.SpokenLine> SpokenLines(string text)=>inner.SpokenLines(text);

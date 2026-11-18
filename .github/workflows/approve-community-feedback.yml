@@ -1,0 +1,41 @@
+name: Review and distribute community correction
+on:
+  workflow_dispatch:
+    inputs:
+      review_json:
+        description: 'Reviewed sentence or phrase JSON; do not include keys, images or account data'
+        required: true
+        type: string
+      confirmed_review:
+        description: 'I checked the original dialogue, context and proposed Arabic'
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: write
+concurrency:
+  group: community-review-data
+  cancel-in-progress: false
+jobs:
+  approve:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Validate review rules
+        run: python scripts/test-community-review.py
+      - name: Apply explicit reviewed correction as data
+        env:
+          REVIEW_JSON: ${{ inputs.review_json }}
+          CONFIRMED_REVIEW: ${{ inputs.confirmed_review }}
+        run: python scripts/approve-community-feedback.py
+      - name: Distribute reviewed data without rebuilding apps
+        run: |
+          git config user.name 'ArabicGames reviewed corrections'
+          git config user.email 'reviewed-corrections@users.noreply.github.com'
+          git add community/reviewed-dialogue.json android/phone/src/main/assets/reviewed-dialogue.json community/packs/ArabicGames-GTA6-Reviewed-Pack.json
+          git commit -m 'Distribute maintainer-reviewed community correction'
+          git push origin HEAD:main

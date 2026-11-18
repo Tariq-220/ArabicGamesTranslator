@@ -46,6 +46,7 @@ public static class AiRequest
     {
         var parts = new List<string>();
         parts.Add(DialogueContext.ForGame(game));
+        var hint=CommunityCorrections.Hints(game??"",string.Join("\n",sentences));if(hint.Length>0)parts.Add(hint);
         if (context.Count > 0)
         {
             var lines = new List<string> { "Previous subtitles, for context only (do not translate them again):" };

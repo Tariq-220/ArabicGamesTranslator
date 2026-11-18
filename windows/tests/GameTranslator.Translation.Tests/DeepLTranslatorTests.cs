@@ -104,4 +104,5 @@ public class DeepLTranslatorTests
 
         Assert.Equal(OnlineKeyState.Invalid, (await DeepLTranslator.CheckAsync("  ")).State);
     }
+ [Fact]public async Task ReviewedMeaningIsIncludedInTheSingleDeepLRequest(){var fake=new FakeDeepL(Echo);var translator=new DeepLTranslator("fake:fx",null,new HttpClient(fake),game:"GTA6");await translator.TranslateAsync("Haul ass, man.");Assert.Single(fake.Requests);using var body=JsonDocument.Parse(fake.Requests[0].Body);Assert.Contains("hurry up",body.RootElement.GetProperty("context").GetString());Assert.Equal("Haul ass, man.",body.RootElement.GetProperty("text")[0].GetString());}
 }

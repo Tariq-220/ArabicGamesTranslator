@@ -73,6 +73,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         ArgumentNullException.ThrowIfNull(text);
         // Bağlam, bu satırdan önce gösterilenlerdir; satırın kendisi bağlama girmez.
         var context = Context();
+        var hint=CommunityCorrections.Hints(_game??"",text);if(hint.Length>0)context=string.Join("\n",new[]{context,hint}.Where(s=>!string.IsNullOrWhiteSpace(s)));
         Shown(text);
         if (_cache.TryGet(text, out var cached)) return cached;
         if (DateTimeOffset.UtcNow < _pausedUntil) return await FallbackAsync(text, cancellationToken).ConfigureAwait(false);
