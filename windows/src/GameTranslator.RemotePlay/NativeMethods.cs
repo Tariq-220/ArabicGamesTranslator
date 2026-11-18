@@ -166,13 +166,24 @@ public static class RemotePlayLog
     /// <summary>Uygulamanın kendi satırı (eşleştirme sonucu, arama sonucu).</summary>
     public static void Note(string message)
     {
+        message=SafeDiagnostic(message);if(message.Length==0)return;
         try { MessageLogged?.Invoke($"[gametranslator] {message}"); }
         catch { /* günlük dinleyicisinin hatası çağıranı düşürmemeli */ }
+    }
+
+    // Never persist native packet dumps, account/registration credentials or auth URLs.
+    internal static string SafeDiagnostic(string message)
+    {
+        if(message.Length>1500)return "[native diagnostic omitted]";
+        if(System.Text.RegularExpressions.Regex.IsMatch(message,@"(?i)authorization|bearer\s|access[_ -]?token|refresh[_ -]?token|regist[_ -]?key|rp[_ -]?key|morning|account[_ -]?id|psn[_ -]?id|[?&](?:code|token|state)=|\b[0-9a-f]{32,}\b"))return "[credential diagnostic omitted]";
+        if(System.Text.RegularExpressions.Regex.IsMatch(message,@"(?i)^\s*(?:0x)?[0-9a-f]{4,16}[: ]\s*(?:[0-9a-f]{2}[ :\-]+){4,}"))return "";
+        return message;
     }
 
     internal static void Write(int level, string? message)
     {
         if (message is null) return;
+        message=SafeDiagnostic(message);if(message.Length==0)return;
         try { MessageLogged?.Invoke($"[chiaki {NativeMethods.LevelName(level)}] {message}"); }
         catch { /* günlük dinleyicisinin hatası yerel iş parçacığını düşürmemeli */ }
     }

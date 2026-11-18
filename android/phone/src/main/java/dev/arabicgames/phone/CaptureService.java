@@ -35,7 +35,7 @@ public final class CaptureService extends Service {
  private final AtomicBoolean busy=new AtomicBoolean();
  private final SubtitleGate gate=new SubtitleGate();
  private AiPreferences.Config engine;
- private volatile LocalModels.Session localSession;private int localLoadEpoch=-1;
+ private volatile LocalModels.Session localSession;private int localLoadEpoch=-1,modelGeneration;
  private final java.util.ArrayDeque<String> history=new java.util.ArrayDeque<>();
  private final java.util.concurrent.ExecutorService aiWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
  private long cloudRetryAfter;
@@ -130,23 +130,23 @@ public final class CaptureService extends Service {
  static boolean screenTest(){CaptureService s=current;if(s==null||s.closed||s.server==null)return false;pauseDirect();String text="اختبار إرسال من الجوال إلى الشاشة — "+(SystemClock.elapsedRealtime()/1000%10000);Status.arabic=text;Status.message="اختبار إرسال لمدة 10 ثوانٍ. بعدها اضغط بدء الترجمة.";s.server.subtitle(text,10000);final int generation=s.epoch;s.ui.postDelayed(()->{if(!s.closed&&s.epoch==generation&&Status.arabic.equals(text)){Status.arabic="";s.server.clear();}},10000);return true;}
  static void retryModel(){CaptureService s=current;if(s!=null)s.ensureModel();}
  static void translationChanged(){CaptureService s=current;if(s==null||s.closed)return;
-  s.epoch++;if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.ready=false;
+  s.epoch++;if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.modelGeneration++;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.ready=false;
   Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
  }
  private void loadTranslationSettings(){try{engine=AiPreferences.read(this);}catch(Exception e){engine=new AiPreferences.Config(AiPreferences.provider(this),"","","",AiPreferences.cloud(this));Status.message="تعذر قراءة مفتاح AI. افتح إعدادات المحرك وأعد إدخاله.";}}
  static String directState(){CaptureService s=current;if(s==null||s.closed)return "خدمة الربط متوقفة";if(!s.directActive)return "اختر وضع Xbox المباشر";if(!s.ready)return s.modelDownloading?"تجهيز نموذج العربية…":"نموذج العربية غير جاهز داخل جلسة القراءة";return s.busy.get()?"معالجة إطار":"جاهز لقراءة الفيديو";}
  private void ensureModel(){
   if(engine!=null&&AiPreferences.NATIVE.equals(engine.provider)){
-   if(closed||ready||localLoadEpoch==epoch)return;
+   if(closed||ready||localLoadEpoch==modelGeneration)return;
    if(!LocalModels.installed(this,engine.model)){Status.message="نزّل حزمة "+engine.model+" من إدارة النماذج المحلية.";return;}
-   final int loadingEpoch=epoch;localLoadEpoch=loadingEpoch;modelDownloading=true;String model=engine.model;Status.message="تحميل "+model+" في ذاكرة الجوال…";
-   aiWorker.execute(()->{try{LocalModels.Session loaded=new LocalModels.Session(this,model);ui.post(()->{if(closed||epoch!=loadingEpoch){loaded.close();if(!closed){modelDownloading=false;localLoadEpoch=-1;ensureModel();}return;}localSession=loaded;modelDownloading=false;ready=true;Status.message=model+" جاهز محليًا على الجوال.";});}catch(Exception|LinkageError e){ui.post(()->{if(closed||epoch!=loadingEpoch)return;modelDownloading=false;localLoadEpoch=-1;ready=false;Status.message="تعذر تحميل النموذج المحلي؛ افحص الحزمة ومحرك التشغيل من إدارة النماذج.";});}});return;
+   final int loadingEpoch=modelGeneration;localLoadEpoch=loadingEpoch;modelDownloading=true;String model=engine.model;Status.message="تحميل "+model+" في ذاكرة الجوال…";
+   aiWorker.execute(()->{try{LocalModels.Session loaded=new LocalModels.Session(this,model);ui.post(()->{if(closed||modelGeneration!=loadingEpoch){loaded.close();if(!closed){modelDownloading=false;localLoadEpoch=-1;ensureModel();}return;}localSession=loaded;modelDownloading=false;ready=true;Status.message=model+" جاهز محليًا على الجوال.";});}catch(Exception|LinkageError e){ui.post(()->{if(closed||modelGeneration!=loadingEpoch)return;modelDownloading=false;localLoadEpoch=-1;ready=false;Status.message="تعذر تحميل النموذج المحلي؛ افحص الحزمة ومحرك التشغيل من إدارة النماذج.";});}});return;
   }
   if(engine!=null&&engine.cloud()){ready=true;Status.message="محرك "+engine.label()+" جاهز للطلب؛ لم يُختبر الاتصال بعد.";return;}
-  if(closed||translator==null||ready||modelDownloading)return;modelDownloading=true;Status.message="تجهيز نموذج العربية للجلسة…";
+  if(closed||translator==null||ready||modelDownloading)return;final int downloadingGeneration=modelGeneration;modelDownloading=true;Status.message="تجهيز نموذج العربية للجلسة…";
   translator.downloadModelIfNeeded(new DownloadConditions.Builder().requireWifi().build())
-   .addOnSuccessListener(v->{if(closed)return;modelDownloading=false;ready=true;Status.modelReady=true;Status.message="النموذج جاهز للجلسة. شغّل قراءة الفيديو بعد ظهور اللعبة.";})
-   .addOnFailureListener(e->{if(closed)return;modelDownloading=false;ready=false;Status.message="تعذر تجهيز النموذج للجلسة. افحص تنزيله من الصفحة الرئيسية ثم أعد فتح Xbox المباشر.";});
+   .addOnSuccessListener(v->{if(closed||modelGeneration!=downloadingGeneration)return;modelDownloading=false;ready=true;Status.modelReady=true;Status.message="النموذج جاهز للجلسة. شغّل قراءة الفيديو بعد ظهور اللعبة.";})
+   .addOnFailureListener(e->{if(closed||modelGeneration!=downloadingGeneration)return;modelDownloading=false;ready=false;Status.message="تعذر تجهيز النموذج للجلسة. افحص تنزيله من الصفحة الرئيسية ثم أعد فتح Xbox المباشر.";});
  }
  static void pauseDirect(){CaptureService s=current;if(s!=null&&s.directActive){s.epoch++;s.gate.absent();s.lease.clear();Status.arabic="";if(s.server!=null)s.server.clear();}}
  static boolean acceptsDirect(){CaptureService s=current;return s!=null&&!s.closed&&s.directActive&&!"ps5".equals(s.directSource)&&s.ready&&!s.busy.get();}

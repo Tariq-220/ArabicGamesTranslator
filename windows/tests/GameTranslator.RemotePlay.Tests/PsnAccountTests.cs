@@ -58,6 +58,14 @@ public class PsnAccountTests
         Assert.True(PsnAccount.IsSonyPage(new Uri("https://auth.api.sonyentertainmentnetwork.com/login")));
     }
 
+    [Fact]
+    public void DiagnosticsNeverExposeCredentialsOrPacketDumps()
+    {
+        foreach(var line in new[]{"RP-RegistKey: secret-value", "access_token=secret-value", "Account ID: secret-value", "https://sony.example/callback?code=secret-value", "00112233445566778899aabbccddeeff"})Assert.DoesNotContain("secret-value",RemotePlayLog.SafeDiagnostic(line));
+        Assert.Equal("",RemotePlayLog.SafeDiagnostic("0000: 01 02 03 04 05 06 07 08"));
+        Assert.Equal("Connection failed",RemotePlayLog.SafeDiagnostic("Connection failed"));
+    }
+
     private sealed class FakeSony(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
         public readonly List<(HttpRequestMessage Request, string? Body)> Requests = [];

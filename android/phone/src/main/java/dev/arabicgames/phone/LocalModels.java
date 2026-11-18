@@ -69,7 +69,7 @@ final class LocalModels {
  }
  static void install(Context c,String model,android.net.Uri imported,Progress progress)throws Exception {
   Spec s=spec(c,model);File d=directory(c,s);if(!d.isDirectory()&&!d.mkdirs())throw new IOException("تعذر إنشاء مجلد النموذج.");
-  Files.deleteIfExists(new File(d,"verified-v1").toPath());if(d.getUsableSpace()<s.size()+20_000_000)throw new IOException("المساحة غير كافية؛ وفر مساحة للنموذج والتنزيل.");
+  Files.deleteIfExists(new File(d,"verified-v1").toPath());long required=s.size()+20_000_000+(imported!=null?s.size()+20_000_000:s.json.has("archive")?s.json.getJSONObject("archive").getLong("bytes"):0);if(d.getUsableSpace()<required)throw new IOException("المساحة غير كافية؛ وفر مساحة للنموذج والتنزيل.");
   if(imported!=null){File archive=new File(d,"import.zip");try(InputStream in=c.getContentResolver().openInputStream(imported);OutputStream out=new FileOutputStream(archive)){if(in==null)throw new IOException("تعذر فتح الملف.");byte[] b=new byte[65536];long total=0;int n;while((n=in.read(b))!=-1){total+=n;if(total>s.size()+20_000_000)throw new IOException("الحزمة أكبر من النموذج المختار.");out.write(b,0,n);}}try{unpack(archive,d,s);}finally{Files.deleteIfExists(archive.toPath());}}
   else if(s.json.has("archive")){File archive=new File(d,"download.zip");download(s.json.getJSONObject("archive"),archive,progress);try{unpack(archive,d,s);}finally{Files.deleteIfExists(archive.toPath());}}
   else for(int i=0;i<s.files.length();i++){JSONObject f=s.files.getJSONObject(i);download(f,new File(d,f.getString("name")),progress);}
