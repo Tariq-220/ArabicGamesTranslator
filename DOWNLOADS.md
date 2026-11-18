@@ -10,8 +10,8 @@
 |---|---|---|
 | جوال Android بمعالج arm64 | [ArabicGames-Phone-0.4.8-arm64.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.8-tv0.3.7/ArabicGames-Phone-0.4.8-arm64.apk) | QuickMT وجسر يُنزّلان من التطبيق، أو تستورد حزمة النموذج المطابقة |
 | شاشة Google TV / Android TV | [ArabicGames-TV-0.3.7.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.8-tv0.3.7/ArabicGames-TV-0.3.7.apk) | تستقبل العربية؛ لا تحتاج تنزيل محرك ترجمة للشاشة |
-| Windows x64 — تحديث النسخة الموجودة | [ArabicGames-Windows-0.4.15-Update.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/preview-0.4.15/ArabicGames-Windows-0.4.15-Update.zip) | يحتفظ بالنماذج والإعدادات والمفاتيح |
-| Windows x64 — تثبيت كامل | [ArabicGames-Windows-0.4.15-Full-Install.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/preview-0.4.15/ArabicGames-Windows-0.4.15-Full-Install.zip) | يشمل ملفات تشغيل البرنامج؛ تُنزّل أوزان النموذج عند اختياره |
+| Windows x64 — تحديث النسخة الموجودة | [ArabicGames-Windows-0.4.16-Update.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.16/ArabicGames-Windows-0.4.16-Update.zip) | يحتفظ بالنماذج والإعدادات والمفاتيح |
+| Windows x64 — تثبيت كامل | [ArabicGames-Windows-0.4.16-Full-Install.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.16/ArabicGames-Windows-0.4.16-Full-Install.zip) | يشمل ملفات تشغيل البرنامج؛ تُنزّل أوزان النموذج عند اختياره |
 | LG webOS | ملف `.ipk` | تثبيت أول مرة عبر Developer Mode، وليس APK |
 
 رقم نسخة الجوال والشاشة مستقل عن Windows. الإصدارات التجريبية يُكتب بجانبها **Pre-release**. لا تثبّت ملف هاتف على التلفزيون أو ملف مكتبة تشغيل كنموذج.
@@ -22,6 +22,8 @@
 
 [النماذج والسجل والإبلاغ والقيود](docs/LOCAL-MODELS-AND-UPDATES-2026-11-18.md)
 
-فحص التحديث التلقائي يعتمد الإصدارات المستقرة. نسخة التجربة الحالية تختار تنزيلها من الرابط؛ لا نفرضها تلقائيًا على بقية المستخدمين قبل تجربة الأجهزة.
+فحص التحديث التلقائي يعتمد الإصدارات المستقرة. Windows 0.4.16 إصدار مستقر يتضمن التصحيحات المشتركة؛ تُعرض النسخ التجريبية منفصلة ولا يختارها المحدث تلقائيًا.
 
 حزمة إصلاح الجوال 0.4.8 والشاشة 0.3.7 متاحة أيضًا عبر فحص التحديث من التطبيق. اختيار GTA 6 ثم الحفظ يفعّل تصحيحات حوار البداية المدمجة؛ زر تحديث التصحيحات المراجعة الآن يجلب التصحيحات الجديدة دون إعادة تنزيل أوزان QuickMT.
+
+في Windows 0.4.16: اختر اسم اللعبة **GTA 6** ثم افتح **السجل — تصحيح سطر أو الإبلاغ عن خطأ لغوي ← تحديث التصحيحات المراجعة الآن**. التصحيحات المراجعة المدمجة تعمل دون إنترنت، ويُحدّث البرنامج التصحيحات العامة دوريًا إذا تركت خيارها مفعّلًا. تغيير اللعبة أثناء جلسة مفتوحة يستلزم إيقاف الترجمة وبدءها مجددًا لتطبيق ملف اللعبة الجديد.
