@@ -27,15 +27,19 @@ subprocess.run(['gh','release','edit',tag,'--repo',repo,'--notes-file',str(root/
 all_releases=json.loads(gh('api',f'repos/{repo}/releases?per_page=20'));current=next(r for r in all_releases if r['tag_name']==tag);assets={a['name']:a for a in current['assets']}
 for e in manifest['files']:
  a=assets[e['name']];assert a['size']==e['bytes'] and a['digest']=='sha256:'+e['sha256']
-labels={manifest['files'][0]['name']:'جوال Android arm64 — APK',manifest['files'][1]['name']:'شاشة Google TV / Android TV — APK'}
+labels={e['name']:(('جوال Android '+e['version']+' — arm64 APK') if e['platform']=='phone' else ('شاشة Google TV / TCL '+e['version']+' — APK')) for e in manifest['files']}
 if stable:
- required=[f"ArabicGames-Windows-{info['version']}-Full-Install.zip",f"ArabicGames-Windows-{info['version']}-Update.zip",'ArabicGames-Arabic-Guide.zip','ArabicGames-Samsung-0.1.0-Developer-Kit.zip','ArabicGames-Samsung-0.1.0-unsigned.wgt']
+ required=[f"ArabicGames-Windows-{info['version']}-Full-Install.zip",f"ArabicGames-Windows-{info['version']}-Update.zip",'ArabicGames-Arabic-Guide.zip','ArabicGames-Samsung-0.1.0-Developer-Kit.zip']
  assert all(n in assets for n in required) and any(n.endswith('.ipk') for n in assets),'Some platform packages or guide are missing'
- labels.update({required[0]:'ويندوز — تثبيت كامل أول مرة',required[1]:'ويندوز — تحديث النسخة الموجودة','ArabicGames-Arabic-Guide.zip':'دليل عربي مصور — HTML دون إنترنت','ArabicGames-Samsung-0.1.0-Developer-Kit.zip':'Samsung Tizen — نسخة مطوّر تحتاج شهادة','ArabicGames-Samsung-0.1.0-unsigned.wgt':'Samsung WGT — غير موقّع، يحتاج توقيعًا قبل التثبيت'})
+ labels.update({required[0]:'Windows '+info['version']+' — تثبيت كامل أول مرة',required[1]:'Windows '+info['version']+' — إصلاح وتحديث النسخة الموجودة','ArabicGames-Arabic-Guide.zip':'دليل عربي مصور — HTML دون إنترنت','ArabicGames-Samsung-0.1.0-Developer-Kit.zip':'Samsung Tizen 0.1.0 — مطوّر، يحتاج شهادة','ArabicGames-Samsung-0.1.0-unsigned.wgt':'Samsung WGT — غير موقّع، يحتاج توقيعًا قبل التثبيت'})
  for n in assets:
-  if n.endswith('.ipk'):labels[n]='شاشة LG webOS — حزمة IPK'
+  if n.endswith('.ipk'):labels[n]='شاشة LG webOS 1.0.8 — IPK'
 for name,label in labels.items():gh('api','--method','PATCH',f"repos/{repo}/releases/assets/{assets[name]['id']}",'-f','label='+label)
 if stable:
+ # Retain required installers and one consolidated checksum. Clean only this unpublished draft.
+ for redundant in ['SHA256SUMS.txt','SHA256SUMS-Android.txt','ArabicGames-Enable-AutoUpdate.zip','ArabicGames-Samsung-0.1.0-unsigned.wgt']:
+  if redundant in assets:
+   gh('release','delete-asset',tag,redundant,'--repo',repo,'--yes');assets.pop(redundant)
  checks=[]
  for name,a in sorted(assets.items()):
   digest=a.get('digest','');assert re.fullmatch(r'sha256:[a-f0-9]{64}',digest),'Missing canonical checksum';checks.append(digest[7:]+'  '+name+'\n')
