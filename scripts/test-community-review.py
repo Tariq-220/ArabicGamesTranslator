@@ -14,4 +14,11 @@ class ReviewTests(unittest.TestCase):
    with self.assertRaises(ValueError):review.apply_review(self.data,row,True)
  def test_phrase_is_reviewed_data_with_optional_meaning(self):
   row=dict(kind='phrase',id='hurry',game='*',source_phrase='haul ass',bad_arabic='اسحب المؤخرة',replacement='أسرع',reason='Reviewed idiom',source_meaning='hurry up');out=review.apply_review(self.data,row,True);self.assertTrue(out['rules'][0]['reviewed']);self.assertEqual(out['rules'][0]['source_meaning'],'hurry up')
+ def test_pending_selection_never_bypasses_explicit_approval(self):
+  identifier='a'*24;document={'groups':[dict(id=identifier,status='pending',proposed='مرحبًا.',approval_candidate=self.sentence())]};candidate=review.resolve_feedback(document,identifier)
+  with self.assertRaises(ValueError):review.apply_review(self.data,candidate,False)
+  self.assertEqual(review.apply_review(self.data,candidate,True)['revision'],2)
+ def test_missing_or_already_published_group_cannot_be_approved(self):
+  with self.assertRaises(ValueError):review.resolve_feedback({'groups':[]},'a'*24)
+  with self.assertRaises(ValueError):review.resolve_feedback({'groups':[dict(id='a'*24,status='published',proposed='مرحبًا.')]},'a'*24)
 if __name__=='__main__':unittest.main()

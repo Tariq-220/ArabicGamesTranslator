@@ -33,8 +33,17 @@ def apply_review(document,feedback,confirmed):
  data['revision']+=1
  return data
 
+def resolve_feedback(document,identifier):
+ if not re.fullmatch('[0-9a-f]{24}',identifier):raise ValueError('Invalid feedback identifier')
+ group=next((g for g in document.get('groups',[]) if g.get('id')==identifier),None)
+ if not group or group.get('status')=='published' or not group.get('proposed') or not isinstance(group.get('approval_candidate'),dict):raise ValueError('No pending proposed correction')
+ return group['approval_candidate']
+
 def main():
- root=Path(__file__).resolve().parents[1];raw=os.environ.get('REVIEW_JSON','')
+ root=Path(__file__).resolve().parents[1];raw=os.environ.get('REVIEW_JSON','');identifier=os.environ.get('FEEDBACK_ID','').strip()
+ if identifier:
+  if raw.strip():raise ValueError('Select an indexed correction or supply JSON, not both')
+  raw=json.dumps(resolve_feedback(json.loads((root/'community/pending-feedback.json').read_text()),identifier),ensure_ascii=False)
  if len(raw)>10000:raise ValueError('Feedback too large')
  path=root/'community/reviewed-dialogue.json';data=apply_review(json.loads(path.read_text()),json.loads(raw),os.environ.get('CONFIRMED_REVIEW')=='true');encoded=json.dumps(data,ensure_ascii=False,indent=2)+'\n'
  for p in [path,root/'android/phone/src/main/assets/reviewed-dialogue.json']:p.write_text(encoded)
