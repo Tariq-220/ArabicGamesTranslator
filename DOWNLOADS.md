@@ -1,6 +1,6 @@
 # التنزيل والتحديث
 
-[تنزيلات الجوال والشاشة الحالية — الملفات منفصلة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/android-v0.4.9-tv0.3.7)
+[تنزيلات الجوال والشاشة الحالية — الملفات منفصلة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/android-v0.4.10-tv0.3.7)
 
 [كل الإصدارات والملفات في GitHub Releases](https://github.com/Tariq-220/ArabicGamesTranslator/releases)
 
@@ -8,10 +8,10 @@
 
 | الجهاز | الملف | النماذج |
 |---|---|---|
-| جوال Android بمعالج arm64 | [ArabicGames-Phone-0.4.9-arm64.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.9-tv0.3.7/ArabicGames-Phone-0.4.9-arm64.apk) | QuickMT وجسر يُنزّلان من التطبيق، أو تستورد حزمة النموذج المطابقة |
-| شاشة Google TV / Android TV | [ArabicGames-TV-0.3.7.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.9-tv0.3.7/ArabicGames-TV-0.3.7.apk) | تستقبل العربية؛ لا تحتاج تنزيل محرك ترجمة للشاشة |
-| Windows x64 — تحديث النسخة الموجودة | [ArabicGames-Windows-0.4.16-Update.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.16/ArabicGames-Windows-0.4.16-Update.zip) | يحتفظ بالنماذج والإعدادات والمفاتيح |
-| Windows x64 — تثبيت كامل | [ArabicGames-Windows-0.4.16-Full-Install.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.16/ArabicGames-Windows-0.4.16-Full-Install.zip) | يشمل ملفات تشغيل البرنامج؛ تُنزّل أوزان النموذج عند اختياره |
+| جوال Android بمعالج arm64 | [ArabicGames-Phone-0.4.10-arm64.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.10-tv0.3.7/ArabicGames-Phone-0.4.10-arm64.apk) | QuickMT وجسر يُنزّلان من التطبيق، أو تستورد حزمة النموذج المطابقة |
+| شاشة Google TV / Android TV | [ArabicGames-TV-0.3.7.apk](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/android-v0.4.10-tv0.3.7/ArabicGames-TV-0.3.7.apk) | تستقبل العربية؛ لا تحتاج تنزيل محرك ترجمة للشاشة |
+| Windows x64 — تحديث النسخة الموجودة | [ArabicGames-Windows-0.4.17-Update.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.17/ArabicGames-Windows-0.4.17-Update.zip) | يحتفظ بالنماذج والإعدادات والمفاتيح |
+| Windows x64 — تثبيت كامل | [ArabicGames-Windows-0.4.17-Full-Install.zip](https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.17/ArabicGames-Windows-0.4.17-Full-Install.zip) | يشمل ملفات تشغيل البرنامج؛ تُنزّل أوزان النموذج عند اختياره |
 | LG webOS | ملف `.ipk` | تثبيت أول مرة عبر Developer Mode، وليس APK |
 
 رقم نسخة الجوال والشاشة مستقل عن Windows. الإصدارات التجريبية يُكتب بجانبها **Pre-release**. لا تثبّت ملف هاتف على التلفزيون أو ملف مكتبة تشغيل كنموذج.
@@ -22,10 +22,12 @@
 
 [النماذج والسجل والإبلاغ والقيود](docs/LOCAL-MODELS-AND-UPDATES-2026-11-18.md)
 
-فحص التحديث التلقائي يعتمد الإصدارات المستقرة. Windows 0.4.16 إصدار مستقر يتضمن التصحيحات المشتركة؛ تُعرض النسخ التجريبية منفصلة ولا يختارها المحدث تلقائيًا.
+فحص التحديث التلقائي يعتمد الإصدارات المستقرة. Windows 0.4.17 إصدار مستقر يتضمن التصحيحات المشتركة؛ تُعرض النسخ التجريبية منفصلة ولا يختارها المحدث تلقائيًا.
 
 حزمة إصلاح الجوال 0.4.8 والشاشة 0.3.7 متاحة أيضًا عبر فحص التحديث من التطبيق. اختيار GTA 6 ثم الحفظ يفعّل تصحيحات حوار البداية المدمجة؛ زر تحديث التصحيحات المراجعة الآن يجلب التصحيحات الجديدة دون إعادة تنزيل أوزان QuickMT.
 
-في Windows 0.4.16: اختر اسم اللعبة **GTA 6** ثم افتح **السجل — تصحيح سطر أو الإبلاغ عن خطأ لغوي ← تحديث التصحيحات المراجعة الآن**. التصحيحات المراجعة المدمجة تعمل دون إنترنت، ويُحدّث البرنامج التصحيحات العامة دوريًا إذا تركت خيارها مفعّلًا. تغيير اللعبة أثناء جلسة مفتوحة يستلزم إيقاف الترجمة وبدءها مجددًا لتطبيق ملف اللعبة الجديد.
+في Windows 0.4.17: اختر اسم اللعبة **GTA 6** ثم افتح **السجل — تصحيح سطر أو الإبلاغ عن خطأ لغوي ← تحديث التصحيحات المراجعة الآن**. التصحيحات المراجعة المدمجة تعمل دون إنترنت، ويُحدّث البرنامج التصحيحات العامة دوريًا إذا تركت خيارها مفعّلًا. تغيير اللعبة أثناء جلسة مفتوحة يستلزم إيقاف الترجمة وبدءها مجددًا لتطبيق ملف اللعبة الجديد.
 
-الجوال 0.4.9: **إعدادات المحرك ← التحكم بالتأخير وسرعة القراءة المحلية**. اختر **سريع — ابدأ بهذا** ثم احفظ. [نتائج فحص سجل QuickMT وحدود القياس](docs/PHONE-QUICKMT-REVIEW-2026-11-18.md).
+الجوال 0.4.10: **إعدادات المحرك ← التحكم بالتأخير وسرعة القراءة المحلية**. اختر **سريع — ابدأ بهذا** ثم احفظ. [نتائج فحص سجل QuickMT وحدود القياس](docs/PHONE-QUICKMT-REVIEW-2026-11-18.md).
+
+جديد 0.4.17 / جوال 0.4.10: قواعد لغوية مراجعة مشتركة وتلميحات معنى دون طلب تدقيق إضافي، وتقييم صحة الترجمة ومقارنة QuickMT وDeepL من السجل على الحوار نفسه. [كيف تعمل التصحيحات الجماعية والمقارنة وحدودها](docs/COMMUNITY-LEARNING-AND-COMPARISON.md).
