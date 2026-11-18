@@ -59,7 +59,7 @@ public final class XboxActivity extends Activity {
   stopButton=Ui.button(this,controls,"إيقاف",false,()->{reading.stop();requestId++;pending=false;CaptureService.pauseDirect();updateButtons();Status.message="الترجمة متوقفة بطلبك.";});weight(stopButton,.65f);
   soundButton=Ui.button(this,controls,"",false,()->{phoneMuted=!phoneMuted;getPreferences(0).edit().putBoolean("phoneMuted",phoneMuted).apply();applyAudio();updateButtons();});weight(soundButton,1.4f);root.addView(controls);updateButtons();
   root.addView(new ConnectionBar(this));
-  status=Ui.text(this,"اختر جهاز Xbox، ثم اضغط بدء الترجمة بعد ظهور اللعبة.",12);status.setMaxLines(3);root.addView(status);
+  status=Ui.text(this,"اختر جهاز Xbox، ثم اضغط بدء الترجمة بعد ظهور اللعبة.",12);status.setMaxLines(3); // Details remain available from the session menu; fixed ConnectionBar stays visible.
   FrameLayout video=new FrameLayout(this);root.addView(video,new LinearLayout.LayoutParams(-1,0,1));
   browser=new WebView(this);WebSettings settings=browser.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setMediaPlaybackRequiresUserGesture(false);settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setSafeBrowsingEnabled(true);
   CookieManager.getInstance().setAcceptCookie(true);CookieManager.getInstance().setAcceptThirdPartyCookies(browser,true);

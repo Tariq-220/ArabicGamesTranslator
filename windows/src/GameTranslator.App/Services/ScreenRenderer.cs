@@ -58,8 +58,12 @@ public static class ScreenRenderer
                     if(!LogicalElements(grid).OfType<System.Windows.Controls.Button>().Any(x=>Equals(x.Tag,"reading-recovery")&&x.IsVisible))throw new InvalidOperationException("Reading recovery button is missing.");
                 }
                 var startButton=LogicalElements(grid).OfType<System.Windows.Controls.Button>().Single(x=>Equals(x.Tag,"translation-start"));var startBounds=startButton.TransformToAncestor(grid).TransformBounds(new Rect(startButton.RenderSize));if(!startButton.IsVisible||startBounds.Top<0||startBounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Start translation button is not visible");
+                foreach(var tag in new[]{"screen-test","connection-status"}){
+                    var control=LogicalElements(grid).Single(x=>Equals(x.Tag,tag));var bounds=control.TransformToAncestor(grid).TransformBounds(new Rect(control.RenderSize));
+                    if(!control.IsVisible||bounds.Top<0||bounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Fixed connection control is hidden: "+tag);
+                }
                 if(!LogicalElements(grid).OfType<System.Windows.Controls.ScrollViewer>().Any(x=>Equals(x.Tag,"setup-scroll")&&x.IsVisible&&x.VerticalScrollBarVisibility==System.Windows.Controls.ScrollBarVisibility.Visible))throw new InvalidOperationException("Setup scrollbar is hidden");
-                var visual=(FrameworkElement)window.Content;
+                var visual=(FrameworkElement)window;
                 var bitmap=new RenderTargetBitmap((int)visual.ActualWidth,(int)visual.ActualHeight,96,96,PixelFormats.Pbgra32);
                 bitmap.Render(visual);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 using(var file=File.Create(Path.Combine(folder,$"arabic-{variant+1}.png")))encoder.Save(file);
