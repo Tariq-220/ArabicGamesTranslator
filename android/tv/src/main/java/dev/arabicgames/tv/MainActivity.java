@@ -44,7 +44,7 @@ public final class MainActivity extends Activity {
   audioManager=getSystemService(AudioManager.class);audioFocus=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MOVIE).build()).setOnAudioFocusChangeListener(change->{if(tv!=null)tv.setStreamVolume(resumed&&audio!=null&&audio.isChecked()?(change==AudioManager.AUDIOFOCUS_GAIN?1f:change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK?.25f:0f):0f);},ui).build();
   FrameLayout root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);tv=new TvView(this);tv.setTag("hdmi-view");tv.setFocusable(false);tv.setFocusableInTouchMode(false);tv.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);root.addView(tv,new FrameLayout.LayoutParams(-1,-1));
   tv.setCallback(new TvView.TvInputCallback(){
-   @Override public void onVideoAvailable(String id){if(!resumed||!id.equals(tunedInput))return;restoreHdmi=false;hdmiStatus.setText("✓ صورة HDMI جاهزة");restoreAudio();ui.post(()->{if(panelWindow!=null&&panelWindow.getVisibility()==View.VISIBLE)showPanel();else if(menuHandle!=null)menuHandle.requestFocus();});}
+   @Override public void onVideoAvailable(String id){if(!resumed||!id.equals(tunedInput))return;restoreHdmi=false;hdmiStatus.setText("✓ صورة HDMI جاهزة");restoreAudio();}
    @Override public void onConnectionFailed(String id){if(!id.equals(tunedInput))return;tunedInput=null;restoreHdmi=true;hdmiStatus.setText("تعذر استرجاع جلسة HDMI؛ المدخل محفوظ. أعد عرض اللعبة أو انتظر إعادة تهيئة المدخل.");showPanel();}
    @Override public void onVideoUnavailable(String id,int reason){hdmiStatus.setText("HDMI غير متاح ("+reason+")؛ تأكد من المدخل.");}
   });
@@ -179,12 +179,12 @@ public final class MainActivity extends Activity {
  }
  private void applyCaption(JSONObject json,String route){
   String text=json.optString("text","");long rev=json.optLong("revision",0);if(text.isEmpty()||rev>0&&rev<acceptedRevision)return;if(rev>0&&rev==acceptedRevision&&text.equals(lastArabic))return;
-  acceptedRevision=Math.max(acceptedRevision,rev);manualTestUntil=0;if(!text.equals(lastArabic)){subtitleCount++;lastArabic=text;}received.setText("سطور مستلمة: "+subtitleCount+" · "+route);show(text,Math.max(250,Math.min(10000,json.optInt("duration",5000))));
+  acceptedRevision=Math.max(acceptedRevision,rev);manualTestUntil=0;if(!text.equals(lastArabic)){subtitleCount++;lastArabic=text;}String receipt="سطور مستلمة: "+subtitleCount+" · "+route;if(!android.text.TextUtils.equals(received.getText(),receipt))received.setText(receipt);show(text,Math.max(250,Math.min(10000,json.optInt("duration",5000))));
  }
  private void applyClear(long revision){if(revision>0&&revision<acceptedRevision)return;acceptedRevision=Math.max(acceptedRevision,revision);if(SystemClock.uptimeMillis()<manualTestUntil)return;lastArabic="";ui.removeCallbacks(hide);hide.run();}
  private void testLocal(String text){manualTestUntil=SystemClock.uptimeMillis()+7000;show(text,7000);}
  private void post(int generation,Runnable action){ui.post(()->{if(!destroyed&&session==generation)action.run();});}
- private void show(String text,int ms){subtitle.setText(text);subtitle.setVisibility(View.VISIBLE);ui.removeCallbacks(hide);ui.postDelayed(hide,ms);}
+ private void show(String text,int ms){if(!android.text.TextUtils.equals(subtitle.getText(),text))subtitle.setText(text);if(subtitle.getVisibility()!=View.VISIBLE)subtitle.setVisibility(View.VISIBLE);ui.removeCallbacks(hide);ui.postDelayed(hide,ms);}
  private void applySubtitleStyle(){
   int size=Math.max(14,Math.min(34,getPreferences(0).getInt("subtitleSize",20)));
   int opacity=Math.max(0,Math.min(100,getPreferences(0).getInt("subtitleOpacity",70)));
@@ -227,11 +227,11 @@ public final class MainActivity extends Activity {
  }
  @Override public void onBackPressed(){if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();}
  @Override protected void onResume(){super.onResume();resumed=true;final int ticket=++resumeTicket;if(input!=null)refreshInputs();
-  if(restoreHdmi||getPreferences(0).getBoolean("resumeHdmi",false)){showPanel();for(long delay:new long[]{100,400,1000,2000,4000})ui.postDelayed(()->restoreSavedHdmi(ticket),delay);}else if(tv!=null&&audio!=null)restoreAudio();
+  if(tunedInput==null&&(restoreHdmi||getPreferences(0).getBoolean("resumeHdmi",false))){showPanel();for(long delay:new long[]{100,400,1000,2000,4000})ui.postDelayed(()->restoreSavedHdmi(ticket),delay);}else if(tv!=null&&audio!=null)restoreAudio();
  }
- @Override protected void onPause(){resumed=false;resumeTicket++;releaseHdmiSession();if(tv!=null)tv.setStreamVolume(0f);if(audioManager!=null&&audioFocus!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onPause();}
+ @Override protected void onPause(){resumed=false;resumeTicket++;super.onPause();}
  private void releaseHdmiSession(){if(tunedInput!=null){restoreHdmi=true;getPreferences(0).edit().putBoolean("resumeHdmi",true).apply();tunedInput=null;if(tv!=null)tv.reset();}dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);}
- @Override protected void onStop(){releaseHdmiSession();super.onStop();}
+ @Override protected void onStop(){releaseHdmiSession();if(tv!=null)tv.setStreamVolume(0f);if(audioManager!=null&&audioFocus!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onStop();}
  @Override public void onDestroy(){if(inputManager!=null)inputManager.unregisterCallback(inputChanges);dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);destroyed=true;if(Build.VERSION.SDK_INT>=33&&backCallback!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);pairingAttempt++;if(pollTask!=null)pollTask.cancel(true);poller.shutdownNow();if(pollingConnection!=null)pollingConnection.disconnect();session++;if(connection!=null)connection.disconnect();ui.removeCallbacksAndMessages(null);tv.reset();if(audioManager!=null)audioManager.abandonAudioFocusRequest(audioFocus);super.onDestroy();}
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
  private TextView label(String text,int size){TextView v=new TextView(this);v.setText(text);v.setTextColor(Color.WHITE);v.setTextSize(size);v.setPadding(0,dp(3),0,dp(3));return v;}
