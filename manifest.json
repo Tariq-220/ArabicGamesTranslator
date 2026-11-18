@@ -3,15 +3,15 @@
   "files": [
     {
       "platform": "phone",
-      "version": "0.4.11",
-      "versionCode": 23,
+      "version": "0.4.12",
+      "versionCode": 24,
       "package": "dev.arabicgames.phone",
-      "path": "phone/0.4.11/ArabicGames-Phone-0.4.11-arm64.apk",
-      "name": "ArabicGames-Phone-0.4.11-arm64.apk",
+      "path": "phone/0.4.12/ArabicGames-Phone-0.4.12-arm64.apk",
+      "name": "ArabicGames-Phone-0.4.12-arm64.apk",
       "bytes": 46240713,
-      "sha256": "2a46684617e3bbdb4e0def4089adb1fa217cf1a626d64ab25ea79fe4fa3f7dd4",
+      "sha256": "f919aeb459e01e7a0cf004ee1d7a6ac40a895f47424b703cbf504b63781d16e4",
       "certificate_sha256": "8bfb9b64929ed8a0565eaf89ab61469ef91370ce968e5a99873fa437d62e02ca",
-      "source": "b2884a970ee1c76aa0dee7ae1eb22e1cb1e32832"
+      "source": "745fa0062a881d43842ee595a12f52b76bc182ba"
     },
     {
       "platform": "tv",
