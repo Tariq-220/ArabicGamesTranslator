@@ -183,7 +183,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             var old = settings;
             if (!Set(ref settings, value)) return;
             settingsStore.Save(value);
-            server.SendStyle(value.Style);
+            server.SendStyle(PresentationStyle);
             if (old.Dubbing != value.Dubbing) DubbingSettingsChanged(old.Dubbing);
             if (isRunning && (old.SourceLanguage != value.SourceLanguage || old.TargetLanguage != value.TargetLanguage
                               || old.OnlineTranslation != value.OnlineTranslation || old.Engine != value.Engine))
@@ -615,12 +615,12 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     public void SyncStyle()
     {
-        server.SendStyle(settings.Style);
+        server.SendStyle(PresentationStyle);
     }
 
     public void SendTestSubtitle()
     {
-        server.SendStyle(settings.Style);
+        server.SendStyle(PresentationStyle);
         // Oyunda henüz altyazı görülmediyse altyazı bölgesinin altına yakın tipik bir yer kullanılır.
         var region = settings.Region;
         var box = lastSubtitleBox ?? new TextBox(0.3, region.Bottom - 0.1, 0.7, region.Bottom - 0.03);
@@ -644,7 +644,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             server.Clear();
             post(() => SubtitlesCleared?.Invoke());
         }
-        server.SendStyle(settings.Style);
+        server.SendStyle(PresentationStyle);
         server.SendSubtitle(text[pause ? "Subtitle translation paused" : "Subtitle translation resumed"], 1800);
     }
 
@@ -711,7 +711,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 var message = text["No text found in this area."];
                 if (toTv)
                 {
-                    server.SendStyle(settings.Style);
+                    server.SendStyle(PresentationStyle);
                     server.SendSubtitle(message, 2500, new TextBox(region.Left, region.Top, region.Right, region.Bottom));
                 }
                 if (toPcPopup) post(() => PcResultReady?.Invoke(message, 2500));
@@ -720,7 +720,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             var milliseconds = RegionTranslation.DisplayMilliseconds(result.Translation);
             if (toTv)
             {
-                server.SendStyle(settings.Style);
+                server.SendStyle(PresentationStyle);
                 server.SendSubtitle(result.Translation, milliseconds, result.Box, result.Structured);
             }
             post(() =>
@@ -765,7 +765,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
         using var work = new CancellationTokenSource();
         screenWork = work;
-        server.SendStyle(settings.Style);
+        server.SendStyle(PresentationStyle);
         server.SendSubtitle(text["Translating the screen…"], 2500);
         try
         {
@@ -844,7 +844,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         {
             RefreshTranslatorStatus();
             try { await StartServerAsync(); } catch { /* port açılamadıysa TV durumu "bekleniyor" kalır */ }
-            server.SendStyle(settings.Style);
+            server.SendStyle(PresentationStyle);
             SubtitlesPaused = false;
             MakePipeline();
             if (settings.Dubbing.Enabled && DubbingInstalled) MakeDubber()?.Prepare();
@@ -968,6 +968,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
+    private SubtitleStyle PresentationStyle => settings.Style with {Placement=ReadingModes.DialogueOnly(ReadingContentMode)?SubtitlePlacement.Fixed:SubtitlePlacement.Cover};
     public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set=>store.Save("ReadingContentMode",value);}
     public string DialogueGame {get=>store.Load<string>("DialogueGame")??"Red Dead Redemption 2";set=>store.Save("DialogueGame",value);}
 

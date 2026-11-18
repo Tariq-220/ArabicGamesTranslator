@@ -40,6 +40,7 @@ public sealed class XboxTestWindow : Window
     private readonly Slider readRight = new() { Minimum=60,Maximum=100,Value=90,TickFrequency=1,IsSnapToTickEnabled=true,Width=220 };
     private readonly PasswordBox key = new() { Width = 320, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)), FlowDirection = FlowDirection.LeftToRight };
     private readonly ComboBox engineChoice = new() { MinWidth = 350, Foreground = Brushes.White, Background = new SolidColorBrush(Color.FromRgb(34,50,71)) };
+    private string lastEngineCheck="لم يُختبر المحرك بعد";
     private bool testingKey;
     private readonly ComboBox deepLMode=new(){MinWidth=350,MinHeight=48};
     private readonly Button engineHelp=new(){Content="كيف تحصل على API؟ ↗",MinHeight=48,Padding=new Thickness(14,8,14,8),Margin=new Thickness(8,0,0,0)};
@@ -195,7 +196,7 @@ public sealed class XboxTestWindow : Window
         var ambient=new Border{CornerRadius=new CornerRadius(18),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
         shell.Children.Add(ambient);
         var actions=new WrapPanel{Margin=new Thickness(0,0,0,10)};
-        actions.Children.Add(start);
+        actions.Children.Add(start);actions.Children.Add(testEngine);
         var quickTest=Button("اختبار العربية على الشاشة",()=>{controller.SendTestSubtitle();status.Text="أُرسلت جملة اختبار للربط فقط. لترجمة اللعبة اضغط بدء الترجمة.";});quickTest.Tag="screen-test";actions.Children.Add(quickTest);
         actions.Children.Add(Button("خطوات التفعيل",ShowActivationSteps));actions.Children.Add(updateButton);
         Grid.SetRow(actions,1);shell.Children.Add(actions);
@@ -210,7 +211,7 @@ public sealed class XboxTestWindow : Window
                     content.Children.Add(new Expander{Header="منطقة القراءة والسجل — اضغط لعرض الخيارات",IsExpanded=true,Content=advanced,Foreground=Brushes.White,Margin=new Thickness(4,14,4,8)});
                     n=controlsAt;continue;
                 }
-                if(items[n]!=controls)content.Children.Add(items[n]);
+                if(items[n]!=controls&&items[n]!=testEngine)content.Children.Add(items[n]);
             }
             var scroll=new ScrollViewer{Tag="setup-scroll",Content=content,VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};var hint=Label("↓ مرّر لعرض بقية الخيارات",13);var next=Button("بقية الخيارات ↓",()=>scroll.ScrollToVerticalOffset(scroll.VerticalOffset+Math.Max(150,scroll.ViewportHeight*.75)));void UpdateHint(){bool more=scroll.ScrollableHeight>1&&scroll.VerticalOffset<scroll.ScrollableHeight-2;hint.Text=more?"↓ توجد خيارات إضافية بالأسفل — مرّر أو اضغط السهم":"✓ كل الخيارات ظاهرة أو وصلت إلى نهايتها";next.IsEnabled=more;}scroll.ScrollChanged+=(_,_)=>UpdateHint();scroll.Loaded+=(_,_)=>UpdateHint();var hintRow=new DockPanel();DockPanel.SetDock(next,Dock.Left);hintRow.Children.Add(next);hintRow.Children.Add(hint);var area=new DockPanel();DockPanel.SetDock(hintRow,Dock.Bottom);area.Children.Add(hintRow);area.Children.Add(scroll);tabs.Items.Add(new TabItem{Header=title,MinHeight=44,Padding=new Thickness(10,8,10,8),Content=area});
         }
@@ -312,7 +313,7 @@ public sealed class XboxTestWindow : Window
         }catch{updateLabel.Text="تعذر تشغيل المثبت؛ أعد المحاولة. النسخة الحالية لم تتغير.";}
     }
     private void ChooseEngine()
-    { key.Clear();controller.Stop();controller.ArabicEngineChoice=engineChoice.SelectedIndex;LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;controller.SessionTranslator=null;controller.Settings=controller.Settings with {Engine=engineChoice.SelectedIndex==1?TranslationEngine.DeepL:TranslationEngine.Gemini};RefreshCloudModels(); }
+    { lastEngineCheck="لم يُختبر المحرك المختار بعد";key.Clear();controller.Stop();UpdateConnectionBar();controller.ArabicEngineChoice=engineChoice.SelectedIndex;LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;controller.SessionTranslator=null;controller.Settings=controller.Settings with {Engine=engineChoice.SelectedIndex==1?TranslationEngine.DeepL:TranslationEngine.Gemini};RefreshCloudModels(); }
     private bool IsLocalModel => engineChoice.SelectedIndex is >=2 and <=4 or 6;
     private string LocalModel => engineChoice.SelectedIndex==6?"hy-mt": engineChoice.SelectedIndex==3?"jisr-msa":engineChoice.SelectedIndex==4?"jisr-saudi":"quickmt";
     private ITextTranslator LocalTranslator()
@@ -333,8 +334,8 @@ public sealed class XboxTestWindow : Window
         catch{status.Text="ملفات تشغيل النموذج غير موجودة بجانب البرنامج. فك حزمة التحديث كاملة في مجلد البرنامج.";}
     }
     private async void SaveKey(){
-        if(testingKey)return;testingKey=true;start.IsEnabled=false;testEngine.IsEnabled=false;azureRegion.IsEnabled=false;engineChoice.IsEnabled=false;cloudModel.IsEnabled=false;deepLMode.IsEnabled=false;key.IsEnabled=false;
-        try{await SaveKeyCore();}finally{testingKey=false;start.IsEnabled=true;testEngine.IsEnabled=true;azureRegion.IsEnabled=true;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
+        if(testingKey)return;testingKey=true;lastEngineCheck="جارٍ اختبار المحرك…";UpdateConnectionBar();start.IsEnabled=false;testEngine.IsEnabled=false;azureRegion.IsEnabled=false;engineChoice.IsEnabled=false;cloudModel.IsEnabled=false;deepLMode.IsEnabled=false;key.IsEnabled=false;
+        try{await SaveKeyCore();}finally{lastEngineCheck=status.Text.Split('\n')[0];testingKey=false;UpdateConnectionBar();start.IsEnabled=true;testEngine.IsEnabled=true;azureRegion.IsEnabled=true;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
     }
     private async Task SaveKeyCore()
     {
@@ -425,6 +426,12 @@ public sealed class XboxTestWindow : Window
             var item=new ComboBoxItem{Content="الشاشة كاملة: "+monitor.Name,Tag="monitor:"+monitor.Index};windows.Items.Add(item);if((string)item.Tag==old)windows.SelectedItem=item;
         }
     }
+    private void UpdateConnectionBar()
+    {
+        var engineState = testingKey ? "جارٍ الاختبار" : !controller.IsRunning ? "متوقف" : controller.TranslatorStatus==TranslatorStatus.Ready ? "يعمل" : controller.TranslatorStatus.ToString();
+        var check=lastEngineCheck.Length>120?lastEngineCheck[..120]+"…":lastEngineCheck;
+        connectionBar.Text=$"المحرك: {engineState} | الشاشة: {(controller.TvClients>0 ? "متصلة ("+controller.TvClients+")" : "غير متصلة")} | الترجمة: {(controller.IsRunning ? "تعمل" : "متوقفة")}\nآخر اختبار: {check}";connectionBar.ToolTip=lastEngineCheck;
+    }
     private void Changed(object? sender, PropertyChangedEventArgs e)
     {
         if(e.PropertyName==nameof(AppController.IsRunning)) {
@@ -432,8 +439,7 @@ public sealed class XboxTestWindow : Window
             else if(readyInstaller==null&&controller.AutoUpdateEnabled)_=CheckForUpdate();
         }
         connectionInfo.Text=$"عنوان الكمبيوتر: {controller.ComputerAddress ?? "غير متصل"} | المنفذ: {controller.ServerPort} | شاشات: {controller.TvClients}";
-        var engineState = !controller.IsRunning ? "جاهز للاختبار" : controller.TranslatorStatus==TranslatorStatus.Ready ? "يعمل" : controller.TranslatorStatus.ToString();
-        connectionBar.Text=$"المحرك: {engineState} | الشاشة: {(controller.TvClients>0 ? "متصلة ("+controller.TvClients+")" : "غير متصلة")} | الترجمة: {(controller.IsRunning ? "تعمل" : "متوقفة")}";
+        UpdateConnectionBar();
         start.Content = controller.IsRunning ? "■ إيقاف الترجمة" : "▶ بدء الترجمة";
         source.Text = controller.LastSource;
         translated.Text = controller.LastTranslation;
