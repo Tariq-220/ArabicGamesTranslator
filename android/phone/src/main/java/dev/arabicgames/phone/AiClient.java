@@ -7,7 +7,9 @@ import java.util.List;
 
 final class AiClient {
  static final class Failure extends Exception {
-  Failure(String safeMessage){super(safeMessage);}
+  final int status;final long retryMs;
+  Failure(String safeMessage){this(safeMessage,0,1000);}
+  Failure(String safeMessage,int code,long wait){super(safeMessage);status=code;retryMs=wait;}
  }
  static String translate(AiPreferences.Config config,String source,List<String> context)throws Failure{
   if(AiPreferences.GOOGLE.equals(config.provider)){if(!config.cloud())throw new Failure("وافق على إرسال نص الحوار إلى Google أولًا.");if(source.length()>1200)throw new Failure("ضيّق منطقة القراءة.");return GoogleGtx.translate(source);}
@@ -22,7 +24,7 @@ final class AiClient {
  }
  // Endpoint injection is package-private for local HTTP tests; UI only exposes official providers.
  static String send(AiPreferences.Config config,String source,List<String> context,String endpoint)throws Failure{
-  HttpURLConnection connection=null;
+  HttpURLConnection connection=null;boolean complete=false;
   try{
    connection=(HttpURLConnection)new URL(endpoint).openConnection();connection.setInstanceFollowRedirects(false);
    connection.setConnectTimeout(3000);connection.setReadTimeout(5000);connection.setRequestMethod("POST");connection.setDoOutput(true);
@@ -32,20 +34,24 @@ final class AiClient {
    byte[] body=AiRequest.body(config,source,context).toString().getBytes(StandardCharsets.UTF_8);connection.setFixedLengthStreamingMode(body.length);
    try(OutputStream out=connection.getOutputStream()){out.write(body);}
    int code=connection.getResponseCode();
-   if(code!=200)throw failure(code);
+   if(code!=200){Failure error=failure(code);String retry=connection.getHeaderField("Retry-After");if(retry!=null&&retry.matches("[0-9]{1,4}"))throw new Failure(error.getMessage(),code,Math.max(error.retryMs,Math.min(86_400_000,Long.parseLong(retry)*1000)));throw error;}
    ByteArrayOutputStream response=new ByteArrayOutputStream();
    try(InputStream in=connection.getInputStream()){
     byte[] bytes=new byte[4096];int count;while((count=in.read(bytes))!=-1){if(response.size()+count>65536)throw new Failure("رد المحرك أكبر من المتوقع.");response.write(bytes,0,count);}
    }
-   return AiRequest.parse(config.provider,response.toString(StandardCharsets.UTF_8.name()));
+   complete=true;return AiRequest.parse(config.provider,response.toString(StandardCharsets.UTF_8.name()));
   }catch(Failure e){throw e;}catch(SocketTimeoutException e){throw new Failure("انتهت مهلة AI. جرّب اتصالًا أفضل أو المحرك المحلي.");}
    catch(Exception e){throw new Failure("تعذر الاتصال بالمحرك أو لم يرجع ترجمة عربية كاملة. راجع النموذج والإعدادات.");}
-  finally{if(connection!=null)connection.disconnect();}
+  finally{if(connection!=null&&!complete)connection.disconnect();}
  }
  static Failure failure(int code){
-  if(code==401||code==403)return new Failure("المفتاح أو صلاحية الخدمة غير مقبولين؛ راجع إعدادات AI.");
-  if(code==429||code==402||code==456)return new Failure("بلغت حد الاستخدام أو الرصيد. راجع حساب الخدمة؛ أوقفت المحاولات لمدة 15 ثانية.");
-  if(code==400||code==404)return new Failure("النموذج أو صيغة الطلب غير مقبولين. راجع اسم النموذج في إعدادات AI.");
-  return new Failure("خدمة AI غير متاحة الآن. جرّب لاحقًا أو اختر المحلي.");
+  if(code==401||code==403)return new Failure("الخدمة رفضت صلاحية المفتاح (HTTP "+code+").",code,30000);
+  if(code==429||code==402||code==456)return new Failure("حد الاستخدام أو الرصيد (HTTP "+code+"). المفتاح لم يُحذف؛ انتظر مهلة الخدمة.",code,15000);
+  if(code==400||code==404)return new Failure("النموذج أو صيغة الطلب غير مقبولين (HTTP "+code+"). في DeepL جرّب تلقائي بدل وضع غير مدعوم.",code,30000);
+  return new Failure("الخدمة غير متاحة مؤقتًا (HTTP "+code+"). المفتاح لم يُحذف.",code,1500);
  }
+ static long retryDelay(Failure error,int failures){return Math.max(error.retryMs,Math.min(60_000,error.retryMs*(1L<<Math.min(4,Math.max(0,failures)))));}
+ static final class Probe {final String arabic;final long ms;Probe(String a,long time){arabic=a;ms=time;}}
+ static Probe probe(AiPreferences.Config config)throws Failure {return probe(config,null);}
+ static Probe probe(AiPreferences.Config config,String testEndpoint)throws Failure {long start=System.nanoTime();String arabic=testEndpoint==null?translate(config,"Keep going.",java.util.Collections.emptyList()):send(config,"Keep going.",java.util.Collections.emptyList(),testEndpoint);return new Probe(arabic,(System.nanoTime()-start)/1_000_000);}
 }

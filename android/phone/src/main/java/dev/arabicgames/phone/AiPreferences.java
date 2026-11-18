@@ -37,27 +37,27 @@ final class AiPreferences {
   Config(String p,String m,String g,String k,boolean approved,boolean faster){this(p,m,g,k,approved,faster,"");}
   Config(String p,String m,String g,String k,boolean approved,boolean faster,String address){provider=p;model=m;game=g;key=k;consent=approved;fast=faster;endpoint=address;}
   boolean cloud(){return !NATIVE.equals(provider)&&!LOCAL.equals(provider)&&consent;}
-  String label(){return AiPreferences.label(provider)+" / "+model+(fast&&GEMINI.equals(provider)?" · وضع أسرع":"");}
+  String label(){return AiPreferences.label(provider)+" / "+model+(fast&&GEMINI.equals(provider)?" · وضع أسرع":fast&&DEEPL.equals(provider)?" · سياق مختصر":"");}
  }
  static Config read(Context c)throws Exception{
   Config active=session;if(active!=null)return active;
   SharedPreferences p=prefs(c);String provider=p.getString("provider",LOCAL);
-  return new Config(provider,p.getString(provider+".model",defaultModel(provider)),p.getString("game","Red Dead Redemption 2"),(LOCAL.equals(provider)||NATIVE.equals(provider))?"":key(c,provider),p.getBoolean("consent",false),p.getBoolean("geminiFast",false),p.getString("lanAddress",""));
+  return new Config(provider,p.getString(provider+".model",defaultModel(provider)),p.getString("game","Red Dead Redemption 2"),(LOCAL.equals(provider)||NATIVE.equals(provider))?"":key(c,provider),p.getBoolean("consent",false),p.getBoolean(DEEPL.equals(provider)?"deeplFast":"geminiFast",false),p.getString("lanAddress",""));
  }
- private static SecretKey storageKey()throws Exception{
+ private static synchronized SecretKey storageKey()throws Exception{
   KeyStore store=KeyStore.getInstance("AndroidKeyStore");store.load(null);
   if(store.containsAlias("ArabicGamesAiKeys"))return (SecretKey)store.getKey("ArabicGamesAiKeys",null);
   KeyGenerator generator=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
   generator.init(new KeyGenParameterSpec.Builder("ArabicGamesAiKeys",KeyProperties.PURPOSE_ENCRYPT|KeyProperties.PURPOSE_DECRYPT).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build());
   return generator.generateKey();
  }
- static String key(Context c,String provider)throws Exception{
+ static synchronized String key(Context c,String provider)throws Exception{
   String encrypted=prefs(c).getString(provider+".key","");if(encrypted.isEmpty())return "";
   String[] parts=encrypted.split(":",2);Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");
   cipher.init(Cipher.DECRYPT_MODE,storageKey(),new GCMParameterSpec(128,Base64.decode(parts[0],Base64.NO_WRAP)));
   return new String(cipher.doFinal(Base64.decode(parts[1],Base64.NO_WRAP)),java.nio.charset.StandardCharsets.UTF_8);
  }
- static String normalizedKey(String value){return value.replace("\ufeff","").replace("\u200b","").trim();}
+ static String normalizedKey(String value){return value.replaceAll("[\\u200B-\\u200F\\u202A-\\u202E\\u2066-\\u2069\\uFEFF]","").trim();}
  static String validateInput(String provider,String model,String newKey,boolean consent){
   String value=normalizedKey(newKey);
   if(NATIVE.equals(provider)){if(!java.util.Arrays.asList("quickmt-en-ar","jisr-msa","jisr-saudi").contains(model))throw new IllegalArgumentException("اختر نموذجًا محليًا من القائمة.");return "";}
@@ -68,12 +68,14 @@ final class AiPreferences {
   if(value.length()>1024||value.matches("(?s).*\\s.*"))throw new IllegalArgumentException("الصق المفتاح وحده؛ يوجد فراغ أو سطر داخل المفتاح.");
   return value;
  }
- static void save(Context c,String provider,String model,String game,String newKey,boolean consent)throws Exception{
+ static synchronized void save(Context c,String provider,String model,String game,String newKey,boolean consent)throws Exception{
   String value=validateInput(provider,model,newKey,consent),encrypted=null;
+  if(value.isEmpty()&&session!=null&&session.provider.equals(provider))value=session.key;
   if(!NATIVE.equals(provider)&&!LOCAL.equals(provider)&&!GOOGLE.equals(provider)&&value.isEmpty()&&key(c,provider).isEmpty())throw new IllegalArgumentException("خانة المفتاح فارغة ولا يوجد مفتاح محفوظ لهذه الخدمة. الصقه ثم احفظ.");
   if(!NATIVE.equals(provider)&&!LOCAL.equals(provider)&&!GOOGLE.equals(provider)&&!value.isEmpty()){
-   Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");cipher.init(Cipher.ENCRYPT_MODE,storageKey());
+   SecretKey durable=storageKey();Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");cipher.init(Cipher.ENCRYPT_MODE,durable);
    encrypted=Base64.encodeToString(cipher.getIV(),Base64.NO_WRAP)+":"+Base64.encodeToString(cipher.doFinal(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)),Base64.NO_WRAP);
+   Cipher check=Cipher.getInstance("AES/GCM/NoPadding");check.init(Cipher.DECRYPT_MODE,durable,new GCMParameterSpec(128,cipher.getIV()));byte[] sealed=Base64.decode(encrypted.split(":",2)[1],Base64.NO_WRAP);if(!value.equals(new String(check.doFinal(sealed),java.nio.charset.StandardCharsets.UTF_8)))throw new java.security.GeneralSecurityException("KeyStore verification failed");
   }
   SharedPreferences.Editor edit=prefs(c).edit().putString("provider",provider).putString("game",game.trim()).putBoolean("consent",!NATIVE.equals(provider)&&!LOCAL.equals(provider)&&consent);
   if(!LOCAL.equals(provider))edit.putString(provider+".model",model);

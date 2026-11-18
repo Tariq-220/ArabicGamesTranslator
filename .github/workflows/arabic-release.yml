@@ -70,7 +70,7 @@ jobs:
         run: |
           dotnet publish windows/src/GameTranslator.App/GameTranslator.App.csproj -c Release -r win-x64 --self-contained true -o publish -p:EnableWindowsTargeting=true
           if($LASTEXITCODE -ne 0){throw 'Windows publish failed'}
-          Get-Content native-runtime/windows/*LICENSE*.txt,android/phone/src/main/assets/ps5-native/OpenSSL-LICENSE.txt|Set-Content publish/Native-LICENSES.txt -Encoding utf8
+          Get-Content native-runtime/windows/*LICENSE*.txt,android/phone/src/main/assets/ps5-native/*LICENSE*.txt|Set-Content publish/Native-LICENSES.txt -Encoding utf8
           if(-not(Test-Path publish/gametranslator_native.dll)){throw 'Native PS5 engine missing from publish'}
       - name: Audit NuGet dependencies
         shell: pwsh

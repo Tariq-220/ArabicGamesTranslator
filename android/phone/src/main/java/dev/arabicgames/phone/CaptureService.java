@@ -21,7 +21,8 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class CaptureService extends Service {
- static volatile CaptureService current;
+ static volatile CaptureService current;private static volatile boolean apiTestActive;
+ static void suspendForApiTest(boolean active){apiTestActive=active;CaptureService s=current;if(active&&s!=null){s.epoch++;s.gate.absent();}}
  private volatile boolean directActive;
  private volatile ArabicPack pack=ArabicPack.empty();
  static void refreshPack(){CaptureService s=current;if(s!=null)s.loadPack();}
@@ -38,7 +39,7 @@ public final class CaptureService extends Service {
  private volatile LocalModels.Session localSession;private int localLoadEpoch=-1,modelGeneration;
  private final java.util.ArrayDeque<String> history=new java.util.ArrayDeque<>();
  private final java.util.concurrent.ExecutorService aiWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
- private long cloudRetryAfter;
+ private long cloudRetryAfter;private int cloudFailures;
  private final dev.arabicgames.SubtitleLease lease=new dev.arabicgames.SubtitleLease();
  private volatile boolean closed,ready;private boolean modelDownloading;private long sampled,lastText,started;
  private int width,height,density;private volatile int epoch;
@@ -130,7 +131,7 @@ public final class CaptureService extends Service {
  static boolean screenTest(){CaptureService s=current;if(s==null||s.closed||s.server==null)return false;pauseDirect();String text="اختبار إرسال من الجوال إلى الشاشة — "+(SystemClock.elapsedRealtime()/1000%10000);Status.arabic=text;Status.message="اختبار إرسال لمدة 10 ثوانٍ. بعدها اضغط بدء الترجمة.";s.server.subtitle(text,10000);final int generation=s.epoch;s.ui.postDelayed(()->{if(!s.closed&&s.epoch==generation&&Status.arabic.equals(text)){Status.arabic="";s.server.clear();}},10000);return true;}
  static void retryModel(){CaptureService s=current;if(s!=null)s.ensureModel();}
  static void translationChanged(){CaptureService s=current;if(s==null||s.closed)return;
-  s.epoch++;if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.modelGeneration++;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.ready=false;
+  s.epoch++;if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.modelGeneration++;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.cloudFailures=0;s.ready=false;
   Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
  }
  private void loadTranslationSettings(){try{engine=AiPreferences.read(this);}catch(Exception e){engine=new AiPreferences.Config(AiPreferences.provider(this),"","","",AiPreferences.cloud(this));Status.message="تعذر قراءة مفتاح AI. افتح إعدادات المحرك وأعد إدخاله.";}}
@@ -149,10 +150,10 @@ public final class CaptureService extends Service {
    .addOnFailureListener(e->{if(closed||modelGeneration!=downloadingGeneration)return;modelDownloading=false;ready=false;Status.message="تعذر تجهيز النموذج للجلسة. افحص تنزيله من الصفحة الرئيسية ثم أعد فتح Xbox المباشر.";});
  }
  static void pauseDirect(){CaptureService s=current;if(s!=null&&s.directActive){s.epoch++;s.gate.absent();s.lease.clear();Status.arabic="";if(s.server!=null)s.server.clear();}}
- static boolean acceptsDirect(){CaptureService s=current;return s!=null&&!s.closed&&s.directActive&&!"ps5".equals(s.directSource)&&s.ready&&!s.busy.get();}
+ static boolean acceptsDirect(){CaptureService s=current;return !apiTestActive&&s!=null&&!s.closed&&s.directActive&&!"ps5".equals(s.directSource)&&s.ready&&!s.busy.get();}
  static void ps5Failed(){CaptureService s=current;if(s!=null&&"ps5".equals(s.directSource))s.ui.post(s::stopSelf);}
  static void ps5Rgba(java.nio.ByteBuffer buffer,int w,int h,int stride){
-  CaptureService s=current;if(s==null||s.closed||!s.directActive||!"ps5".equals(s.directSource)||!s.ready||w<2||h<2||w>3840||h>2160||stride<w*4||stride%4!=0||((long)stride*h)>buffer.capacity()||!s.busy.compareAndSet(false,true))return;
+  CaptureService s=current;if(apiTestActive||s==null||s.closed||!s.directActive||!"ps5".equals(s.directSource)||!s.ready||w<2||h<2||w>3840||h>2160||stride<w*4||stride%4!=0||((long)stride*h)>buffer.capacity()||!s.busy.compareAndSet(false,true))return;
   int generation=s.epoch;long now=SystemClock.elapsedRealtime();Bitmap full=null,crop=null;
   try{full=Bitmap.createBitmap(stride/4,h,Bitmap.Config.ARGB_8888);buffer.rewind();full.copyPixelsFromBuffer(buffer);float[] region=ReadingRegion.bounds(s.getSharedPreferences("reading",0).getString("region","subtitles"));
    crop=Bitmap.createBitmap(full,(int)(w*region[0]),(int)(h*region[1]),Math.max(1,(int)(w*region[2])),Math.max(1,(int)(h*region[3])));if(crop!=full)full.recycle();full=null;Bitmap image=crop;crop=null;
@@ -176,7 +177,7 @@ public final class CaptureService extends Service {
   });
  }
  private void processBitmap(Bitmap bitmap,long now,int generation){
-   if(projection!=null&&Status.translatorUiVisible){bitmap.recycle();busy.set(false);return;}
+   if(apiTestActive||projection!=null&&Status.translatorUiVisible){bitmap.recycle();busy.set(false);return;}
    Status.framesRead++;
    recognizer.process(InputImage.fromBitmap(bitmap,0))
     .addOnSuccessListener(result->{
@@ -204,12 +205,12 @@ public final class CaptureService extends Service {
        long sent=SystemClock.elapsedRealtime();
        try{LocalModels.Session local=localSession;String arabic=AiPreferences.NATIVE.equals(selected.provider)?(local==null?"":local.translate(text)):AiClient.translate(selected,text,context);if(arabic.isEmpty())throw new java.io.IOException("ترجمة محلية فارغة.");
         ui.post(()->{
-         long finished=SystemClock.elapsedRealtime();
+         long finished=SystemClock.elapsedRealtime();if(!closed&&generation==epoch)cloudFailures=0;
          if(!closed&&generation==epoch)Status.cloudMetrics="آخر طلب AI: "+selected.label()+" | استجابة الطلب: "+(finished-sent)+" ms | قراءة إطاره: "+(readDone-now)+" ms";
          if(!closed&&generation==epoch&&finished-now>4500){gate.remember(text,arabic);busy.set(false);Status.message="تأخرت ترجمة AI؛ حُفظت للسطر المتكرر دون عرض سطر قديم.";return;}
          publish(text,arabic,now,readDone,finished,generation,selected.label());
         });
-       }catch(Exception error){ui.post(()->{if(!closed&&generation==epoch){gate.retry();cloudRetryAfter=SystemClock.elapsedRealtime()+(AiPreferences.NATIVE.equals(selected.provider)?1000:15000);Status.message=AiPreferences.NATIVE.equals(selected.provider)?"تعذرت ترجمة السطر محليًا؛ أعد المحاولة أو اختر نموذجًا آخر.":error.getMessage()+" اختر المحلي من إعدادات المحرك إذا لزم.";}busy.set(false);});}
+       }catch(Exception error){ui.post(()->{if(!closed&&generation==epoch){gate.retry();int failures=Math.min(4,cloudFailures++);long cooldown=error instanceof AiClient.Failure?AiClient.retryDelay((AiClient.Failure)error,failures):1000;cloudRetryAfter=SystemClock.elapsedRealtime()+cooldown;Status.message=AiPreferences.NATIVE.equals(selected.provider)?"تعذرت ترجمة السطر محليًا؛ أعد المحاولة أو اختر نموذجًا آخر.":error.getMessage()+" اختر المحلي من إعدادات المحرك إذا لزم.";}busy.set(false);});}
       });return;
      }
      translator.translate(text).addOnSuccessListener(arabic->publish(text,arabic,now,readDone,SystemClock.elapsedRealtime(),generation,"النموذج المحلي"))

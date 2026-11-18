@@ -11,7 +11,7 @@ final class AiRequest {
    if(AiPreferences.LAN.equals(c.provider)){body.put("model",c.model);return body;}
    if(!context.isEmpty()){
     java.util.ArrayList<String> english=new java.util.ArrayList<>();
-    for(String line:context){int divider=line.lastIndexOf(" → ");english.add(divider<0?line:line.substring(0,divider));}
+    for(String line:(c.fast&&context.size()>1?context.subList(context.size()-1,context.size()):context)){int divider=line.lastIndexOf(" → ");english.add(divider<0?line:line.substring(0,divider));}
     body.put("context",String.join("\n",english));
    }
    if("latency_optimized".equals(c.model)||"prefer_quality_optimized".equals(c.model))body.put("model_type",c.model);

@@ -55,6 +55,11 @@ public class AiSettingsTest {
    c.recreate();idle();root=c.get().getWindow().getDecorView();model=root.findViewWithTag("api-model");key=root.findViewWithTag("api-key");assertEquals("gemini-3.8-flash",model.getText().toString());assertEquals("gemini-draft",key.getText().toString());
   }
  }
+ @Test public void directApiTestIsVisibleAndAsksBeforeSending(){
+  try(var c=Robolectric.buildActivity(AiSettingsActivity.class).setup()){
+   idle();View root=c.get().getWindow().getDecorView();Spinner provider=root.findViewWithTag("api-provider");provider.setSelection(3);idle();Button test=root.findViewWithTag("api-test");assertEquals(View.VISIBLE,test.getVisibility());assertTrue(test.isEnabled());test.performClick();assertNotNull(org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());assertFalse(c.get().isFinishing());
+  }
+ }
  @Test public void apiShortcutDoesNotCollapseProviderSpinner(){
   try(var c=Robolectric.buildActivity(AiSettingsActivity.class).setup()){
    idle();View root=c.get().getWindow().getDecorView();root.measure(View.MeasureSpec.makeMeasureSpec(360,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(780,View.MeasureSpec.EXACTLY));root.layout(0,0,360,780);

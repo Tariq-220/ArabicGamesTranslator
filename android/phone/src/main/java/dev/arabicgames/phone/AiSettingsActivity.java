@@ -12,11 +12,12 @@ public final class AiSettingsActivity extends Activity {
  private String editingProvider;
  private final java.util.Map<String,String> keyDrafts=new java.util.HashMap<>(),modelDrafts=new java.util.HashMap<>();
  private TextView keyCaption;private Button apiLink;
- private CheckBox fast;
+ private CheckBox fast,deepLFast;private Button testButton;
+ private static final java.util.concurrent.atomic.AtomicBoolean API_TEST_RUNNING=new java.util.concurrent.atomic.AtomicBoolean();
  private Button saveButton;
  private static final class Draft {
   final java.util.Map<String,String> keys=new java.util.HashMap<>(),models=new java.util.HashMap<>();
-  String provider,game,address;boolean consent,fast;
+  String provider,game,address;boolean consent,fast,deepLFast;
  }
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);getWindow().setStatusBarColor(Ui.BG);getWindow().setNavigationBarColor(Ui.BG);
@@ -48,9 +49,11 @@ public final class AiSettingsActivity extends Activity {
   root.addView(Ui.text(this,"اسم اللعبة للسياق",15));game=field(root,InputType.TYPE_CLASS_TEXT);game.setText(AiPreferences.prefs(this).getString("game","Red Dead Redemption 2"));
   keyCaption=Ui.text(this,"مفتاح API — داخل التطبيق فقط، وليس في المحادثة",15);root.addView(keyCaption);key=field(root,InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
   key.setTag("api-key");model.setTag("api-model");provider.setTag("api-provider");key.setSaveEnabled(false);key.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+  testButton=Ui.button(this,root,"حفظ واختبار API",true,this::testApi);testButton.setTag("api-test");
   consent=new CheckBox(this);consent.setText("أوافق على إرسال نص الحوار والسياق إلى الخدمة المختارة وتطبيق تكلفتها وسياساتها.");consent.setTextColor(Ui.TEXT);consent.setChecked(AiPreferences.cloud(this));root.addView(consent);
   fast=new CheckBox(this);fast.setText("وضع أسرع لـGemini: سياق سطر واحد بدل ثلاثة؛ قد تقل دقة ربط الحوار. سرعة الخدمة غير مضمونة.");fast.setTextColor(Ui.TEXT);fast.setChecked(AiPreferences.prefs(this).getBoolean("geminiFast",false));root.addView(fast);
-  if(retained!=null){game.setText(retained.game);address.setText(retained.address);consent.setChecked(retained.consent);fast.setChecked(retained.fast);}
+  deepLFast=new CheckBox(this);deepLFast.setText("DeepL: سياق آخر سطر فقط بدل ثلاثة — جرّبه للمقارنة؛ قد يقل فهم الحوار، ولا يضمن سرعة الخدمة.");deepLFast.setTextColor(Ui.TEXT);deepLFast.setChecked(AiPreferences.prefs(this).getBoolean("deeplFast",false));root.addView(deepLFast);
+  if(retained!=null){game.setText(retained.game);address.setText(retained.address);consent.setChecked(retained.consent);fast.setChecked(retained.fast);deepLFast.setChecked(retained.deepLFast);}
   Ui.button(this,root,"تجربة Gemini Flash لجودة الحوار",false,()->{
    provider.setSelection(1);provider.post(()->{model.setText("gemini-3.8-flash");modelDrafts.put(AiPreferences.GEMINI,"gemini-3.8-flash");showModelChoices(AiPreferences.GEMINI,"gemini-3.8-flash");fast.setChecked(false);feedback.setText("إعداد تجربة: Gemini 3.8 Flash مع سياق 3 سطور وتفكير low. يحتاج مفتاحك وموافقتك؛ التكلفة والسرعة قد تختلف. احفظ أو استخدم للجلسة، ثم قارن المشهد نفسه.");});
   });
@@ -61,7 +64,7 @@ public final class AiSettingsActivity extends Activity {
     String p=providers[position];if(p.equals(editingProvider))return;
     if(editingProvider!=null){keyDrafts.put(editingProvider,key.getText().toString());modelDrafts.put(editingProvider,model.getText().toString());}
     editingProvider=p;boolean online=position!=0&&position!=6,needsKey=online&&!AiPreferences.GOOGLE.equals(p);model.setEnabled(needsKey&&!AiPreferences.DEEPL.equals(p));keyCaption.setVisibility(needsKey?View.VISIBLE:View.GONE);apiLink.setText(AiPreferences.NATIVE.equals(p)?"نماذج ↓":"API ↗");key.setEnabled(needsKey);key.setVisibility(online?View.VISIBLE:View.GONE);consent.setEnabled(online);consent.setVisibility(online?View.VISIBLE:View.GONE);
-    address.setVisibility(AiPreferences.LAN.equals(p)?View.VISIBLE:View.GONE);
+    address.setVisibility(AiPreferences.LAN.equals(p)?View.VISIBLE:View.GONE);fast.setVisibility(AiPreferences.GEMINI.equals(p)?View.VISIBLE:View.GONE);deepLFast.setVisibility(AiPreferences.DEEPL.equals(p)?View.VISIBLE:View.GONE);testButton.setVisibility(online?View.VISIBLE:View.GONE);testButton.setText(needsKey?"حفظ واختبار API":"حفظ واختبار الاتصال");
     model.setText(modelDrafts.getOrDefault(p,AiPreferences.prefs(AiSettingsActivity.this).getString(p+".model",AiPreferences.defaultModel(p))));key.setText(keyDrafts.getOrDefault(p,""));showModelChoices(p,model.getText().toString());
     boolean stored=!AiPreferences.prefs(AiSettingsActivity.this).getString(p+".key","").isEmpty();
     key.setHint(stored?"مفتاح محفوظ — اتركه فارغًا للاحتفاظ به":"أدخل مفتاح الخدمة المختارة");
@@ -80,7 +83,7 @@ public final class AiSettingsActivity extends Activity {
     String gameName=game.getText().toString();if(gameName.length()>100)throw new IllegalArgumentException("اسم اللعبة طويل جدًا؛ استخدم أقل من 100 حرف.");
     if(provider.getSelectedItemPosition()==4)AiPreferences.prefs(this).edit().putString("lanAddress",LocalEndpoint.validate(address.getText().toString())).apply();
     AiPreferences.save(this,providers[provider.getSelectedItemPosition()],model.getText().toString().trim(),gameName,key.getText().toString(),consent.isChecked());
-    AiPreferences.prefs(this).edit().putBoolean("geminiFast",fast.isChecked()).apply();
+    AiPreferences.prefs(this).edit().putBoolean("geminiFast",fast.isChecked()).putBoolean("deeplFast",deepLFast.isChecked()).apply();
     key.setText("");CaptureService.translationChanged();Status.message="تم اختيار محرك "+AiPreferences.label(AiPreferences.provider(this))+". ابدأ قراءة اللعبة للمقارنة.";finish();
    }catch(IllegalArgumentException e){feedback.setText(e.getMessage());feedback.requestRectangleOnScreen(new android.graphics.Rect(0,0,feedback.getWidth(),feedback.getHeight()));}
     catch(Exception e){feedback.setText("تعذر التخزين المشفّر ("+e.getClass().getSimpleName()+"). المفتاح ما زال بالخانة. اختر «استخدام لهذه الجلسة فقط» أسفل زر الحفظ لتجاوز التخزين، وليس فحص صلاحية الخدمة.");}
@@ -89,13 +92,27 @@ public final class AiSettingsActivity extends Activity {
    try{
     if(provider.getSelectedItemPosition()==0)throw new IllegalArgumentException("اختر Gemini أو OpenAI أو DeepL أولًا.");
     String endpoint=provider.getSelectedItemPosition()==4?LocalEndpoint.validate(address.getText().toString()):"";
-    AiPreferences.useForSession(providers[provider.getSelectedItemPosition()],model.getText().toString().trim(),game.getText().toString(),key.getText().toString(),consent.isChecked(),fast.isChecked(),endpoint);
+    AiPreferences.useForSession(providers[provider.getSelectedItemPosition()],model.getText().toString().trim(),game.getText().toString(),key.getText().toString(),consent.isChecked(),provider.getSelectedItemPosition()==3?deepLFast.isChecked():fast.isChecked(),endpoint);
     key.setText("");CaptureService.translationChanged();Status.message="AI يعمل بمفتاح مؤقت في الذاكرة لهذه الجلسة فقط. لم يُحفظ على الجهاز.";finish();
    }catch(IllegalArgumentException e){feedback.setText(e.getMessage());}
   });
   Ui.button(this,root,"حذف المفاتيح والرجوع للمحلي",false,()->{AiPreferences.clear(this);keyDrafts.clear();modelDrafts.clear();key.setText("");CaptureService.translationChanged();provider.setSelection(0);consent.setChecked(false);feedback.setText("حُذفت مفاتيح الخدمات من التطبيق وعاد المحرك إلى المحلي.");});
   Ui.button(this,root,"رجوع دون حفظ",false,this::finish);
   ScrollView scroll=new ScrollView(this);scroll.addView(root);PhoneInsets.fit(scroll);setContentView(scroll);
+ }
+ private void testApi(){
+  String p=providers[provider.getSelectedItemPosition()];if(AiPreferences.LOCAL.equals(p)||AiPreferences.NATIVE.equals(p)){feedback.setText("المحلي لا يحتاج API. افتح إدارة النماذج لاختبار جاهزيته.");return;}
+  if(!consent.isChecked()){new android.app.AlertDialog.Builder(this).setTitle("اختبار اتصال المحرك").setMessage("سنرسل عبارة اختبار قصيرة إلى "+AiPreferences.label(p)+" باستخدام مفتاحك. الاختبار قد يُحتسب من رصيد API. هل توافق؟").setPositiveButton("أوافق وأختبر",(d,w)->{consent.setChecked(true);testButton.performClick();}).setNegativeButton("إلغاء",null).show();return;}
+  if(!API_TEST_RUNNING.compareAndSet(false,true)){feedback.setText("يوجد اختبار جارٍ؛ انتظر نتيجته ثم أعد الضغط.");return;}
+  String selectedModel=model.getText().toString().trim(),gameName=game.getText().toString(),typed=key.getText().toString(),endpoint="";boolean faster=AiPreferences.DEEPL.equals(p)?deepLFast.isChecked():fast.isChecked(),persisted=false;AiPreferences.Config config;
+  try{
+   if(gameName.length()>100)throw new IllegalArgumentException("اسم اللعبة طويل جدًا.");String value=AiPreferences.validateInput(p,selectedModel,typed,true);
+   if(AiPreferences.LAN.equals(p))endpoint=LocalEndpoint.validate(address.getText().toString());
+   try{AiPreferences.save(this,p,selectedModel,gameName,typed,true);AiPreferences.prefs(this).edit().putBoolean("geminiFast",fast.isChecked()).putBoolean("deeplFast",deepLFast.isChecked()).putString("lanAddress",endpoint.isEmpty()?AiPreferences.prefs(this).getString("lanAddress",""):endpoint).commit();config=AiPreferences.read(this);persisted=true;key.setText("");keyDrafts.remove(p);key.setHint("مفتاح محفوظ ومتحقق من قراءته — اتركه فارغًا للاحتفاظ به");CaptureService.translationChanged();}
+   catch(Exception storage){if(value.isEmpty()){AiPreferences.Config active=AiPreferences.read(this);value=active.provider.equals(p)?active.key:AiPreferences.key(this,p);}if(value.isEmpty()&&!AiPreferences.GOOGLE.equals(p))throw new IllegalArgumentException("لم يُحفظ أو يُقرأ المفتاح. الصقه من جديد؛ الاختبار لا يستطيع استخدام خانة فارغة.");config=new AiPreferences.Config(p,selectedModel,gameName,value,true,faster,endpoint);}
+  }catch(IllegalArgumentException error){API_TEST_RUNNING.set(false);feedback.setText(error.getMessage());return;}catch(Exception error){API_TEST_RUNNING.set(false);feedback.setText("تعذر قراءة التخزين المشفّر. المفتاح لم يُحذف؛ الصقه لإعادة الحفظ والاختبار.");return;}
+  final AiPreferences.Config selected=config;final boolean durable=persisted;testButton.setEnabled(false);saveButton.setEnabled(false);CaptureService.suspendForApiTest(true);feedback.setText((durable?"✓ المفتاح محفوظ على الجهاز. ":"⚠ لم يُحفظ المفتاح؛ هذا الاختبار مؤقت فقط. ")+"جارٍ اختبار "+selected.label()+"…");
+  Thread worker=new Thread(()->{String result;try{AiClient.Probe response=AiClient.probe(selected);result=(durable?"✓ المفتاح محفوظ ومقروء بعد الحفظ. ":"⚠ الاتصال يعمل لكن المفتاح لم يُحفظ؛ احتفظ به وأعد الحفظ. ")+"\n"+selected.label()+"\nزمن طلب الاختبار: "+response.ms+" ms\nالنتيجة: "+response.arabic+"\nهذا زمن الطلب فقط؛ لا يشمل قراءة اللعبة أو البث.";}catch(AiClient.Failure failure){result=(durable?"✓ المفتاح محفوظ؛ فشل الاتصال لا يحذفه. ":"⚠ لم يُحفظ المفتاح. ")+"\n"+failure.getMessage();}finally{CaptureService.suspendForApiTest(false);API_TEST_RUNNING.set(false);}String display=result;runOnUiThread(()->{if(isFinishing()||isDestroyed())return;testButton.setEnabled(true);saveButton.setEnabled(true);feedback.setText(display);feedback.requestRectangleOnScreen(new android.graphics.Rect(0,0,feedback.getWidth(),feedback.getHeight()));});},"provider-api-test");worker.setDaemon(true);worker.start();
  }
  private ArrayAdapter<String> optionAdapter(String[] values){
   return new ArrayAdapter<String>(this,android.R.layout.simple_spinner_dropdown_item,values){
@@ -126,7 +143,7 @@ public final class AiSettingsActivity extends Activity {
  }
  @Override public Object onRetainNonConfigurationInstance(){
   if(editingProvider!=null){keyDrafts.put(editingProvider,key.getText().toString());modelDrafts.put(editingProvider,model.getText().toString());}
-  Draft draft=new Draft();draft.keys.putAll(keyDrafts);draft.models.putAll(modelDrafts);draft.provider=providers[provider.getSelectedItemPosition()];draft.game=game.getText().toString();draft.address=address.getText().toString();draft.consent=consent.isChecked();draft.fast=fast.isChecked();return draft;
+  Draft draft=new Draft();draft.keys.putAll(keyDrafts);draft.models.putAll(modelDrafts);draft.provider=providers[provider.getSelectedItemPosition()];draft.game=game.getText().toString();draft.address=address.getText().toString();draft.consent=consent.isChecked();draft.fast=fast.isChecked();draft.deepLFast=deepLFast.isChecked();return draft;
  }
  private EditText field(LinearLayout root,int input){EditText field=new EditText(this);field.setTextColor(Ui.TEXT);field.setHintTextColor(Ui.MUTED);field.setInputType(input);field.setSingleLine(true);field.setTextDirection(View.TEXT_DIRECTION_LTR);field.setMaxLines(1);root.addView(field,new LinearLayout.LayoutParams(-1,-2));return field;}
 }
