@@ -20,7 +20,9 @@
   if (!state || state.video !== video || state.stream !== video.srcObject) {
     state = window.__arabicGameReader = {video, stream: video.srcObject, count: null, canvas: document.createElement('canvas')};
   }
-  if (state.count === count) return output('WAIT_FRAME');
+  // Some WebViews freeze both counters for a live MediaStream. Probe at a bounded rate instead of stalling forever.
+  const capturedAt = performance.now();
+  if (state.count === count && capturedAt - (state.capturedAt || 0) < 750) return output('WAIT_FRAME');
   try {
     // Crop before transferring a frame to Android: subtitle area only, no entire-screen copy.
     const mode = window.__arabicRegion || 'subtitles';
@@ -33,7 +35,7 @@
     if (canvas.height !== h) canvas.height = h;
     canvas.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
     const image = canvas.toDataURL('image/jpeg', .80);
-    state.count = count;
+    state.count = count;state.capturedAt = capturedAt;
     return output('FRAME', {image});
   } catch (e) { return output('CAPTURE_BLOCKED'); }
 })();
