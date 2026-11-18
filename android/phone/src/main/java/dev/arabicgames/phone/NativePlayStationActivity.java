@@ -44,8 +44,8 @@ public final class NativePlayStationActivity extends Activity {
    Ui.button(this,card,"إعادة البحث والاقتران",false,()->{stopService(new Intent(this,CaptureService.class));step=2;render();});
   }
   status=Ui.text(this,"",14);root.addView(status);if(saved==null)status.setText("تعذرت قراءة التخزين الآمن. مفاتيح الترجمة لم تتغير؛ إذا لم يسبق الاقتران أكمل الإعداد، وإلا راجع بيانات التطبيق قبل حذف الربط.");
-  if(step>0&&step<4)Ui.button(this,root,"منطقة القراءة — الحوار / القوائم / رسائل الهاتف",false,()->ReadingOptions.show(this));
-  Ui.button(this,root,"الخطوة السابقة",false,()->{step--;render();});
+  Ui.button(this,root,"منطقة القراءة — الحوار / القوائم / رسائل الهاتف",false,()->ReadingOptions.show(this));
+  if(step>0&&step<4)Ui.button(this,root,"الخطوة السابقة",false,()->{step--;render();});
   Ui.button(this,root,"نسيان حساب PS5 وربطه",false,()->new AlertDialog.Builder(this).setMessage("حذف ربط PS5 المحلي فقط؟ ستحتاج دخول الثانوي ورمز الاقتران مجددًا. مفاتيح الترجمة محفوظة.").setPositiveButton("نسيان الربط",(d,w)->{stopService(new Intent(this,CaptureService.class));Ps5Store.clear(this);load();step=0;render();}).setNegativeButton("إلغاء",null).show());
   Ui.button(this,root,"الرئيسية",false,this::finish);ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(Ui.BG);scroll.addView(root);PhoneInsets.fit(scroll);setContentView(scroll);
  }
