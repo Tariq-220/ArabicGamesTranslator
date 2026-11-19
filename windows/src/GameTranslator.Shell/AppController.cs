@@ -970,6 +970,34 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
+    public CropRegion MenuReadRegion {get=>store.Load<CropRegion>("MenuReadRegion")??new(.1,.55,.65,.98);set=>store.Save("MenuReadRegion",value);}
+    public CropRegion MenuDisplayRegion {get=>store.Load<CropRegion>("MenuDisplayRegion")??new(.1,.55,.35,.64);set=>store.Save("MenuDisplayRegion",value);}
+    public bool AutomaticMenuRegion {get=>store.Load<bool>("AutomaticMenuRegion");set=>store.Save("AutomaticMenuRegion",value);}
+    private int menuBusy;private long nextMenuAt;private string lastMenuSource="";
+    public async Task<string> TranslateMenuRegionAsync(){
+        var owner=pipeline;var reader=activeReader;
+        if(owner==null||reader==null||lastFrame is not {} frame)return "ابدأ ترجمة اللعبة أولًا ثم حدد مربع القائمة.";
+        if(owner.TranslationBusy||Interlocked.Exchange(ref menuBusy,1)==1)return "الحوار مشغول؛ أعد المحاولة عند انتهائه.";
+        nextMenuAt=Environment.TickCount64+2000;
+        try{
+            var read=MenuReadRegion;var dest=MenuDisplayRegion;
+            if(dest.Bottom>settings.Region.Top)return "اختر مكان عرض القائمة فوق منطقة الحوار حتى لا يتداخلا.";
+            var reading=await Task.Run(()=>reader.ReadLines(RegionCropper.Crop(frame,read),false));
+            string source=reading.WithoutButtonPrompts().WithoutOcrNoise().Text.Trim();
+            if(source.Length==0){lastMenuSource="";return "لا يوجد نص داخل المربع.";}
+            if(source==lastMenuSource)return "النص لم يتغير؛ لا يوجد طلب ترجمة جديد.";
+            if(owner!=pipeline||owner.TranslationBusy)return "أُعطيت الأولوية للحوار؛ انتظر حتى ينتهي.";
+            var translator=new ProfileTranslator(MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar");
+            var translated=await translator.TranslateAsync(source);
+            if(owner!=pipeline)return "توقفت الجلسة.";
+            var box=new TextBox(dest.Left,dest.Top,dest.Right,dest.Bottom);
+            IReadOnlyList<ScreenTranslation.Item> items=[new(source,translated,box,.025)];
+            server.SendScreen(items,5000);post(()=>InterfaceShown?.Invoke(items,5000));lastMenuSource=source;
+            return "ظهرت ترجمة المربع في موضعها المستقل لمدة 5 ثوانٍ.";
+        }catch{return "تعذر ترجمة مربع القائمة؛ الحوار مستمر.";}
+        finally{Volatile.Write(ref menuBusy,0);}
+    }
+
     private int interfaceBusy;
     private long nextInterfaceAt;
     private string lastInterfaceSource="";
@@ -1215,6 +1243,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         try
         {
             await current.ProcessAsync(frame, settings.Region);
+            if(AutomaticMenuRegion&&Environment.TickCount64>=nextMenuAt&&!current.TranslationBusy)_=TranslateMenuRegionAsync();
         }
         catch
         {

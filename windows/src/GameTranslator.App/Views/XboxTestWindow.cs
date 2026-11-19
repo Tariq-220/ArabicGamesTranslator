@@ -130,6 +130,14 @@ public sealed class XboxTestWindow : Window
         root.Children.Insert(root.Children.IndexOf(pick)+1,show);
         var recover=Button("إصلاح القراءة — استعادة الحوار واستبعاد الأزرار",()=>{controller.ResetDialogueReading();show.IsChecked=false;top.Value=62;readLeft.Value=10;readRight.Value=90;ApplyCrop();source.Text="";translated.Text="";DesktopSubtitleOverlay.Clear();status.Text="استُعيدت قراءة الحوار. اختر نافذة اللعبة ثم اضغط بدء الترجمة؛ مفاتيحك ونماذجك محفوظة.";});recover.Tag="reading-recovery";
         root.Children.Insert(root.Children.IndexOf(pick)+2,recover);root.Children.Add(controls);
+        var menuOptions=new StackPanel();
+        menuOptions.Children.Add(Label("مربع مستقل للقائمة أو جوال اللعبة — لا يغير مربع الحوار",16));
+        menuOptions.Children.Add(Button("① حدد مربع القراءة على صورة اللعبة",()=>PickMenuRegion(false)));
+        menuOptions.Children.Add(Button("② حدد مكان عرض ترجمته",()=>PickMenuRegion(true)));
+        menuOptions.Children.Add(Button("③ ترجمة المربع الآن",async()=>{status.Text=await controller.TranslateMenuRegionAsync();}));
+        var autoMenu=new CheckBox{Content="قراءة المربع تلقائيًا عند هدوء الحوار — كل ثانيتين كحد أقصى",IsChecked=controller.AutomaticMenuRegion,Foreground=Brushes.White,Margin=new Thickness(8)};
+        autoMenu.Checked+=(_,_)=>controller.AutomaticMenuRegion=true;autoMenu.Unchecked+=(_,_)=>controller.AutomaticMenuRegion=false;menuOptions.Children.Add(autoMenu);
+        root.Children.Add(new Expander{Header="القوائم وجوال اللعبة — مربع قراءة وعرض مستقل",Content=menuOptions,Foreground=Brushes.White,Margin=new Thickness(8)});
         root.Children.Add(Label("2 · محرك الترجمة — لا يوجد رجوع صامت إلى مترجم أضعف عند الخطأ"));
         root.Children.Add(Label("اسم اللعبة للسياق — غيّره قبل بدء القراءة"));
         LiveServices.DialogueGame=controller.DialogueGame;
@@ -346,6 +354,14 @@ public sealed class XboxTestWindow : Window
     }
     private void ChooseEngine()
     { engineTestPassed=false;lastEngineCheck="لم يُختبر المحرك المختار بعد";key.Clear();controller.Stop();UpdateConnectionBar();controller.ArabicEngineChoice=engineChoice.SelectedIndex;LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;controller.SessionTranslator=null;controller.Settings=controller.Settings with {Engine=engineChoice.SelectedIndex==1?TranslationEngine.DeepL:TranslationEngine.Gemini};RefreshCloudModels(); }
+    private void PickMenuRegion(bool output){
+        if(controller.LastFrame is not {} frame){status.Text="ابدأ البث والترجمة أولًا لتظهر صورة اللعبة هنا.";return;}
+        var picker=new GameTranslator.App.Controls.RegionPicker{Frame=frame,DefaultRegion=output?controller.MenuDisplayRegion:controller.MenuReadRegion};
+        picker.ShowRegion(output?controller.MenuDisplayRegion:controller.MenuReadRegion);
+        var panel=new StackPanel{Margin=new Thickness(16)};panel.Children.Add(Label(output?"ارسم موضع العرض فوق منطقة الحوار":"ارسم مربع النص المراد قراءته",18));panel.Children.Add(picker);
+        var dialog=new Window{Title="تحديد مربع القائمة",Owner=this,Content=new ScrollViewer{Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto},Width=800,Height=650,Background=Background,FlowDirection=FlowDirection};
+        panel.Children.Add(Button("حفظ المربع",()=>{var region=picker.Region;if(output&&region.Bottom>controller.Settings.Region.Top){MessageBox.Show(dialog,"اجعل موضع العرض أعلى منطقة الحوار لمنع التداخل.");return;}if(output)controller.MenuDisplayRegion=region;else controller.MenuReadRegion=region;dialog.Close();status.Text="حُفظ المربع. اضغط ترجمة المربع الآن لاختباره.";}));dialog.ShowDialog();
+    }
     private bool IsLocalModel => engineChoice.SelectedIndex is >=2 and <=4 or 6;
     private string LocalModel => engineChoice.SelectedIndex==6?"hy-mt": engineChoice.SelectedIndex==3?"jisr-msa":engineChoice.SelectedIndex==4?"jisr-saudi":"quickmt";
     private ITextTranslator LocalTranslator()
