@@ -1041,6 +1041,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
 
     public event Action<string,string>? TranslationRejected;
+    public event Action<string,string>? TranslationQualityWarning;
     public event Action<string,string>? LineDiscarded;
     private void MakePipeline()
     {
@@ -1051,7 +1052,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         activeReader = reader;
         OcrMissing = reader is null || !services.HasOcrLanguage(settings.SourceLanguage);
         if (reader is null) return;
-        var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
+        var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar",qualityWarning:(source,raw)=>post(()=>TranslationQualityWarning?.Invoke(source,raw))), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):DialogueProfile.DialogueLane(reading,area,gameProfile);
         // Automatic interface inference is paused in the recovery build: dialogue owns the translator.

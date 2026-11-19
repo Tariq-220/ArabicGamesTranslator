@@ -120,15 +120,16 @@ public final class MainActivity extends Activity {
  private int pairingAttempt;
  private void useSource(String result){String address=result.substring(result.indexOf(" · ")+3);if(result.startsWith("جوال"))pairPhone(address);else useDesktop(address);}
  private void pairPhone(String address){
-  final int attempt=++pairingAttempt;String ticket=UUID.randomUUID().toString().replace("-","");
+  final int attempt=++pairingAttempt;String key="pairTicket:"+address;
+  String saved=getPreferences(0).getString(key,null);final String ticket=saved!=null?saved:UUID.randomUUID().toString().replace("-","");getPreferences(0).edit().putString(key,ticket).apply();
   status.setText("افتح تطبيق الجوال ووافق على رمز الربط: "+ticket.substring(0,6));
-  new Thread(()->{for(int n=0;n<70&&!destroyed&&attempt==pairingAttempt;n++){
+  new Thread(()->{for(int n=0;n<100&&!destroyed&&attempt==pairingAttempt;n++){
    HttpURLConnection c=null;try{
     c=(HttpURLConnection)new URL("http://"+address+":8787/pair?ticket="+ticket).openConnection();c.setConnectTimeout(1500);c.setReadTimeout(1500);c.setInstanceFollowRedirects(false);
-    if(c.getResponseCode()!=200)break;String body;try(InputStream in=c.getInputStream()){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[128];int count;while((count=in.read(b))!=-1){out.write(b,0,count);if(out.size()>1024)throw new IOException();}body=out.toString("UTF-8");}
+    int response=c.getResponseCode();if(response==503||response==429||response>=500){Thread.sleep(750);continue;}if(response!=200)break;String body;try(InputStream in=c.getInputStream()){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[128];int count;while((count=in.read(b))!=-1){out.write(b,0,count);if(out.size()>1024)throw new IOException();}body=out.toString("UTF-8");}
     String paired=new JSONObject(body).optString("code","");if(Pairing.validCode(paired)){ui.post(()->{if(destroyed||attempt!=pairingAttempt)return;host.setText(address);code.setText(paired);desktop.setChecked(false);connect();});return;}
     Thread.sleep(750);
-   }catch(Exception e){break;}finally{if(c!=null)c.disconnect();}
+   }catch(Exception e){try{Thread.sleep(750);}catch(InterruptedException stopped){return;}}finally{if(c!=null)c.disconnect();}
   }ui.post(()->{if(!destroyed&&attempt==pairingAttempt)status.setText("لم يكتمل الربط. افتح الجوال ووافق على الرمز، ثم أعد الاكتشاف.");});},"pair-phone").start();
  }
  private void useDesktop(String address){host.setText(address);desktop.setChecked(true);connect();}
@@ -164,7 +165,13 @@ public final class MainActivity extends Activity {
   while(!destroyed&&generation==session){HttpURLConnection conn=null;
    try{
     conn=(HttpURLConnection)new URL("http://"+address+":8787/events"+(pair==null?"":"?code="+pair+"&receiver="+receiverId)).openConnection();connection=conn;conn.setConnectTimeout(4000);conn.setReadTimeout(45000);conn.setRequestProperty("Accept","text/event-stream");
-    int result=conn.getResponseCode();if(result==403){post(generation,()->{status.setText("رمز الربط غير صحيح؛ حدّثه من إعدادات الربط.");connectionPanel.setVisibility(View.VISIBLE);});return;}
+    int result=conn.getResponseCode();if(result==403){
+     if(pollTask!=null)pollTask.cancel(false);
+     if(pair!=null){post(generation,()->{status.setText("انتهى رمز الجوال؛ وافق على الاقتران مجددًا.");connectionPanel.setVisibility(View.VISIBLE);pairPhone(address);});}
+     else{String app="";HttpURLConnection probe=null;try{probe=(HttpURLConnection)new URL("http://"+address+":8787/hello").openConnection();probe.setConnectTimeout(1500);probe.setReadTimeout(1500);if(probe.getResponseCode()==200){try(InputStream in=probe.getInputStream()){ByteArrayOutputStream data=new ByteArrayOutputStream();byte[] chunk=new byte[256];int read;while((read=in.read(chunk))!=-1){data.write(chunk,0,read);if(data.size()>2048)throw new IOException();}app=new JSONObject(data.toString("UTF-8")).optString("app","");}}}catch(Exception ignored){}finally{if(probe!=null)probe.disconnect();}
+      boolean phoneSource="arabicgames-phone".equals(app);post(generation,()->{connectionPanel.setVisibility(View.VISIBLE);if(phoneSource){desktop.setChecked(false);pairPhone(address);}else status.setText("رفض المصدر الاتصال (HTTP 403). تحقق من اختيار الكمبيوتر الصحيح ونوع المصدر؛ الكمبيوتر لا يستخدم رمز الجوال.");});}
+     return;
+    }
     if(result!=200)throw new IOException("HTTP "+result);retry=250;failedConnections=0;post(generation,()->{status.setText("✓ متصل. الترجمة تظهر فوق اللعبة.");connectionPanel.setVisibility(View.VISIBLE);});
     try(BufferedReader lines=new BufferedReader(new InputStreamReader(conn.getInputStream(),StandardCharsets.UTF_8))){String event="",data="",line;
      while(!destroyed&&generation==session&&(line=lines.readLine())!=null){

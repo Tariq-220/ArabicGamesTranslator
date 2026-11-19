@@ -11,6 +11,7 @@ public class ReviewedLanguageTests {
  [Fact]public async Task MinorEnglishResidueCannotHideTheEntireArabicCaption(){
   Assert.Contains("يحتاج",await new ProfileTranslator(new MixedOutput(),"GTA6").TranslateAsync("Well, he's gonna need someone to step up now... Donnie•sgone"));
  }
+ [Fact]public void UnknownResidualWordsAreMarkedWithoutHidingArabic(){Assert.Equal("افتح [غير واضح] الآن",ArabicOutputGuard.PrepareCaption("Open the smtc box now","افتح smtc box الآن"));Assert.Equal("اتصل بـ Jason عبر GPS",ArabicOutputGuard.PrepareCaption("Call Jason using GPS","اتصل بـ Jason عبر GPS"));Assert.True(ArabicOutputGuard.RejectUnusable("UUISU","UUISU"));Assert.Equal("ARTHUR: اتصل بـ D-Man عبر PS5",ArabicOutputGuard.PrepareCaption("ARTHUR: Call D-Man using PS5","ARTHUR: اتصل بـ D-Man عبر PS5"));}
  [Theory][InlineData("We should leave now.")][InlineData("ماذا؟ U U U U U U U U")][InlineData("ربما ربما ربما ربما ربما ربما ربما")]
  public void RecoveryStillRejectsUntranslatedOrDegenerateOutput(string text)=>Assert.True(ArabicOutputGuard.RejectUnusable("What? Uh",text));
  private sealed class EchoEnglish:GameTranslator.Core.ITextTranslator {public int Calls;public Task<string> TranslateAsync(string text,CancellationToken token=default){Calls++;return Task.FromResult(text);}}

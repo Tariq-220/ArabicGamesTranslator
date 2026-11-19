@@ -79,12 +79,13 @@ public static class DialogueProfile {
   return arabic;
  }
 }
-public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<string,string>? rejected=null,bool validateArabic=true):ITextTranslator {
+public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<string,string>? rejected=null,bool validateArabic=true,Action<string,string>? qualityWarning=null):ITextTranslator {
  private string rejectedSource="";private DateTimeOffset retryAfter;
  public async Task<string> TranslateAsync(string text,CancellationToken token=default){
   if(validateArabic&&text==rejectedSource&&DateTimeOffset.UtcNow<retryAfter)throw new TranslatorException(TranslatorStatus.EngineFailed);
   var result=CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(text,token),game));
   if(validateArabic&&ArabicOutputGuard.RejectUnusable(text,result)){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
+  if(validateArabic){var decoded=System.Net.WebUtility.HtmlDecode(result);var cleaned=ArabicOutputGuard.PrepareCaption(text,decoded);if(cleaned!=decoded)qualityWarning?.Invoke(text,result);return cleaned;}
   return result;
  }
  public bool Prefetches=>inner.Prefetches;

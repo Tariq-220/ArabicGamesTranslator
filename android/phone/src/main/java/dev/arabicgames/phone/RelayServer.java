@@ -12,7 +12,7 @@ final class RelayServer extends NanoHTTPD {
  static volatile RelayServer active;
  private String pendingTicket,pendingIp;private long pendingUntil;private boolean approved;
  synchronized String pendingChallenge(){return pendingTicket!=null&&System.nanoTime()/1_000_000<pendingUntil&&!approved?pendingTicket.substring(0,6):null;}
- synchronized void approve(String challenge,boolean accept){if(challenge.equals(pendingChallenge())){if(accept)approved=true;else pendingUntil=0;}}
+ synchronized void approve(String challenge,boolean accept){if(challenge.equals(pendingChallenge())){if(accept){approved=true;attempts.remove(pendingIp);}else pendingUntil=0;}}
  private Response pairing(IHTTPSession s){
   if(!dev.arabicgames.Pairing.privateIpv4(s.getRemoteIpAddress())||s.getHeaders().containsKey("origin"))return newFixedLengthResponse(Response.Status.FORBIDDEN,"text/plain","Local app only");
   if("/hello".equals(s.getUri()))return newFixedLengthResponse(Response.Status.OK,"application/json","{\"app\":\"arabicgames-phone\",\"pairing\":1}");

@@ -25,6 +25,14 @@ public class PairApprovalTest {
   assertEquals(503,call(relay,"192.168.1.9","/pair",ticket,false).getStatus().getRequestStatus());
   relay.stop();
  }
+ @Test public void ExplicitApprovalClearsOnlyTheApprovedPeersOldCodeLockout()throws Exception{
+  RelayServer relay=new RelayServer("12345678",0);
+  var allowed=RelayServer.class.getDeclaredMethod("allowed",String.class,String.class);allowed.setAccessible(true);
+  for(int i=0;i<8;i++){allowed.invoke(relay,"192.168.1.8","wrong");allowed.invoke(relay,"192.168.1.9","wrong");}
+  assertFalse((boolean)allowed.invoke(relay,"192.168.1.8","12345678"));
+  call(relay,"192.168.1.8","/pair","abcdef0123456789abcdef0123456789",false);relay.approve("abcdef",true);
+  assertTrue((boolean)allowed.invoke(relay,"192.168.1.8","12345678"));assertFalse((boolean)allowed.invoke(relay,"192.168.1.9","12345678"));relay.stop();
+ }
  @Test public void rejectsPublicClientsBrowserAndMalformedTickets(){
   RelayServer relay=new RelayServer("12345678",0);
   assertEquals(403,call(relay,"8.8.8.8","/hello",null,false).getStatus().getRequestStatus());
