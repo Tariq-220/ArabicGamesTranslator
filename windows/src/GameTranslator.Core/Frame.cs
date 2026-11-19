@@ -186,7 +186,7 @@ public static class ReadingFallback
         var center=recognize(image.Crop(x,0,width,image.Height).Scaled(2)).PlacedIn(stripArea);
         if(full.Lines.Count==0)return center;
         if(center.Lines.Count==0)return full;
-        return OcrPassSelection.Choose(full,center);
+        return SubtitleStabilizer.LooksClean(center.Text)&&!OcrNoise.LooksGarbled(center.Text)&&OcrNoise.Score(center.Text)>OcrNoise.Score(full.Text)?center:full;
     }
 
     private static (int X, int Width) CenterStrip(Frame image, double widthFraction)
