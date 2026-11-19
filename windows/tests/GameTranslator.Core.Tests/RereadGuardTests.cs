@@ -7,6 +7,9 @@ public class RereadGuardTests {
  }
  [Theory][InlineData("Hey, have fun.","Hey, have f")][InlineData("Okay, that sounds good.","Okay, that sounds")]
  public void LogV29TruncatedLastWordDoesNotReplaceFullCaption(string full,string partial){var g=new RereadGuard();g.Filter(full,0);Assert.Equal(full,g.Filter(partial,700));}
+ [Theory][InlineData("secure?","You call this place secure?")][InlineData("the door.","Please close the door.")][InlineData("We should leave", "We should leave right now.")]
+ public void AReadableFragmentCannotBeatItsCompleteReading(string shortText,string fullText)=>Assert.Equal(fullText,OcrPassSelection.Choose(Reading.FromText(shortText),Reading.FromText(fullText)).Text);
+ [Fact]public void DifferentMeaningIsNotMerged()=>Assert.Equal("We can go.",OcrPassSelection.Choose(Reading.FromText("We can go."),Reading.FromText("We cannot go.")).Text);
  [Fact]public void OriginalReadablePixelsBeatLongerMaskGarbage(){var clean=Reading.FromText("Okay, see? I told ya.");Assert.Equal(clean.Text,OcrPassSelection.Choose(clean,Reading.FromText("Okay. see? Iloid ya. some additional invented words")).Text);}
  [Fact]public void EmptyOriginalStillUsesMask()=>Assert.Equal("Get down!",OcrPassSelection.Choose(Reading.Empty,Reading.FromText("Get down!")).Text);
  [Fact]public void JoinedWordsDoNotReplaceRecentCleanSentence(){var guard=new RereadGuard();var good="Well, it's a nice fresh day for flying, sir.";Assert.Equal(good,guard.Filter(good,0));Assert.Equal(good,guard.Filter("Well, it's anicefreshdayfornying,sir.",80));}

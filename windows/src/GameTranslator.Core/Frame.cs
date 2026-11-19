@@ -177,17 +177,16 @@ public static class ReadingFallback
         var reading = recognize(image);
         if (reading.Lines.Count > 0) return reading;
 
-        // Şeritte bulunan satırın yeri şeridin değil bölgenin tamamının oranlarıyla verilir.
-        var (x, width) = CenterStrip(image, 0.4);
-        var stripArea = new TextBox((double)x / image.Width, 0, (double)(x + width) / image.Width, 1);
-        Func<Reading>[] fallbacks =
-        [
-            () => recognize(image.Crop(x, 0, width, image.Height).Scaled(2)).PlacedIn(stripArea),
-            () => recognize(image.Scaled(2)),
-        ];
-        var results = new Reading[fallbacks.Length];
-        Parallel.For(0, fallbacks.Length, index => results[index] = fallbacks[index]());
-        return results.FirstOrDefault(r => r.Lines.Count > 0) ?? Reading.Empty;
+        // Preserve the complete region before trying a center-only crop. Use one OCR operation at a time.
+        var full=recognize(image.Scaled(2));
+        if(full.Lines.Count>0&&SubtitleStabilizer.LooksClean(full.Text)&&!OcrNoise.LooksGarbled(full.Text)&&
+           TextMatch.Normalize(full.Text).Split(' ',StringSplitOptions.RemoveEmptyEntries).Length>=3)return full;
+        var (x,width)=CenterStrip(image,0.4);
+        var stripArea=new TextBox((double)x/image.Width,0,(double)(x+width)/image.Width,1);
+        var center=recognize(image.Crop(x,0,width,image.Height).Scaled(2)).PlacedIn(stripArea);
+        if(full.Lines.Count==0)return center;
+        if(center.Lines.Count==0)return full;
+        return OcrPassSelection.Choose(full,center);
     }
 
     private static (int X, int Width) CenterStrip(Frame image, double widthFraction)

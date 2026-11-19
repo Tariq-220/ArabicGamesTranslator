@@ -557,7 +557,7 @@ public class ReadingFallbackTests
 
     /// İki yedek okuma da yazı bulursa ortadaki şeridinki seçilir.
     [Fact]
-    public void CenterStripReadingWinsOverZoomedRegion()
+    public void CleanerCenterReadingCanReplaceDamagedZoomedRegion()
     {
         var text = ReadingFallback.FirstReading(Image, candidate => candidate.Width switch { 64 => "", 128 => "G0!", _ => "Go!" });
         Assert.Equal("Go!", text);
@@ -572,20 +572,19 @@ public class ReadingFallbackTests
         Assert.Equal(1, calls);
     }
 
-    /// Bölge boşken iki yedek okuma art arda değil aynı anda yapılır; yeni satır daha erken fark edilir.
     [Fact]
-    public void FallbackReadingsRunAtTheSameTime()
-    {
-        // İki yedek okuma birbirini bekler; art arda yapılsalardı buluşamaz, süre dolardı.
-        using var barrier = new Barrier(2);
-        var met = 0;
-        ReadingFallback.FirstReading(Image, candidate =>
-        {
-            if (candidate.Width != 64 && barrier.SignalAndWait(TimeSpan.FromSeconds(10))) Interlocked.Increment(ref met);
-            return "";
-        });
-        Assert.Equal(2, met);
+    public void CompleteZoomedRegionWinsWithoutCallingCenterCrop(){
+        var calls=0;
+        var result=ReadingFallback.FirstReading(Image,image=>{calls++;return image.Width==64?"":image.Width==128?"Can you call this place secure?":"secure?";});
+        Assert.Equal("Can you call this place secure?",result);Assert.Equal(2,calls);
     }
+    [Fact]
+    public void FallbackNeverUsesTheSameRecognizerConcurrently(){
+        int active=0,max=0;
+        ReadingFallback.FirstReading(Image,_=>{int n=Interlocked.Increment(ref active);max=Math.Max(max,n);Thread.Sleep(2);Interlocked.Decrement(ref active);return "";});
+        Assert.Equal(1,max);
+    }
+
 }
 
 public class RegionCropperTests
