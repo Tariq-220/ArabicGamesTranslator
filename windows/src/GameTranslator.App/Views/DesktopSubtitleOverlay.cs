@@ -305,9 +305,10 @@ public sealed class DesktopSubtitleOverlay : Window
         _subtitleText.FontWeight = style.Bold ? FontWeights.Bold : FontWeights.SemiBold;
 
         // Arka plan opaklığı (Cover seçildiyse İngilizce altyazıyı tamamen örtmek için en az %90 opaklık)
-        int minAlpha = style.Placement == SubtitlePlacement.Cover ? 230 : 40;
-        byte alpha = (byte)Math.Clamp(Math.Max(minAlpha, (style.Background * 255) / 100), 40, 255);
+        int minAlpha = style.Background==0 ? 0 : style.Placement == SubtitlePlacement.Cover ? 230 : 40;
+        byte alpha = (byte)Math.Clamp(Math.Max(minAlpha, (style.Background * 255) / 100), 0, 255);
         _container.Background = new SolidColorBrush(Color.FromArgb(alpha, 0x0A, 0x0E, 0x17));
+        _container.BorderThickness = new Thickness(style.Background==0 ? 0 : 1.5);
     }
 
     private void HideText()

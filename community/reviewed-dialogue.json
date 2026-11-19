@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 7,
+  "revision": 8,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -1536,6 +1536,132 @@
       "arabic": "خبّئ المخدرات في مخزن برايان.",
       "reviewed": true,
       "reason": "Reviewed from GTA6 Windows log with user-confirmed game; context or observed OCR variant only."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "And that's all She wrote.",
+      "arabic": "وبكذا انتهى الموضوع.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah line it up.",
+      "arabic": "إيه، اضبط التصويب.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "My feet are killing me.",
+      "arabic": "قدماي تؤلمانني بشدة.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "We have a window.",
+      "arabic": "عندنا فرصة سانحة.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "we have a window-",
+      "arabic": "عندنا فرصة سانحة…",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Should call your aunt, check in.",
+      "arabic": "المفروض تتصل بخالتك وتطمئن عليها.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "She probably just doesn't want you doing any more stickups.",
+      "arabic": "غالبًا ما تبيك ترجع لعمليات السطو.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You're not going anywhere with that homing beacon strapped to your ankle.",
+      "arabic": "ما تقدر تروح أي مكان وجهاز التتبع مربوط بكاحلك.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You're not going anywhere",
+      "arabic": "ما راح تروح أي مكان.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Time to knock out.",
+      "arabic": "حان وقت النوم.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Follow Lucia",
+      "arabic": "اتبع لوسيا.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Follow Brian",
+      "arabic": "اتبع براين.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Follow the manager",
+      "arabic": "اتبع المدير.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Go to the plane",
+      "arabic": "اذهب إلى الطائرة.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Select your checking account",
+      "arabic": "اختر حسابك الجاري.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What?",
+      "arabic": "ماذا؟",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You know what I mean?",
+      "arabic": "فاهم قصدي؟",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "All you gotta do is fly the Dodo, grab it.",
+      "arabic": "كل اللي عليك تطير بطائرة دودو وتجيبها.",
+      "reviewed": true,
+      "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
     }
   ],
   "ignored_sources": [

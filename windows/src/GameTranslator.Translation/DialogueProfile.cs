@@ -9,9 +9,12 @@ public static class DialogueProfile {
   ||Regex.IsMatch(text,@"^(?:[O0]\s+)?(?:RETRY\s*CHECKPOINT|CANCEL MISSION)(?:\s+[O0])?(?:\s+CANCEL MISSION\s*[O0]?)?$",RegexOptions.IgnoreCase);
 
  private static bool KnownHud(string text)=>Regex.IsMatch(text.Trim(),@"^(?:PHOTO (?:STUDIO|MODE)(?: [A-Z])? SELECT.*|(?:PRESS\s*[A-Z]|HOLD(?: [A-Z])? AND PRESS\s*[A-Z])\s*TO (?:FIGHT|HEAL)|GIRARDI ES9|MILITARY PISTOL|DAMAGE|ACCURACY|HANDLING|RANGE|HAT|W-14 RIFLE|LT|RT|[!|0-9 ]+)$",RegexOptions.IgnoreCase);
+ public static bool IsObjective(string text)=>Regex.IsMatch(text.Trim(),@"^(?:Follow (?:Lucia|Brian|the manager)|FoUow Lucia|Go to the plane|Search the camp for Donnie|Find a way into the shack|Save Donnie|Head for the plane|Get in the sea plane|Escape the camp|Fly back to Brian.s marina)$",RegexOptions.IgnoreCase);
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
  public static Reading DialogueOnly(Reading reading,TextBox area,string game){
   reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)&&!KnownHud(line.Text)));
+  // Mission objectives can remain below the changing dialogue. Do not let the lowest static block win.
+  if(CommunityCorrections.GameKey(game)=="grand theft auto vi"&&reading.Lines.Count>1){var dialogue=reading.Lines.Where(line=>!IsObjective(line.Text)).ToArray();if(dialogue.Length>0)reading=new Reading(dialogue);}
   if(!Rdr2(game))return reading;
   return new Reading(reading.Lines.Where(line=>{
    if(line.Box is not {} relative)return true;
@@ -68,7 +71,7 @@ public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<s
  public async Task<string> TranslateAsync(string text,CancellationToken token=default){
   if(validateArabic&&text==rejectedSource&&DateTimeOffset.UtcNow<retryAfter)throw new TranslatorException(TranslatorStatus.EngineFailed);
   var result=CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(text,token),game));
-  if(validateArabic&&!Regex.IsMatch(result,@"\p{IsArabic}")&&Regex.Matches(result,@"[A-Za-z]{2,}").Count>=3){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
+  if(validateArabic&&ArabicOutputGuard.Reject(text,result)){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
   return result;
  }
  public bool Prefetches=>inner.Prefetches;

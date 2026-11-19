@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public final class MainActivity extends Activity {
- private boolean sourcePlacement;private String captionPositionKey="";private boolean videoAvailable;
+ private boolean sourceTransparent;private boolean sourcePlacement;private String captionPositionKey="";private boolean videoAvailable;
  private boolean playRequested;
  private String tunedInput;private boolean resumed,restoreHdmi;private int resumeTicket;private TvInputManager inputManager;
  private final TvInputManager.TvInputCallback inputChanges=new TvInputManager.TvInputCallback(){
@@ -55,7 +55,7 @@ public final class MainActivity extends Activity {
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.16",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.17",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
@@ -67,7 +67,7 @@ public final class MainActivity extends Activity {
   input=new Spinner(this);refreshInputs();panel.addView(input);hdmiStatus=label("اختر HDMI ثم عرض اللعبة.",12);panel.addView(hdmiStatus);
   button(panel,"عرض اللعبة عبر HDMI",this::requestPlayback);
   button(panel,"إيقاف عرض HDMI والرجوع للإعدادات",this::stopPlayback);
-  button(panel,"تقرير العرض — عرض ونسخ",()->{String report="Google TV 0.3.16 / Android "+Build.VERSION.SDK_INT+"\n"+getPreferences(0).getString("displayTrace","");new AlertDialog.Builder(this).setTitle("تقرير العرض — دون بيانات الربط").setMessage(report).setPositiveButton("نسخ",(d,w)->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("تقرير العرض",report));}).setNegativeButton("إغلاق",null).show();});
+  button(panel,"تقرير العرض — عرض ونسخ",()->{String report="Google TV 0.3.17 / Android "+Build.VERSION.SDK_INT+"\n"+getPreferences(0).getString("displayTrace","");new AlertDialog.Builder(this).setTitle("تقرير العرض — دون بيانات الربط").setMessage(report).setPositiveButton("نسخ",(d,w)->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("تقرير العرض",report));}).setNegativeButton("إغلاق",null).show();});
   button(panel,"إعادة ضبط العرض داخل التطبيق",()->{stopPlayback();hdmiStatus.setText("أُعيد ضبط العرض. اختر مدخل HDMI الصحيح ثم اضغط عرض اللعبة.");});
   audio=new CheckBox(this);audio.setText("تشغيل صوت HDMI من الشاشة");audio.setTextSize(13);audio.setChecked(getPreferences(0).getBoolean("hdmiAudio",true));audio.setOnCheckedChangeListener((b,on)->{getPreferences(0).edit().putBoolean("hdmiAudio",on).apply();restoreAudio();});panel.addView(audio);
   LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
@@ -167,7 +167,7 @@ public final class MainActivity extends Activity {
      while(!destroyed&&generation==session&&(line=lines.readLine())!=null){
       if(line.startsWith("event: "))event=line.substring(7);else if(line.startsWith("data: "))data=line.substring(6);else if(line.isEmpty()){
        if("subtitle".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->applyCaption(json,"بث لحظي"));}
-       else if("style".equals(event)){JSONObject style=new JSONObject(data);post(generation,()->{sourcePlacement="cover".equals(style.optString("placement"));captionPositionKey="";});}
+       else if("style".equals(event)){JSONObject style=new JSONObject(data);post(generation,()->{sourcePlacement="cover".equals(style.optString("placement"));captionPositionKey="";sourceTransparent=style.optInt("background",70)==0;applySubtitleStyle();});}
        else if("settings".equals(event)){post(generation,this::showPanel);}
        else if("clear".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->applyClear(json.optLong("revision",0)));}event="";data="";
       }
@@ -205,6 +205,8 @@ public final class MainActivity extends Activity {
  private void applySubtitleStyle(){
   int size=Math.max(14,Math.min(34,getPreferences(0).getInt("subtitleSize",20)));
   int opacity=Math.max(0,Math.min(100,getPreferences(0).getInt("subtitleOpacity",70)));
+  int textMode=getPreferences(0).getInt("subtitleTextMode",0);if(textMode==1||textMode==0&&sourceTransparent)opacity=0;else if(textMode==2&&opacity==0)opacity=70;
+  subtitle.setShadowLayer(opacity==0?4f:0f,0,1,Color.BLACK);
   subtitle.setTextSize(size);GradientDrawable background=new GradientDrawable();background.setColor((Math.round(opacity*255f/100)<<24));background.setCornerRadius(dp(6));subtitle.setBackground(background);
   if(subtitle.getLayoutParams() instanceof FrameLayout.LayoutParams){FrameLayout.LayoutParams params=(FrameLayout.LayoutParams)subtitle.getLayoutParams();params.bottomMargin=Math.round(getResources().getDisplayMetrics().heightPixels*Math.max(2,Math.min(35,getPreferences(0).getInt("subtitleBottom",7)))/100f);subtitle.setLayoutParams(params);}
  }
@@ -213,6 +215,7 @@ public final class MainActivity extends Activity {
   TextView sizeLabel=label("",15),opacityLabel=label("",15);content.addView(sizeLabel);
   SeekBar size=new SeekBar(this);size.setTag("subtitle-size");size.setMax(20);size.setProgress(Math.max(0,Math.min(20,getPreferences(0).getInt("subtitleSize",20)-14)));content.addView(size);
   Spinner placement=new Spinner(this);placement.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"تلقائي — القوائم قرب النص والحوار بالأسفل","الحوار دائمًا في الأسفل","الترجمة عند موضع النص المقروء"}));placement.setSelection(getPreferences(0).getInt("captionPlacement",0));placement.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> parent){}public void onItemSelected(android.widget.AdapterView<?> parent,View view,int selected,long id){getPreferences(0).edit().putInt("captionPlacement",selected).apply();}});content.addView(placement);
+  Spinner textStyle=new Spinner(this);textStyle.setTag("subtitle-text-mode");textStyle.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"المظهر حسب المصدر وإعدادات الخلفية","نص بظل دون خلفية — الحوار والقوائم","الشكل القديم بخلفية سوداء"}));textStyle.setSelection(getPreferences(0).getInt("subtitleTextMode",0));textStyle.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){public void onNothingSelected(android.widget.AdapterView<?> parent){}public void onItemSelected(android.widget.AdapterView<?> parent,View view,int selected,long id){getPreferences(0).edit().putInt("subtitleTextMode",selected).apply();applySubtitleStyle();}});content.addView(textStyle);
   content.addView(opacityLabel);SeekBar opacity=new SeekBar(this);opacity.setMax(100);opacity.setProgress(Math.max(0,Math.min(100,getPreferences(0).getInt("subtitleOpacity",70))));content.addView(opacity);
   TextView positionLabel=label("",15);content.addView(positionLabel);SeekBar position=new SeekBar(this);position.setTag("subtitle-position");position.setMax(33);position.setProgress(Math.max(0,Math.min(33,getPreferences(0).getInt("subtitleBottom",7)-2)));content.addView(position);
   Runnable update=()->{positionLabel.setText("ارتفاع الترجمة من الأسفل: "+(position.getProgress()+2)+"%");sizeLabel.setText("حجم الخط: "+(size.getProgress()+14));opacityLabel.setText("خلفية الترجمة: "+opacity.getProgress()+"%");getPreferences(0).edit().putInt("subtitleSize",size.getProgress()+14).putInt("subtitleOpacity",opacity.getProgress()).putInt("subtitleBottom",position.getProgress()+2).apply();applySubtitleStyle();};

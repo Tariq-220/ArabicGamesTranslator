@@ -165,6 +165,12 @@ public sealed class XboxTestWindow : Window
         void ApplyStyle(){controller.Settings=controller.Settings with {Style=controller.Settings.Style with {FontSize=(int)font.Value,Background=(int)background.Value,BottomPercent=(int)position.Value,Placement=SubtitlePlacement.Fixed}};fontLabel.Text=$"حجم الخط: {(int)font.Value}";backgroundLabel.Text=$"الخلفية: {(int)background.Value}%";positionLabel.Text=$"ارتفاع النص عن الأسفل: {(int)position.Value}%";}
         font.ValueChanged+=(_,_)=>ApplyStyle();background.ValueChanged+=(_,_)=>ApplyStyle();position.ValueChanged+=(_,_)=>ApplyStyle();
         var presets=Row();presets.Children.Add(Button("خط صغير",()=>font.Value=20));presets.Children.Add(Button("خط متوسط",()=>font.Value=26));root.Children.Add(presets);
+        var transparentText=new CheckBox{Content="نص بظل بدون خلفية سوداء (الحوار والقوائم)",IsChecked=background.Value==0,Margin=new Thickness(0,8,0,8)};
+        double savedBackground=background.Value>0?background.Value:70;bool syncingBackground=false;
+        transparentText.Checked+=(_,_)=>{if(syncingBackground)return;if(background.Value>0)savedBackground=background.Value;background.Value=0;};
+        transparentText.Unchecked+=(_,_)=>{if(!syncingBackground)background.Value=savedBackground;};
+        background.ValueChanged+=(_,_)=>{syncingBackground=true;transparentText.IsChecked=background.Value==0;syncingBackground=false;};
+        root.Children.Add(transparentText);
         root.Children.Add(fontLabel);root.Children.Add(font);root.Children.Add(backgroundLabel);root.Children.Add(background);root.Children.Add(positionLabel);root.Children.Add(position);ApplyStyle();
         root.Children.Add(status); root.Children.Add(timing);
         source.FlowDirection = FlowDirection.LeftToRight;

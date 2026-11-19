@@ -59,13 +59,14 @@
   function show(text, duration, box) {
     clearTimeout(timer);
     line.textContent = text;
+    apply(lastStyle);
     var cover = box && placement === 'cover' && !fixed.bottom;
     if (cover) {
       line.style.left = ((box.left + box.right) / 2 * 100) + '%';
       line.style.top = ((box.top + box.bottom) / 2 * 100) + '%';
       line.style.bottom = 'auto';
       line.style.minWidth = ((box.right - box.left) * 100) + 'vw';
-      line.style.background = 'rgba(0, 0, 0, 0.97)';
+      if(lastStyle.background !== 0 && fixed.bg !== '0') line.style.background = 'rgba(0, 0, 0, 0.97)';
     } else {
       line.style.left = '50%';
       line.style.top = 'auto';

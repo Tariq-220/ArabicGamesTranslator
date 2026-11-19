@@ -124,6 +124,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
         if (TextMatch.IsSimilar(text, candidate, similarity))
         {
             candidateCount++;
+            if(OcrNoise.Score(rawText)>OcrNoise.Score(candidateRaw)||OcrNoise.Score(rawText)==OcrNoise.Score(candidateRaw)&&EndsSentence(rawText))candidateRaw=rawText.Trim();
         }
         else
         {
@@ -173,7 +174,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
 
         LeaveScreen(time);
         forgotten = "";
-        sentRaw = cleanFastPathOnly ? candidateRaw : rawText.Trim();
+        sentRaw = candidateRaw;
         sent = TextMatch.NormalizeRows(sentRaw);
         return StabilizerAction.Translate(sentRaw);
     }

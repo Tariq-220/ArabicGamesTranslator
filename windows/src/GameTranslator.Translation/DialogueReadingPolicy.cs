@@ -7,5 +7,8 @@ public static class DialogueReadingPolicy {
   pipeline.MinimumStableMs=0;pipeline.DropOffscreenResults=false;
   pipeline.PendingLineLimit=latestOnly?1:SubtitlePipeline.MaxWaiting;
   pipeline.DialogueBlockOnly=ReadingModes.DialogueOnly(mode);
+  // Coalesce incomplete OCR rereads before they flood the translator, while complete sentences stay immediate.
+  pipeline.HoldWithoutPacks=pipeline.DialogueBlockOnly;
+  pipeline.CleanWait=120;pipeline.PackWait=240;
  }
 }
