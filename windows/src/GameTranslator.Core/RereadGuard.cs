@@ -9,7 +9,7 @@ public sealed class RereadGuard {
   if(last.Length>0&&now-seen<=1500&&text.Length<=400&&last.Length<=400){
    var before=Words(last);var after=Words(text);
    // Losing an unfinished tail shortly after a full reading is a common fade-out artifact.
-   if(now-seen<=650&&before.Length>=3&&after.Length>=2&&after.Length<before.Length&&!EndsSentence(text)&&IsPrefix(after,before))return last;
+   if(now-seen<=1200&&before.Length>=3&&after.Length>=2&&after.Length<=before.Length&&!EndsSentence(text)&&IsTruncatedPrefix(after,before))return last;
    // E.g. "a nice fresh day for flying" -> "anicefreshdayfornying".
    if(before.Length>=5&&after.Length>0&&after.Length<=before.Length-2&&after.Max(x=>x.Length)>=19&&after.Max(x=>x.Length)>=before.Max(x=>x.Length)+8){
     var a=Compact(last);var b=Compact(text);if(a.Length>=20&&Near(a,b))return last;
@@ -20,7 +20,12 @@ public sealed class RereadGuard {
  public void Reset(){last="";seen=0;}
  private static string[] Words(string s)=>s.Split((char[]?)null,StringSplitOptions.RemoveEmptyEntries).Select(t=>t.Trim('.',',','!','?','…','\"','\'',':',';').ToLowerInvariant()).Where(t=>t.Length>0).ToArray();
  private static bool EndsSentence(string s)=>s.TrimEnd().TrimEnd('\"','\'','”','’') is {Length:>0} end&&".!?…".Contains(end[^1]);
- private static bool IsPrefix(string[] small,string[] big)=>small.Select((word,i)=>word==big[i]).All(x=>x);
+ private static bool IsTruncatedPrefix(string[] small,string[] big){
+  if(small.Length>big.Length)return false;
+  for(int i=0;i<small.Length-1;i++)if(small[i]!=big[i])return false;
+  return big[small.Length-1].StartsWith(small[^1],StringComparison.Ordinal)&&
+   (small.Length<big.Length||small[^1].Length<big[small.Length-1].Length);
+ }
  private static string Compact(string s)=>new(s.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
  private static bool Near(string a,string b){
   var limit=Math.Max(a.Length,b.Length)/10;if(Math.Abs(a.Length-b.Length)>limit)return false;

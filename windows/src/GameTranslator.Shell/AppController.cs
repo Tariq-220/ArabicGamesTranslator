@@ -1029,7 +1029,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         // Automatic interface inference is paused in the recovery build: dialogue owns the translator.
         built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode);
-        built.GuardDamagedRereads=false; // Do not return before feeding the stabilizer when OCR temporarily loses a word.
+        built.GuardDamagedRereads=settings.SourceLanguage=="en"; // Retained readings now feed the stabilizer; no early return.
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
 
         LastLineMetrics = null;

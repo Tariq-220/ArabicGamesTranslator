@@ -223,7 +223,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             }
             currentRead = new ReadInfo(captured, ocrMs, reading.Confidence);
             var guardedText=GuardDamagedRereads?rereadGuard.Filter(reading.Text,now()):reading.Text;
-            if(GuardDamagedRereads&&guardedText!=reading.Text)return;
+            // Feed the retained complete reading: returning here used to starve retry/clear state.
             var action = stabilizer.Feed(guardedText);
             // Ekranda duran kötü yeniden okuma her karede not edilir; günlüğe bir kez yazılır.
             if (stabilizer.Note is { } note && note != lastNote)

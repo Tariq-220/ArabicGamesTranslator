@@ -47,7 +47,7 @@ public sealed class WindowsOcrReader : ITextReader
         var raw = RecognizeOnce(image);
         if (image.Width < 40 || image.Height < 40) return raw;
         var whiteText = RecognizeOnce(TextImage.WhiteTextOnly(image));
-        return OcrNoise.Score(whiteText.Text)>OcrNoise.Score(raw.Text)?SpeakerMerge.WithSpeakerFrom(whiteText,raw):SpeakerMerge.WithSpeakerFrom(raw,whiteText);
+        return OcrPassSelection.Choose(raw,whiteText);
     }
 
     private Reading RecognizeOnce(Frame image)
