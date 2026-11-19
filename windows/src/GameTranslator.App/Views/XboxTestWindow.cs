@@ -495,7 +495,10 @@ public sealed class XboxTestWindow : Window
     {
         // Video frames are retained for picking regions; they do not change this status panel.
         if(windowClosed||e.PropertyName==nameof(AppController.LastFrame))return;
-        if(e.PropertyName==nameof(AppController.IsRunning)&&controller.IsRunning)activeUpdateDownload?.Cancel();
+        if(e.PropertyName==nameof(AppController.IsRunning)){
+            if(controller.IsRunning)activeUpdateDownload?.Cancel();
+            else if(readyInstaller==null&&controller.AutoUpdateEnabled)_=CheckForUpdate();
+        }
         if(uiRefresh==null){
             uiRefresh=new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background){Interval=TimeSpan.FromMilliseconds(250)};
             uiRefresh.Tick+=(_,_)=>{uiRefresh.Stop();if(!windowClosed)RenderStatus();};
@@ -511,10 +514,6 @@ public sealed class XboxTestWindow : Window
     }
     private void RenderStatus()
     {
-        if(!controller.IsRunning) {
-            if(controller.IsRunning)activeUpdateDownload?.Cancel();
-            else if(readyInstaller==null&&controller.AutoUpdateEnabled)_=CheckForUpdate();
-        }
         RefreshConnectionInfo();
         UpdateConnectionBar();
         start.Content = controller.IsRunning ? "■ إيقاف الترجمة" : "▶ بدء الترجمة";
