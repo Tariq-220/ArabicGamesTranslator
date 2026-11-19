@@ -55,7 +55,7 @@ public final class MainActivity extends Activity {
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.14",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · 0.3.16",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إعدادات الربط ▾",()->{connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);if(connectionPanel.getVisibility()==View.VISIBLE)host.requestFocus();});
@@ -67,7 +67,7 @@ public final class MainActivity extends Activity {
   input=new Spinner(this);refreshInputs();panel.addView(input);hdmiStatus=label("اختر HDMI ثم عرض اللعبة.",12);panel.addView(hdmiStatus);
   button(panel,"عرض اللعبة عبر HDMI",this::requestPlayback);
   button(panel,"إيقاف عرض HDMI والرجوع للإعدادات",this::stopPlayback);
-  button(panel,"تقرير العرض — عرض ونسخ",()->{String report="Google TV 0.3.14 / Android "+Build.VERSION.SDK_INT+"\n"+getPreferences(0).getString("displayTrace","");new AlertDialog.Builder(this).setTitle("تقرير العرض — دون بيانات الربط").setMessage(report).setPositiveButton("نسخ",(d,w)->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("تقرير العرض",report));}).setNegativeButton("إغلاق",null).show();});
+  button(panel,"تقرير العرض — عرض ونسخ",()->{String report="Google TV 0.3.16 / Android "+Build.VERSION.SDK_INT+"\n"+getPreferences(0).getString("displayTrace","");new AlertDialog.Builder(this).setTitle("تقرير العرض — دون بيانات الربط").setMessage(report).setPositiveButton("نسخ",(d,w)->{((android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("تقرير العرض",report));}).setNegativeButton("إغلاق",null).show();});
   button(panel,"إعادة ضبط العرض داخل التطبيق",()->{stopPlayback();hdmiStatus.setText("أُعيد ضبط العرض. اختر مدخل HDMI الصحيح ثم اضغط عرض اللعبة.");});
   audio=new CheckBox(this);audio.setText("تشغيل صوت HDMI من الشاشة");audio.setTextSize(13);audio.setChecked(getPreferences(0).getBoolean("hdmiAudio",true));audio.setOnCheckedChangeListener((b,on)->{getPreferences(0).edit().putBoolean("hdmiAudio",on).apply();restoreAudio();});panel.addView(audio);
   LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
