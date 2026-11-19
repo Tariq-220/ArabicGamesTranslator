@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 11,
+  "revision": 12,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -2166,6 +2166,41 @@
       "arabic": "اتركني وشأني الآن، وإلا أقسم أنني سأصرخ!",
       "reviewed": true,
       "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "and I thought I'd bring these guys over here,",
+      "arabic": "وفكرت أن أحضر هؤلاء الرجال إلى هنا،",
+      "reviewed": true,
+      "reason": "Exact English subtitle and visible scene reviewed in user video_20261119_213738.mp4; no fuzzy matching to incomplete OCR."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "see if you can use some help.",
+      "arabic": "لأرى إن كنتم تحتاجون إلى مساعدة.",
+      "reviewed": true,
+      "reason": "Exact English subtitle and visible scene reviewed in user video_20261119_213738.mp4; no fuzzy matching to incomplete OCR."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You call this place secure?",
+      "arabic": "وتسمي هذا المكان آمنًا؟",
+      "reviewed": true,
+      "reason": "Exact English subtitle and visible scene reviewed in user video_20261119_213738.mp4; no fuzzy matching to incomplete OCR."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Coño. You're all exposed out here.",
+      "arabic": "تبًا، أنتم مكشوفون تمامًا هنا.",
+      "reviewed": true,
+      "reason": "Exact English subtitle and visible scene reviewed in user video_20261119_213738.mp4; no fuzzy matching to incomplete OCR."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Listen, why don't we take all of this shit down to the station?",
+      "arabic": "اسمع، ما رأيكم أن ننقل كل هذه الأغراض إلى مركز الشرطة؟",
+      "reviewed": true,
+      "reason": "Exact English subtitle and visible scene reviewed in user video_20261119_213738.mp4; no fuzzy matching to incomplete OCR."
     }
   ],
   "ignored_sources": [
