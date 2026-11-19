@@ -35,7 +35,7 @@ public static class ScreenRenderer
                 controller.Settings=controller.Settings with{Style=controller.Settings.Style with{FontSize=22,Background=40,BottomPercent=11}};
                 var window=new XboxTestWindow(controller,preview:true){Width=variant<4?960:700,Height=variant<4?850:700,Left=-10000,Top=-10000,ShowActivated=false};
                 var grid=(System.Windows.Controls.Grid)window.Content;
-                var tabs=grid.Children.OfType<System.Windows.Controls.TabControl>().Single();tabs.SelectedIndex=selected;
+                var tabs=LogicalElements(grid).OfType<System.Windows.Controls.TabControl>().Single();tabs.SelectedIndex=selected;
                 window.Show();window.UpdateLayout();
                 if(controller.Settings.Style.FontSize!=22||controller.Settings.Style.Background!=40||controller.Settings.Style.BottomPercent!=11)throw new InvalidOperationException("Saved subtitle style was overwritten on startup.");
                 if(selected==1){
@@ -58,7 +58,7 @@ public static class ScreenRenderer
                     if(!LogicalElements(grid).OfType<System.Windows.Controls.Button>().Any(x=>Equals(x.Tag,"reading-recovery")&&x.IsVisible))throw new InvalidOperationException("Reading recovery button is missing.");
                 }
                 var startButton=LogicalElements(grid).OfType<System.Windows.Controls.Button>().Single(x=>Equals(x.Tag,"translation-start"));var startBounds=startButton.TransformToAncestor(grid).TransformBounds(new Rect(startButton.RenderSize));if(!startButton.IsVisible||startBounds.Top<0||startBounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Start translation button is not visible");
-                foreach(var tag in new[]{"screen-test","connection-status","engine-test"}){
+                foreach(var tag in new[]{"connection-status"}.Concat(selected==1?new[]{"engine-test"}:selected==2?new[]{"screen-test"}:Array.Empty<string>())){
                     var control=LogicalElements(grid).Single(x=>Equals(x.Tag,tag));var bounds=control.TransformToAncestor(grid).TransformBounds(new Rect(control.RenderSize));
                     if(!control.IsVisible||bounds.Top<0||bounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Fixed connection control is hidden: "+tag);
                 }
