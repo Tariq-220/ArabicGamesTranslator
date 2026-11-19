@@ -128,7 +128,7 @@ public sealed class XboxTestWindow : Window
         show.Checked += (_, _) => {controller.DesktopOverlayEnabled=true;DesktopSubtitleOverlay.IsOverlayEnabled = true;};
         show.Unchecked += (_, _) => {controller.DesktopOverlayEnabled=false;DesktopSubtitleOverlay.IsOverlayEnabled = false;};
         root.Children.Insert(root.Children.IndexOf(pick)+1,show);
-        var recover=Button("إصلاح القراءة — استعادة الحوار واستبعاد الأزرار",()=>{controller.ResetDialogueReading();show.IsChecked=false;top.Value=70;readLeft.Value=12;readRight.Value=78;ApplyCrop();source.Text="";translated.Text="";DesktopSubtitleOverlay.Clear();status.Text="استُعيدت قراءة الحوار. اختر نافذة اللعبة ثم اضغط بدء الترجمة؛ مفاتيحك ونماذجك محفوظة.";});recover.Tag="reading-recovery";
+        var recover=Button("إصلاح القراءة — استعادة الحوار واستبعاد الأزرار",()=>{controller.ResetDialogueReading();show.IsChecked=false;top.Value=62;readLeft.Value=10;readRight.Value=90;ApplyCrop();source.Text="";translated.Text="";DesktopSubtitleOverlay.Clear();status.Text="استُعيدت قراءة الحوار. اختر نافذة اللعبة ثم اضغط بدء الترجمة؛ مفاتيحك ونماذجك محفوظة.";});recover.Tag="reading-recovery";
         root.Children.Insert(root.Children.IndexOf(pick)+2,recover);root.Children.Add(controls);
         root.Children.Add(Label("2 · محرك الترجمة — لا يوجد رجوع صامت إلى مترجم أضعف عند الخطأ"));
         root.Children.Add(Label("اسم اللعبة للسياق — غيّره قبل بدء القراءة"));

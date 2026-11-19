@@ -999,13 +999,13 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
 
     private SubtitleStyle PresentationStyle => settings.Style with {Placement=SubtitlePlacement.Fixed};
-    public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??new(.70,.97,.12,.78);
+    public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??ReadingModes.Region("dialogue");
     public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set {if(value!="dialogue"&&ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",settings.Region);store.Save("ReadingContentMode",value);}}
     public void PrepareDialogueReading(){
         if(!store.Load<bool>("DialogueRecoveryV29")){ResetDialogueReading();store.Save("DialogueRecoveryV29",true);store.Save("DialogueRepairV24",true);}
         else if(ReadingContentMode!="dialogue"){var region=DialogueCaptureRegion;store.Save("ReadingContentMode","dialogue");Settings=settings with{Region=region};}
     }
-    public void ResetDialogueReading(){Stop();store.Save("ReadingContentMode","dialogue");DesktopOverlayEnabled=false;Settings=settings with{Region=new CropRegion(.70,.97,.12,.78)};}
+    public void ResetDialogueReading(){Stop();store.Save("ReadingContentMode","dialogue");var region=ReadingModes.Region("dialogue");store.Save("DialogueCaptureRegion",region);DesktopOverlayEnabled=false;Settings=settings with{Region=region};}
 
     public string DialogueGame {
      get {var game=store.Load<string>("DialogueGame");if(store.Load<string>("PrimaryGameMigration")!="gta6-v1"){if(string.IsNullOrWhiteSpace(game)||DialogueProfile.Rdr2(game))game="Grand Theft Auto VI";store.Save("DialogueGame",game);store.Save("PrimaryGameMigration","gta6-v1");}return string.IsNullOrWhiteSpace(game)?"Grand Theft Auto VI":game;}
