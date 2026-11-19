@@ -3,27 +3,27 @@
   "files": [
     {
       "platform": "phone",
-      "version": "0.4.14",
-      "versionCode": 26,
+      "version": "0.4.15",
+      "versionCode": 27,
       "package": "dev.arabicgames.phone",
-      "path": "phone/0.4.14/ArabicGames-Phone-0.4.14-arm64.apk",
-      "name": "ArabicGames-Phone-0.4.14-arm64.apk",
-      "bytes": 46283758,
-      "sha256": "20a461e0b02eb1b5ebf76383d3c823ff38a12de32ef2972bae8f99875a3740e0",
+      "path": "phone/0.4.15/ArabicGames-Phone-0.4.15-arm64.apk",
+      "name": "ArabicGames-Phone-0.4.15-arm64.apk",
+      "bytes": 46302620,
+      "sha256": "3b1b568b99091d0dbface439d9a41299e21fde799f95dddf1309eb97892a8d5d",
       "certificate_sha256": "8bfb9b64929ed8a0565eaf89ab61469ef91370ce968e5a99873fa437d62e02ca",
-      "source": "e6755d4769d0ae64470f53c551992c6566bd47ac"
+      "source": "ae19275"
     },
     {
       "platform": "tv",
-      "version": "0.3.13",
-      "versionCode": 20,
+      "version": "0.3.18",
+      "versionCode": 25,
       "package": "dev.arabicgames.tv",
-      "path": "tv/0.3.13/ArabicGames-TV-0.3.13.apk",
-      "name": "ArabicGames-TV-0.3.13.apk",
-      "bytes": 114676,
-      "sha256": "97d56291f900243bde3fef35055577334ddca810ee04908a290d619b32caf481",
+      "path": "tv/0.3.18/ArabicGames-TV-0.3.18.apk",
+      "name": "ArabicGames-TV-0.3.18.apk",
+      "bytes": 123732,
+      "sha256": "6e45bed69ee4bd38c7f64546243bc41a4252de2e5396df9244a1253a28a3f65f",
       "certificate_sha256": "8bfb9b64929ed8a0565eaf89ab61469ef91370ce968e5a99873fa437d62e02ca",
-      "source": "77861cb076bdd45cbd9a98f70857150418fd7584"
+      "source": "ae19275"
     }
   ]
 }
