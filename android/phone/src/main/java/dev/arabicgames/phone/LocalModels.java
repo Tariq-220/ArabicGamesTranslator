@@ -93,7 +93,8 @@ final class LocalModels {
    for(int i=0;i<s.files.length();i++){JSONObject f=s.files.getJSONObject(i);verify(new File(d,f.getString("name")),f);}
    this.model=model;long h=Ct2Native.INSTANCE.create(d.getAbsolutePath().getBytes(StandardCharsets.UTF_8),s.mode);if(h==0)throw new IOException("تعذر تحميل النموذج المحلي.");handle=new AtomicLong(h);
   }
-  String translate(String text)throws IOException {long h=handle.get();if(h==0)throw new IOException("المحرك متوقف.");byte[] result=Ct2Native.INSTANCE.translate(h,text.getBytes(StandardCharsets.UTF_8),(model.equals("jisr-saudi")?"ars":"ar").getBytes(StandardCharsets.UTF_8));if(result==null||result.length==0)throw new IOException("لم ينتج النموذج ترجمة.");String value=new String(result,StandardCharsets.UTF_8).trim();if(value.isEmpty())throw new IOException("ترجمة فارغة.");return value;}
+  String translate(String text)throws IOException {java.util.List<String> parts=CaptionQuality.sentences(text);StringBuilder out=new StringBuilder();for(String part:parts){if(out.length()>0)out.append(' ');out.append(translateOne(part));}return out.toString();}
+  private String translateOne(String text)throws IOException {long h=handle.get();if(h==0)throw new IOException("المحرك متوقف.");byte[] result=Ct2Native.INSTANCE.translate(h,text.getBytes(StandardCharsets.UTF_8),(model.equals("jisr-saudi")?"ars":"ar").getBytes(StandardCharsets.UTF_8));if(result==null||result.length==0)throw new IOException("لم ينتج النموذج ترجمة.");String value=new String(result,StandardCharsets.UTF_8).trim();if(value.isEmpty())throw new IOException("ترجمة فارغة.");return value;}
   public void close(){long h=handle.getAndSet(0);if(h!=0){Ct2Native.INSTANCE.cancel(h);Thread cleanup=new Thread(()->Ct2Native.INSTANCE.destroy(h),"local-model-close");cleanup.start();}}
  }
 }

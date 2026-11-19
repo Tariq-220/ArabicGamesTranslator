@@ -212,6 +212,8 @@ internal sealed class FakeServices : IAppServices
 
 public class AppControllerTests
 {
+    [Fact] public void Gta6DefaultMigratesOldChoiceOnceAndPreservesExplicitLaterChoices(){var store=new MemoryStore();store.Save("DialogueGame","Red Dead Redemption 2");using var controller=Make(store:store);Assert.Equal("Grand Theft Auto VI",controller.DialogueGame);controller.DialogueGame="Red Dead Redemption 2";Assert.Equal("Red Dead Redemption 2",controller.DialogueGame);}
+
     private static readonly RegisteredConsole Console =
         new("192.168.1.253", "PS5", Enumerable.Repeat((byte)0x31, 16).ToArray(), Enumerable.Repeat((byte)2, 16).ToArray());
 

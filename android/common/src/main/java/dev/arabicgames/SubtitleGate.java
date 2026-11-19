@@ -28,5 +28,6 @@ public final class SubtitleGate {
  public synchronized void retry() { candidate = ""; }
  public synchronized String cached(String text) { return cache.get(fingerprint(text)); }
  public synchronized void remember(String text, String arabic) { cache.put(fingerprint(text), arabic); }
+ public synchronized void forget(String text){cache.remove(fingerprint(text));}
  public synchronized int size() { return cache.size(); }
 }

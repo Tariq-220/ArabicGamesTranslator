@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 8,
+  "revision": 9,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -1662,6 +1662,356 @@
       "arabic": "كل اللي عليك تطير بطائرة دودو وتجيبها.",
       "reviewed": true,
       "reason": "Reviewed meaning/idiom from November 19 comparison log; exact game-scoped source, no fuzzy OCR reconstruction."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yeah. Hey, I used to ride a little Daemon myself back in the day.",
+      "arabic": "إيه، حتى أنا كنت أركب دراجة دايمون زمان.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Ape bars, all that shit, it was badass.",
+      "arabic": "مقود مرتفع وكل هالحركات، كانت رهيبة.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "It doesn't take seven of you to carry a bag. Bring it out.",
+      "arabic": "ما يحتاج سبعة منكم لحمل حقيبة. أخرجوها.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Jason! Be cool man, I will go and get it",
+      "arabic": "جيسون! اهدأ يا رجل، سأذهب وأحضره.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You wanna clue me in, maybe fuckin' help me out here?",
+      "arabic": "ممكن تفهمني وش السالفة وتساعدني هنا، اللعنة؟",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Time to put you down...",
+      "arabic": "حان وقت القضاء عليك…",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Find Donnie",
+      "arabic": "اعثر على دوني.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Rescue Donnie again",
+      "arabic": "أنقذ دوني مجددًا.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Untie Donnie",
+      "arabic": "فك وثاق دوني.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Escape with Donnie",
+      "arabic": "اهرب مع دوني.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hold off the Final Chapter",
+      "arabic": "تصدَّ لفاينل تشابتر.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hold oft the Final Chapter",
+      "arabic": "تصدَّ لفاينل تشابتر.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Grab a bike and catch up to Donnie",
+      "arabic": "اركب دراجة والحق بدوني.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "No shit!",
+      "arabic": "لا تقول!",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "One down.",
+      "arabic": "تخلّصنا من واحد.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Floor that fuckin thing!",
+      "arabic": "اضغط دواسة الوقود للآخر، اللعنة!",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Alright, Il catch yoU on the other side",
+      "arabic": "حسنًا، أراك في الجهة الأخرى.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Alright, I'll catch you on the other side",
+      "arabic": "حسنًا، أراك في الجهة الأخرى.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Here, help me screw in the other two legs.",
+      "arabic": "ساعدني هنا في تثبيت الرجلين الأخريين بالبراغي.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Help build the coffee table",
+      "arabic": "ساعد في تجميع طاولة القهوة.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Oh, a hex key, that's cute.",
+      "arabic": "أوه، مفتاح ألن… لطيف.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Technique? Pfft.",
+      "arabic": "تقنية؟ هه.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Bullshit, you're using shorter screws or something.",
+      "arabic": "كلام فارغ، أنت تستخدم براغي أقصر أو شيئًا من هذا القبيل.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "No, my hand cramped.",
+      "arabic": "لا، تشنجت يدي.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Now we put on the top.",
+      "arabic": "الآن نضع القطعة العلوية.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Know what? That checks out.",
+      "arabic": "تعرف؟ كلامك منطقي.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "These aren't on right.",
+      "arabic": "هذه ليست مركّبة بشكل صحيح.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "This thing beat my ass, Jay",
+      "arabic": "هالشيء بهذلني يا جاي.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Now, we just... rotate these fuckers, and reattach.",
+      "arabic": "الآن ندوّر هالقطع اللعينة ونعيد تركيبها.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Now just the top.",
+      "arabic": "بقيت القطعة العلوية فقط.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Now it's just the glass.",
+      "arabic": "بقي السطح الزجاجي فقط.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Pick up the glass top",
+      "arabic": "احمل السطح الزجاجي.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You still do all that dry firing stuff?",
+      "arabic": "ما زلت تتدرّب على إطلاق النار دون ذخيرة؟",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hey, safe direction, remember?",
+      "arabic": "انتبه لاتجاه فوهة السلاح؛ وجّهها إلى مكان آمن، تذكر؟",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hmm",
+      "arabic": "همم.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "[laughs] Ouch.",
+      "arabic": "[يضحك] آخ!",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "[gun cocks]",
+      "arabic": "[صوت تلقيم السلاح]",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "lgun cocks]",
+      "arabic": "[صوت تلقيم السلاح]",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "pages turn)",
+      "arabic": "[صوت تقليب الصفحات]",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "pages turn]",
+      "arabic": "[صوت تقليب الصفحات]",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "ARMY",
+      "arabic": "الجيش",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "SAVE",
+      "arabic": "حفظ",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "DELETE",
+      "arabic": "حذف",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "OVERWRITE",
+      "arabic": "استبدال الحفظ",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "EXAMINE",
+      "arabic": "تفحّص",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "All Caught up!",
+      "arabic": "أنت مطّلع على كل المستجدات!",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay. I'll get there when I can.",
+      "arabic": "حسنًا، سأصل عندما أستطيع.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Fieeca. Laguna Lane",
+      "arabic": "فليكا، لاغونا لين.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Mile Zero Air Station",
+      "arabic": "محطة مايل زيرو الجوية.",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Southwind",
+      "arabic": "ساوثويند",
+      "reviewed": true,
+      "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
     }
   ],
   "ignored_sources": [

@@ -40,6 +40,7 @@ public final class CaptureService extends Service {
  private boolean isLocal(){return engine!=null&&(AiPreferences.NATIVE.equals(engine.provider)||AiPreferences.LOCAL.equals(engine.provider));}
  private boolean localOcrAllowed(){return SystemClock.elapsedRealtime()-lastLocalOcr>=(isLocal()?LocalTiming.interval(this):200);}
  private final SubtitleGate gate=new SubtitleGate();
+ private String rejectedSource="";private long rejectedUntil;
  private AiPreferences.Config engine;
  private volatile LocalModels.Session localSession;private int localLoadEpoch=-1,modelGeneration;
  private final java.util.ArrayDeque<String> history=new java.util.ArrayDeque<>();
@@ -201,6 +202,7 @@ public final class CaptureService extends Service {
      if(reviewed!=null){localQueue.reset();Status.source=text;publish(text,reviewed,now,readDone,readDone,generation,"تصحيحك المعتمد — بدون طلب محرك");return;}
      String packed=GameNames.same(pack.game,AiPreferences.game(this))?pack.find(text):null;
      if(packed!=null&&!gate.alreadyShown(text)){localQueue.reset();Status.source=text;publish(text,packed,now,readDone,readDone,generation,"حزمة عربية: "+pack.game);return;}
+     if(readDone<rejectedUntil&&SubtitleGate.fingerprint(text).equals(rejectedSource)){releaseFrame(generation);return;}
      if(!gate.accept(text,readDone,isLocal()?LocalTiming.settle(this):180)){releaseFrame(generation);return;}
      Status.source=text;String known=gate.cached(text);
      if(known!=null){localQueue.reset();publish(text,known,now,readDone,readDone,generation,"ذاكرة الترجمة — "+(engine!=null&&engine.cloud()?engine.label():"محلي"));return;}
@@ -244,6 +246,7 @@ public final class CaptureService extends Service {
   try{
    if(!origin.startsWith("تصحيحك المعتمد"))arabic=CommunityCorrections.improve(this,AiPreferences.game(this),text,DialogueProfile.arabic(text,arabic,AiPreferences.game(this)));
    if(closed||generation!=epoch)return;
+   if(CaptionQuality.reject(text,arabic)){gate.forget(text);gate.retry();rejectedSource=SubtitleGate.fingerprint(text);rejectedUntil=SystemClock.elapsedRealtime()+1000;PipelineMetrics.rejected.incrementAndGet();Status.message="النموذج أعاد نصًا غير مكتمل الترجمة؛ لم يُعرض أو يُحفظ في الذاكرة. ستُعاد قراءة السطر.";return;}
    PipelineMetrics.published.incrementAndGet();gate.remember(text,arabic);gate.shown(text);lease.store(text,arabic,translated);Status.arabic=arabic;
    if(getSharedPreferences("reading",0).getBoolean("history",true))DialogueStore.get(this).add(engine==null?"":engine.game,getSharedPreferences("reading",0).getString("region","subtitles"),text,arabic,origin,readDone-captured,translated-readDone,translated-captured,inferenceMs,queueMs);
    String context=text+" → "+arabic;if(history.isEmpty()||!history.peekLast().equals(context)){history.addLast(context);while(history.size()>3)history.removeFirst();}

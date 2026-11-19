@@ -13,7 +13,7 @@ final class AiPreferences {
  static final String GOOGLE="google-gtx";
  static final String LOCAL="local",GEMINI="gemini",OPENAI="openai",DEEPL="deepl",LAN="lan";
  private static volatile Config session;
- static SharedPreferences prefs(Context c){return c.getSharedPreferences("translation",Context.MODE_PRIVATE);}
+ static SharedPreferences prefs(Context c){SharedPreferences p=c.getSharedPreferences("translation",Context.MODE_PRIVATE);if(!p.getBoolean("gta6DefaultMigrated",false)){String old=p.getString("game","");SharedPreferences.Editor e=p.edit().putBoolean("gta6DefaultMigrated",true);if(old.trim().isEmpty()||GameNames.key(old).equals("rdr2"))e.putString("game","Grand Theft Auto VI");e.apply();}return p;}
  static String defaultModel(String provider){return NATIVE.equals(provider)?"quickmt-en-ar":LOCAL.equals(provider)?"local":GOOGLE.equals(provider)?"google-gtx":LAN.equals(provider)?"quickmt":DEEPL.equals(provider)?"auto":OPENAI.equals(provider)?"gpt-5.4-mini":"gemini-3.5-flash-lite";}
  static String label(String provider){return NATIVE.equals(provider)?"محلي على الجوال":GOOGLE.equals(provider)?"Google — بدون مفتاح":LAN.equals(provider)?"نموذج على الكمبيوتر":DEEPL.equals(provider)?"DeepL":OPENAI.equals(provider)?"OpenAI":GEMINI.equals(provider)?"Gemini":"محلي";}
  static String provider(Context c){Config active=session;return active!=null?active.provider:prefs(c).getString("provider",LOCAL);}
@@ -31,7 +31,7 @@ final class AiPreferences {
  }
  static boolean canTranslate(Context c){return NATIVE.equals(provider(c))?LocalModels.runtime()&&LocalModels.installed(c,LocalModels.selected(c)):Status.modelReady||cloud(c);}
  static void selectGame(Context c,String game){prefs(c).edit().putString("game",game).apply();Config active=session;if(active!=null)session=new Config(active.provider,active.model,game,active.key,active.consent,active.fast,active.endpoint);}
- static String game(Context c){Config active=session;return active!=null?active.game:prefs(c).getString("game","Red Dead Redemption 2");}
+ static String game(Context c){Config active=session;return active!=null?active.game:prefs(c).getString("game","Grand Theft Auto VI");}
  static final class Config {
   final String provider,model,game,key,endpoint;final boolean consent,fast;
   Config(String p,String m,String g,String k,boolean approved){this(p,m,g,k,approved,false);}
@@ -43,7 +43,7 @@ final class AiPreferences {
  static Config read(Context c)throws Exception{
   Config active=session;if(active!=null)return active;
   SharedPreferences p=prefs(c);String provider=p.getString("provider",LOCAL);
-  return new Config(provider,p.getString(provider+".model",defaultModel(provider)),p.getString("game","Red Dead Redemption 2"),(LOCAL.equals(provider)||NATIVE.equals(provider))?"":key(c,provider),p.getBoolean("consent",false),p.getBoolean(DEEPL.equals(provider)?"deeplFast":"geminiFast",false),p.getString("lanAddress",""));
+  return new Config(provider,p.getString(provider+".model",defaultModel(provider)),p.getString("game","Grand Theft Auto VI"),(LOCAL.equals(provider)||NATIVE.equals(provider))?"":key(c,provider),p.getBoolean("consent",false),p.getBoolean(DEEPL.equals(provider)?"deeplFast":"geminiFast",false),p.getString("lanAddress",""));
  }
  private static synchronized SecretKey storageKey()throws Exception{
   KeyStore store=KeyStore.getInstance("AndroidKeyStore");store.load(null);

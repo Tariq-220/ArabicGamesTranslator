@@ -153,7 +153,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Label("المفتاح يُحفظ بتشفير Windows؛ الخانة الفارغة لا تعني حذفه. الاختبار يرسل جملة قصيرة وقد يحتسبها المزوّد ضمن حصتك."));
         root.Children.Add(Label("3 · ربط الشاشة — من تطبيق TCL اختر اكتشاف الجوال أو الكمبيوتر وحدد هذا اللابتوب. لا تحتاج كتابة العنوان؛ اللابتوب يبقى يعمل."));
         connectionInfo.Text=$"عنوان الكمبيوتر: {controller.ComputerAddress ?? "غير متصل"} | المنفذ: {controller.ServerPort}";
-        root.Children.Add(connectionInfo);root.Children.Add(Button("نسخ عنوان الكمبيوتر",()=>Clipboard.SetText(controller.ComputerAddress??"")));
+        root.Children.Add(connectionInfo);root.Children.Add(Label("الهوت سبوت مدعوم: وصّل الشاشة بنقطة اتصال الجوال أو Windows ثم اختر اكتشاف المصدر بالشاشة."));root.Children.Add(Button("نسخ عنوان الكمبيوتر",()=>Clipboard.SetText(controller.ComputerAddress??"")));
         root.Children.Add(Button("اكتشاف الشاشات وربط LG webOS",ShowTvConnections));
         root.Children.Add(Button("Monitor / شاشة ثانية — QR للجوال والتابلت",ShowSecondScreen));
         root.Children.Add(Button("Monitor — إظهار العربية على شاشة الكمبيوتر",()=>{show.IsChecked=true;DesktopSubtitleOverlay.IsOverlayEnabled=true;status.Text="الترجمة ستظهر فوق نافذة اللعب على اللابتوب. للشاشة المنفصلة امسح QR من الجوال أو التابلت.";}));

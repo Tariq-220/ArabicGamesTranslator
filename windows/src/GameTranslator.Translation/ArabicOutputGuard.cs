@@ -6,8 +6,8 @@ public static class ArabicOutputGuard {
  public static bool Reject(string source,string result){
   var words=Regex.Matches(result,@"[A-Za-z][A-Za-z’']*").Select(m=>m.Value).Where(w=>w.Length>=2).ToArray();
   if(words.Length==0)return false;
-  if(!Regex.IsMatch(result,@"\p{IsArabic}"))return !(words.All(w=>w.All(char.IsUpper)&&w.Length<=6)||OnlyProperName(source,result,words));
-  return words.Any(w=>!w.All(char.IsUpper)&&!IsName(source,w));
+  if(!Regex.IsMatch(result,@"\p{IsArabic}"))return !(words.All(w=>w.All(char.IsUpper)&&w.Length<=6&&Regex.Matches(source,@"[A-Za-z][A-Za-z’']*").Any(m=>m.Value==w))||OnlyProperName(source,result,words));
+  return words.Any(w=>!(w.All(char.IsUpper)&&Regex.Matches(source,@"[A-Za-z][A-Za-z’']*").Any(m=>m.Value==w))&&!IsName(source,w));
  }
  private static bool OnlyProperName(string source,string result,string[] words){
   if(words.Length>3||source.Trim()!=result.Trim())return false;
@@ -15,6 +15,7 @@ public static class ArabicOutputGuard {
   return words.All(w=>char.IsUpper(w[0])&&!common.Contains(w)&&!w.Contains('\''));
  }
  private static bool IsName(string source,string word){
+  if(new[]{"ouch","pfft","hmm","hello","okay","thanks"}.Contains(word.ToLowerInvariant()))return false;
   if(word is "iPhone" or "PlayStation" or "Xbox")return true;
   if(!char.IsUpper(word[0])||word.Length<2)return false;
   if(Regex.IsMatch(source,@"(?:^|\n)\s*"+Regex.Escape(word)+@"\s*:"))return true;

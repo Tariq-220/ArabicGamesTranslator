@@ -1,0 +1,8 @@
+package dev.arabicgames.phone;
+import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import static org.junit.Assert.*;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=35)
+public class GtaDefaultTest {
+ @Test public void migrateOldGameOnceWithoutTouchingProviderOrKeys(){var c=RuntimeEnvironment.getApplication();AiPreferences.clearSession();var p=c.getSharedPreferences("translation",0);p.edit().clear().putString("game","Red Dead Redemption 2").putString("provider","ct2-native").putString("secret-test","retained").commit();assertEquals("Grand Theft Auto VI",AiPreferences.game(c));assertEquals("retained",p.getString("secret-test",""));assertEquals("ct2-native",AiPreferences.provider(c));AiPreferences.selectGame(c,"Red Dead Redemption 2");assertEquals("Red Dead Redemption 2",AiPreferences.game(c));}
+ @Test public void latestReviewedPhrasesAreSharedButNotAppliedToAnotherGame(){var c=RuntimeEnvironment.getApplication();assertEquals("لا، تشنجت يدي.",CommunityCorrections.find(c,"GTA6","No, my hand cramped."));assertEquals("فك وثاق دوني.",CommunityCorrections.find(c,"GTA6","Untie Donnie"));assertNull(CommunityCorrections.find(c,"RDR2","No, my hand cramped."));}
+ @Test public void objectivesAndSaveScreenDoNotBecomeDialogue(){var c=RuntimeEnvironment.getApplication();assertEquals("Jason! Get me out!",CaptionNoise.clean(c,"Jason! Get me out!\nRescue Donnie again","GTA6"));assertEquals("Rescue Donnie again",CaptionNoise.clean(c,"Rescue Donnie again","GTA6"));assertEquals("",CaptionNoise.clean(c,"SAVE\nJason and LuCia make some home improvem\nDELETE X OVERWRITE","GTA6"));assertEquals("Just cover the plane!",CaptionNoise.clean(c,"Just cover the plane!\nHold off the Fnal Chapter","GTA6"));}
+}

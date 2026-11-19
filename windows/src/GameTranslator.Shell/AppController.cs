@@ -361,7 +361,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public Action<Uri> OpenInBrowser { get; set; } = _ => { };
 
     /// <summary>Samsung'da geliştirici modunda "Host PC IP" olarak yazılacak bu bilgisayarın adresi.</summary>
-    public string? ComputerAddress => LocalAddress(tv is { Host.Length: > 0 } target ? target.Host : "192.168.1.1");
+    public string? ComputerAddress => tv is { Host.Length: > 0 } target ? LocalAddress(target.Host) : LocalNetwork.PrivateAddresses().FirstOrDefault(LocalNetwork.IsHotspotHost)?.ToString() ?? LocalAddress("192.168.1.1");
 
     /// <summary>
     /// Geliştirici modu açık TV'de uygulamayı eksikse kurar, eskiyse günceller.
@@ -978,7 +978,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public void ResetDialogueReading(){Stop();store.Save("ReadingContentMode","dialogue");DesktopOverlayEnabled=false;Settings=settings with{Region=new CropRegion(.70,.97,.12,.78)};}
 
-    public string DialogueGame {get=>store.Load<string>("DialogueGame")??"Red Dead Redemption 2";set=>store.Save("DialogueGame",value);}
+    public string DialogueGame {
+     get {var game=store.Load<string>("DialogueGame");if(store.Load<string>("PrimaryGameMigration")!="gta6-v1"){if(string.IsNullOrWhiteSpace(game)||DialogueProfile.Rdr2(game))game="Grand Theft Auto VI";store.Save("DialogueGame",game);store.Save("PrimaryGameMigration","gta6-v1");}return string.IsNullOrWhiteSpace(game)?"Grand Theft Auto VI":game;}
+     set {store.Save("DialogueGame",value);store.Save("PrimaryGameMigration","gta6-v1");}
+    }
 
     public event Action<string,string>? TranslationRejected;
     public event Action<string,string>? LineDiscarded;

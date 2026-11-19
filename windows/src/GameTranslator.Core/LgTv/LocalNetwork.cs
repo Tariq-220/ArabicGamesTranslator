@@ -38,6 +38,8 @@ public static class LocalNetwork
         OperatingSystem.IsLinux() && (interfaceName.StartsWith("docker", StringComparison.Ordinal) || interfaceName.StartsWith("br-", StringComparison.Ordinal)
                                       || interfaceName.StartsWith("veth", StringComparison.Ordinal) || interfaceName.StartsWith("virbr", StringComparison.Ordinal));
 
+    public static bool IsHotspotHost(IPAddress address){var b=address.GetAddressBytes();return b.Length==4&&b[0]==192&&b[1]==168&&b[3]==1&&(b[2]==137||b[2]==43||b[2]==49);}
+
     public static bool IsPrivate(IPAddress address)
     {
         var b = address.GetAddressBytes();

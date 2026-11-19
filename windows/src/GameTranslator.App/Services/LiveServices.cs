@@ -18,7 +18,7 @@ public sealed class LiveServices : IAppServices
 {
     public static string? GeminiModel { get; set; }
     public static string? DeepLModelType {get;set;}
-    public static string DialogueGame { get; set; } = "Red Dead Redemption 2";
+    public static string DialogueGame { get; set; } = "Grand Theft Auto VI";
     public static string LastKeyCheckDetail { get; private set; } = "";
     public ITranslationModel Translation { get; } = new MarianModel();
 
