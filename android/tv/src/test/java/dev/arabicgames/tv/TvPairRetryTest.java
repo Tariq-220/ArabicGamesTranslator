@@ -4,9 +4,9 @@ import android.os.Looper;import android.widget.EditText;import java.net.*;import
 public class TvPairRetryTest {
  @Test public void TemporaryBusyResponseDoesNotAbortPairing()throws Exception{
   ServerSocket server=new ServerSocket(8787);AtomicReference<Throwable> failure=new AtomicReference<>();AtomicInteger requests=new AtomicInteger();
-  Thread responder=new Thread(()->{try{for(int n=0;n<2;n++)try(Socket peer=server.accept()){
-   peer.setSoTimeout(4000);BufferedReader in=new BufferedReader(new InputStreamReader(peer.getInputStream(),StandardCharsets.UTF_8));String first=in.readLine();assertTrue(first.contains("/pair?ticket="));String line;while((line=in.readLine())!=null&&!line.isEmpty()){}
-   requests.incrementAndGet();byte[] body=(n==0?"{}":"{\"code\":\"12345678\"}").getBytes(StandardCharsets.UTF_8);peer.getOutputStream().write(((n==0?"HTTP/1.1 503 Busy":"HTTP/1.1 200 OK")+"\r\nContent-Type: application/json\r\nContent-Length: "+body.length+"\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));peer.getOutputStream().write(body);peer.getOutputStream().flush();
+  Thread responder=new Thread(()->{try{for(int n=0;n<2;)try(Socket peer=server.accept()){
+   peer.setSoTimeout(4000);BufferedReader in=new BufferedReader(new InputStreamReader(peer.getInputStream(),StandardCharsets.UTF_8));String first=in.readLine();String line;while((line=in.readLine())!=null&&!line.isEmpty()){}if(first==null||!first.contains("/pair?ticket=")){peer.getOutputStream().write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".getBytes(StandardCharsets.US_ASCII));continue;}
+   requests.incrementAndGet();byte[] body=(n==0?"{}":"{\"code\":\"12345678\"}").getBytes(StandardCharsets.UTF_8);peer.getOutputStream().write(((n==0?"HTTP/1.1 503 Busy":"HTTP/1.1 200 OK")+"\r\nContent-Type: application/json\r\nContent-Length: "+body.length+"\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));peer.getOutputStream().write(body);peer.getOutputStream().flush();n++;
   }}catch(Throwable e){failure.set(e);}},"pair-retry-test");responder.start();
   try(var activity=Robolectric.buildActivity(MainActivity.class).setup()){
    MainActivity a=activity.get();ReflectionHelpers.callInstanceMethod(a,"pairPhone",ReflectionHelpers.ClassParameter.from(String.class,"127.0.0.1"));EditText code=ReflectionHelpers.getField(a,"code");
