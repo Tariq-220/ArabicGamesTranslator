@@ -158,7 +158,7 @@ public class SubtitlePipelineTests
     [Fact]
     public void CenterStripLinesAreReportedInRegionCoordinates()
     {
-        var reading = ReadingFallback.FirstLines(Image, candidate => candidate.Width == 64
+        var reading = ReadingFallback.FirstLines(Image, candidate => candidate.Width is 64 or 128
             ? Reading.Empty
             : new Reading([new TextLine("Go!", new TextBox(0, 0.5, 1, 1))]));
         var box = reading.Box!.Value;
