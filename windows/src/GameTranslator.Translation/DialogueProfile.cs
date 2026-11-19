@@ -11,7 +11,11 @@ public static class DialogueProfile {
  private static bool KnownHud(string text)=>Regex.IsMatch(text.Trim(),@"^(?:PHOTO (?:STUDIO|MODE)(?: [A-Z])? SELECT.*|(?:PRESS\s*[A-Z]|HOLD(?: [A-Z])? AND PRESS\s*[A-Z])\s*TO (?:FIGHT|HEAL)|GIRARDI ES9|MILITARY PISTOL|DAMAGE|ACCURACY|HANDLING|RANGE|HAT|W-14 RIFLE|KLOSE|SERVICE PISTOL|SAVE|DELETE|OVERWRITE|EXAMINE|CLOSE|REPORT A PROBLEM|DELETE\s*[X×]?\s*OVERWRITE|Magnifier\s+.*|LT|RT|[!|0-9 ]+)$",RegexOptions.IgnoreCase);
  public static bool IsObjective(string text)=>Regex.IsMatch(text.Trim(),@"^(?:Follow (?:Lucia|Brian|the manager)|FoUow Lucia|Find Donnie|Rescue Donnie again|Untie Donnie|Escape with Donnie|Hold o(?:ff|ft) the F(?:i)?nal Chapter|Grab a bike and catch up to Donnie|Help build the coffee table|Pick up the (?:glass|qlass) top|Go to the plane|Search the camp for Donnie|Find a way into the shack|Save Donnie|Head for the plane|Get in the sea plane|Escape the camp|Fly back to Brian.s marina)$",RegexOptions.IgnoreCase);
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
+ private static bool MapButton(string text)=>Regex.IsMatch(text.Trim(),@"^(?:[•·]\s*)?(?:S[Ee][TtIil1]|SET|SEI)\s*(?:0[1O]|[DO0]:?|DI|C\.)$|^RE(?:MOVE|HOVE)\s*(?:0[1O]|DI)$",RegexOptions.IgnoreCase);
+ private static bool VehicleStat(string text)=>Regex.IsMatch(text.Trim(),@"^(?:SPEED|ACCELERATION|ASPHALT(?: HANDLING)?|OFF[- ]ROAD(?: HANDLING)?|STRENGTH|RATING|HANDLING)$",RegexOptions.IgnoreCase);
  public static Reading DialogueOnly(Reading reading,TextBox area,string game){
+  bool vehicleMenu=reading.Lines.Count(line=>VehicleStat(line.Text))>=3;
+  reading=new Reading(reading.Lines.Where(line=>!MapButton(line.Text)&&(!vehicleMenu||!VehicleStat(line.Text))));
   if(reading.Lines.Any(line=>Regex.IsMatch(line.Text,@"^(?:SAVE|DELETE\s*[X×]?\s*OVERWRITE)$",RegexOptions.IgnoreCase)))reading=new Reading(reading.Lines.Where(line=>!Regex.IsMatch(line.Text,@"^Jason and Lu+c?ia make some ho.*",RegexOptions.IgnoreCase)));
   reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)&&!KnownHud(line.Text)));
   // Mission objectives can remain below the changing dialogue. Do not let the lowest static block win.
