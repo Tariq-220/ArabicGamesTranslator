@@ -1002,7 +1002,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??new(.70,.97,.12,.78);
     public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set {if(value!="dialogue"&&ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",settings.Region);store.Save("ReadingContentMode",value);}}
     public void PrepareDialogueReading(){
-        if(!store.Load<bool>("DialogueRepairV24")){ResetDialogueReading();store.Save("DialogueRepairV24",true);}
+        if(!store.Load<bool>("DialogueRecoveryV29")){ResetDialogueReading();store.Save("DialogueRecoveryV29",true);store.Save("DialogueRepairV24",true);}
         else if(ReadingContentMode!="dialogue"){var region=DialogueCaptureRegion;store.Save("ReadingContentMode","dialogue");Settings=settings with{Region=region};}
     }
     public void ResetDialogueReading(){Stop();store.Save("ReadingContentMode","dialogue");DesktopOverlayEnabled=false;Settings=settings with{Region=new CropRegion(.70,.97,.12,.78)};}
@@ -1026,9 +1026,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):DialogueProfile.DialogueLane(reading,area,gameProfile);
-        built.ReadingObserved+=(reading,area)=>ObserveInterface(built,reading,area,gameProfile);built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        // Automatic interface inference is paused in the recovery build: dialogue owns the translator.
+        built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode);
-        built.GuardDamagedRereads=settings.SourceLanguage=="en";
+        built.GuardDamagedRereads=false; // Do not return before feeding the stabilizer when OCR temporarily loses a word.
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
 
         LastLineMetrics = null;

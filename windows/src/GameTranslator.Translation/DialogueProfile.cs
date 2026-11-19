@@ -80,7 +80,7 @@ public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<s
  public async Task<string> TranslateAsync(string text,CancellationToken token=default){
   if(validateArabic&&text==rejectedSource&&DateTimeOffset.UtcNow<retryAfter)throw new TranslatorException(TranslatorStatus.EngineFailed);
   var result=CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(text,token),game));
-  if(validateArabic&&ArabicOutputGuard.Reject(text,result)){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
+  if(validateArabic&&ArabicOutputGuard.RejectUnusable(text,result)){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
   return result;
  }
  public bool Prefetches=>inner.Prefetches;

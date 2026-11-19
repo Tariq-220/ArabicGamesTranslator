@@ -209,7 +209,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         var area = new TextBox(region.Left, region.Top, region.Right, region.Bottom);
         ReadingObserved?.Invoke(raw,area);
         var filtered=ReadingFilter?.Invoke(raw,area)??raw;
-        var reading = DialogueBlockOnly?filtered.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area):filtered.WithoutOcrNoise();
+        var reading = DialogueBlockOnly?filtered.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area):filtered.WithoutButtonPrompts().WithoutOcrNoise();
 
         if(SourceFilter is { } filter)reading=new Reading(reading.Lines.Select(line=>line with {Text=filter(line.Text)}));
         Action? after = null;

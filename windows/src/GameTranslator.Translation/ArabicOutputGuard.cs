@@ -3,9 +3,18 @@ using System.Text.RegularExpressions;
 namespace GameTranslator.Translation;
 /// <summary>Reject untranslated prose, while retaining speaker names, acronyms and product names.</summary>
 public static class ArabicOutputGuard {
+ public static bool RejectUnusable(string source,string result){
+  if(string.IsNullOrWhiteSpace(result)||Degenerate(result))return true;
+  if(!Reject(source,result))return false;
+  // A residual name/word is a quality defect, not a reason to hide the entire Arabic caption.
+  int arabic=result.Count(c=>char.IsLetter(c)&&c>='\u0600'&&c<='\u06ff');
+  int latin=result.Count(c=>c is >= 'a' and <= 'z' or >= 'A' and <= 'Z');
+  return arabic==0||latin>=arabic;
+ }
+ private static bool Degenerate(string result)=>Regex.IsMatch(result,@"(?i)(?:\b([a-z])\b[\s.,•]*)\1(?:[\s.,•]+\1){4,}")||Regex.IsMatch(result,@"(?:^|\s)([\p{L}]{2,})(?:\s+\1){5,}(?:\s|$)");
  public static bool Reject(string source,string result){
   // Degenerate decoding can repeat single letters, which the prose-token check below excludes.
-  if(Regex.IsMatch(result,@"(?i)(?:\b([a-z])\b[\s.,•]*)\1(?:[\s.,•]+\1){4,}"))return true;
+  if(Degenerate(result))return true;
   var words=Regex.Matches(result,@"[A-Za-z][A-Za-z’']*").Select(m=>m.Value).Where(w=>w.Length>=2).ToArray();
   if(words.Length==0)return false;
   if(!Regex.IsMatch(result,@"\p{IsArabic}"))return !(words.All(w=>w.All(char.IsUpper)&&w.Length<=6&&Regex.Matches(source,@"[A-Za-z][A-Za-z’']*").Any(m=>m.Value==w))||OnlyProperName(source,result,words));
