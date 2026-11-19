@@ -205,8 +205,8 @@ public sealed class XboxTestWindow : Window
         var ambient=new Border{BorderBrush=new SolidColorBrush(Color.FromArgb(110,160,210,240)),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(22),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
         shell.Children.Add(ambient);
         var actions=new WrapPanel{Margin=new Thickness(0,0,0,10)};
-        actions.Children.Add(start);
-        var quickTest=Button("اختبار العربية على الشاشة",()=>{controller.SendTestSubtitle();status.Text="أُرسلت جملة اختبار للربط فقط. لترجمة اللعبة اضغط بدء الترجمة.";});quickTest.Tag="screen-test";
+        actions.Children.Add(start);actions.Children.Add(testEngine);
+        var quickTest=Button("اختبار العربية على الشاشة",()=>{controller.SendTestSubtitle();status.Text="أُرسلت جملة اختبار للربط فقط. لترجمة اللعبة اضغط بدء الترجمة.";});quickTest.Tag="screen-test";actions.Children.Add(quickTest);
         actions.Children.Add(Button("خطوات التفعيل",ShowActivationSteps));actions.Children.Add(updateButton);
         Grid.SetRow(actions,1);shell.Children.Add(actions);
         // The old controls row owned start; it is detached before reparenting below.
@@ -215,8 +215,8 @@ public sealed class XboxTestWindow : Window
             var content=new StackPanel{Margin=new Thickness(8)};
             string instruction=from==sourceAt?"١. افتح Remote Play واختر نافذة اللعبة. تأكد أن الحوار الإنجليزي ظاهر قبل المتابعة.":from==engineAt?"٢. اختر المحرك واللعبة، نزّل النموذج المحلي أو احفظ مفتاح الخدمة، ثم اختبر المحرك هنا.":from==screenAt?"٣. اربط الشاشة ثم أرسل جملة الاختبار. إذا ظهرت العربية يمكنك بدء الترجمة.":"٤. إعدادات اختيارية: عدّل حجم الخط والخلفية ومكان النص. لا تحتاج إعادة الإعداد كل مرة.";
             content.Children.Add(Label(instruction,16));
-            if(from==engineAt)content.Children.Add(testEngine);
-            if(from==screenAt)content.Children.Add(quickTest);
+
+
             for(int n=from;n<until;n++){
                 if(n==cropAt){
                     var advanced=new StackPanel();
@@ -282,6 +282,11 @@ public sealed class XboxTestWindow : Window
             start.IsEnabled = false;
             try
             {
+                if(IsLocalModel){
+                    status.Text="جارٍ فحص جاهزية المحرك المحلي… ستظهر نتيجة الاتصال خلال ثوانٍ.";
+                    try{await controller.SessionTranslator!.TranslateAsync("Hello. How are you?");}
+                    catch(Exception error){status.Text=LocalError(error);return;}
+                }
                 controller.Settings = controller.Settings with
                 {
                     SourceLanguage = "en", TargetLanguage = "ar", VideoSource = DirectPs5?VideoSourceType.RemotePlay:VideoSourceType.DesktopScreen,

@@ -58,7 +58,7 @@ public static class ScreenRenderer
                     if(!LogicalElements(grid).OfType<System.Windows.Controls.Button>().Any(x=>Equals(x.Tag,"reading-recovery")&&x.IsVisible))throw new InvalidOperationException("Reading recovery button is missing.");
                 }
                 var startButton=LogicalElements(grid).OfType<System.Windows.Controls.Button>().Single(x=>Equals(x.Tag,"translation-start"));var startBounds=startButton.TransformToAncestor(grid).TransformBounds(new Rect(startButton.RenderSize));if(!startButton.IsVisible||startBounds.Top<0||startBounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Start translation button is not visible");
-                foreach(var tag in new[]{"connection-status"}.Concat(selected==1?new[]{"engine-test"}:selected==2?new[]{"screen-test"}:Array.Empty<string>())){
+                foreach(var tag in new[]{"connection-status","engine-test","screen-test"}){
                     var control=LogicalElements(grid).Single(x=>Equals(x.Tag,tag));var bounds=control.TransformToAncestor(grid).TransformBounds(new Rect(control.RenderSize));
                     if(!control.IsVisible||bounds.Top<0||bounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Fixed connection control is hidden: "+tag);
                 }

@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 10,
+  "revision": 11,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -2075,6 +2075,97 @@
       "arabic": "لا ترمش.",
       "reviewed": true,
       "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You think I'm playing? Leave!",
+      "arabic": "تظنني أمزح؟ ارحل!",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You think playing? Leave!",
+      "arabic": "تظنني أمزح؟ ارحل!",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Easy hear ya",
+      "arabic": "هون عليك، فهمتك.",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Ugh. rude.",
+      "arabic": "يا للوقاحة!",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Uhm no fucking thank you",
+      "arabic": "آه، لا، شكرًا لك!",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Need something?",
+      "arabic": "هل تحتاج شيئًا؟",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Yo. what you doing over there?",
+      "arabic": "يا أنت، ماذا تفعل هناك؟",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You need to get the fuck away:",
+      "arabic": "ابتعد من هنا حالًا!",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Okay What's your mental problem? Seriously?",
+      "arabic": "حسنًا، ما مشكلتك؟ أأنت جاد؟",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "You got some real balls on you, huh? You got a problem?",
+      "arabic": "أنت جريء فعلًا، أليس كذلك؟ هل لديك مشكلة؟",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "That motherfucker gonna transform into a bat when the clock strikes one but",
+      "arabic": "سيتحول ذلك الوغد إلى خفاش عندما تدق الساعة الواحدة، لكن...",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What the hell. get back here. asshole!",
+      "arabic": "ما هذا؟ عد إلى هنا أيها الأحمق!",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Leave me alone right now. or I swear. rll fucking scream.",
+      "arabic": "اتركني وشأني الآن، وإلا أقسم أنني سأصرخ!",
+      "reviewed": true,
+      "reason": "Exact phrase reviewed from the supplied 0.4.30 log; game-scoped, no fuzzy completion."
     }
   ],
   "ignored_sources": [
