@@ -310,7 +310,7 @@ public sealed class XboxTestWindow : Window
         };
         Closed += (_, _) =>
         {
-            updateCancel.Cancel();
+            windowClosed=true;uiRefresh?.Stop();updateCancel.Cancel();
             controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
             controller.PropertyChanged -= Changed; DesktopSubtitleOverlay.Clear(); controller.Dispose(); comparison.DisposeAsync().AsTask().GetAwaiter().GetResult();
         };
@@ -488,13 +488,34 @@ public sealed class XboxTestWindow : Window
         bool connected=controller.TvClients>0;connectionBar.Background=new SolidColorBrush(testingKey?Color.FromRgb(255,226,154):engineTestPassed&&connected?Color.FromRgb(141,231,182):connected?Color.FromRgb(173,216,255):Color.FromRgb(227,232,242));connectionBar.Foreground=new SolidColorBrush(Color.FromRgb(18,34,48));connectionBar.FontWeight=FontWeights.Bold;connectionBar.Padding=new Thickness(10,6,10,6);
         connectionBar.Text=$"المحرك: {engineState} | الشاشة: {(controller.TvClients>0 ? "متصلة ("+controller.TvClients+")" : "غير متصلة")} | الترجمة: {(controller.IsRunning ? "تعمل" : "متوقفة")}\nآخر اختبار: {check}";connectionBar.ToolTip=lastEngineCheck;
     }
+    private System.Windows.Threading.DispatcherTimer? uiRefresh;
+    private bool windowClosed,connectionReadBusy;
+    private long nextConnectionRead;
     private void Changed(object? sender, PropertyChangedEventArgs e)
     {
-        if(e.PropertyName==nameof(AppController.IsRunning)) {
+        // Video frames are retained for picking regions; they do not change this status panel.
+        if(windowClosed||e.PropertyName==nameof(AppController.LastFrame))return;
+        if(e.PropertyName==nameof(AppController.IsRunning)&&controller.IsRunning)activeUpdateDownload?.Cancel();
+        if(uiRefresh==null){
+            uiRefresh=new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background){Interval=TimeSpan.FromMilliseconds(250)};
+            uiRefresh.Tick+=(_,_)=>{uiRefresh.Stop();if(!windowClosed)RenderStatus();};
+        }
+        if(!uiRefresh.IsEnabled)uiRefresh.Start();
+    }
+    private async void RefreshConnectionInfo(){
+        if(connectionReadBusy||Environment.TickCount64<nextConnectionRead)return;
+        connectionReadBusy=true;nextConnectionRead=Environment.TickCount64+5000;
+        try{var address=await System.Threading.Tasks.Task.Run(()=>controller.ComputerAddress);if(!windowClosed)connectionInfo.Text=$"عنوان الكمبيوتر: {address??"غير متصل"} | المنفذ: {controller.ServerPort} | شاشات: {controller.TvClients}";}
+        catch{ /* A network enumeration failure must not block the UI or translation. */ }
+        finally{connectionReadBusy=false;}
+    }
+    private void RenderStatus()
+    {
+        if(!controller.IsRunning) {
             if(controller.IsRunning)activeUpdateDownload?.Cancel();
             else if(readyInstaller==null&&controller.AutoUpdateEnabled)_=CheckForUpdate();
         }
-        connectionInfo.Text=$"عنوان الكمبيوتر: {controller.ComputerAddress ?? "غير متصل"} | المنفذ: {controller.ServerPort} | شاشات: {controller.TvClients}";
+        RefreshConnectionInfo();
         UpdateConnectionBar();
         start.Content = controller.IsRunning ? "■ إيقاف الترجمة" : "▶ بدء الترجمة";
         source.Text = controller.LastSource;
