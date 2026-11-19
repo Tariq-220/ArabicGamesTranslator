@@ -19,6 +19,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public const int MaxWaiting = 2;
     public int PendingLineLimit { get; set; } = MaxWaiting;
     public bool DropOffscreenResults {get;set;}
+    public bool CleanFastPathOnly {get=>stabilizer.CleanFastPathOnly;set=>stabilizer.CleanFastPathOnly=value;}
     public int MinimumStableMs {get=>stabilizer.MinimumStableMs;set=>stabilizer.MinimumStableMs=Math.Max(0,value); }
     /// <summary>
     /// Paketler açıkken bozuk okunan (OCR izi taşıyan) ve pakette bulunmayan satır en çok bu kadar bekletilir: aynı

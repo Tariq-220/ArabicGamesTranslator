@@ -52,6 +52,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
     /// </summary>
     public const int GarbledStableMs = 700;
     public int MinimumStableMs { get; set; }
+    public bool CleanFastPathOnly {get;set;}=cleanFastPathOnly;
     private const int HistorySize = 5;
 
     private readonly Func<long> now = clock ?? (() => Environment.TickCount64);
@@ -141,7 +142,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
         var garbled = OcrNoise.LooksGarbled(rawText);
         var ready = garbled
             ? candidateCount >= stableFrames && time - candidateSince >= GarbledStableMs
-            : candidateCount >= stableFrames || (EndsSentence(rawText) && (!cleanFastPathOnly || LooksClean(rawText)));
+            : candidateCount >= stableFrames || (EndsSentence(rawText) && (!CleanFastPathOnly || LooksClean(rawText)));
         ready = ready && time-candidateSince>=MinimumStableMs;
         // Gönderilenin gürültülü yeniden okuması yeni satır değildir; TV'de aynı cümle iki kez görünmesin.
         if (IsSame(text, sent)) return StabilizerAction.None;

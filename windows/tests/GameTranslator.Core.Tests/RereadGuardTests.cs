@@ -1,6 +1,10 @@
 using Xunit;
 namespace GameTranslator.Core.Tests;
 public class RereadGuardTests {
+ [Fact]public void DirtyPunctuatedOcrWaitsForConfirmationButCleanDialogueDoesNot(){
+  var dirty=new SubtitleStabilizer{CleanFastPathOnly=true};Assert.Equal(StabilizerKind.None,dirty.Feed("Once I get this smtcß.box off my ankle.").Kind);
+  var clean=new SubtitleStabilizer{CleanFastPathOnly=true};Assert.Equal(StabilizerKind.Translate,clean.Feed("Get down!").Kind);
+ }
  [Fact]public void JoinedWordsDoNotReplaceRecentCleanSentence(){var guard=new RereadGuard();var good="Well, it's a nice fresh day for flying, sir.";Assert.Equal(good,guard.Filter(good,0));Assert.Equal(good,guard.Filter("Well, it's anicefreshdayfornying,sir.",80));}
  [Fact]public void TruncatedObjectiveKeepsTheCompleteReading(){var guard=new RereadGuard();Assert.Equal("Mount your horse",guard.Filter("Mount your horse",0));Assert.Equal("Mount your horse",guard.Filter("Mount your",100));}
  [Theory][InlineData("We won.","We lost.")][InlineData("He's alive.","He's dying.")][InlineData("I can do it.","I can't do it.")]
