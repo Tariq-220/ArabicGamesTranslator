@@ -15,15 +15,15 @@
     },
     {
       "platform": "tv",
-      "version": "0.3.13",
-      "versionCode": 20,
+      "version": "0.3.17",
+      "versionCode": 24,
       "package": "dev.arabicgames.tv",
-      "path": "tv/0.3.13/ArabicGames-TV-0.3.13.apk",
-      "name": "ArabicGames-TV-0.3.13.apk",
-      "bytes": 114676,
-      "sha256": "97d56291f900243bde3fef35055577334ddca810ee04908a290d619b32caf481",
+      "path": "tv/0.3.17/ArabicGames-TV-0.3.17.apk",
+      "name": "ArabicGames-TV-0.3.17.apk",
+      "bytes": 122720,
+      "sha256": "c25137e7ffe04180e9b4ada8d84b0df76bb59294a7cbbd9c3c10fc7c45a1545f",
       "certificate_sha256": "8bfb9b64929ed8a0565eaf89ab61469ef91370ce968e5a99873fa437d62e02ca",
-      "source": "77861cb076bdd45cbd9a98f70857150418fd7584"
+      "source": "37c3302"
     }
   ]
 }
