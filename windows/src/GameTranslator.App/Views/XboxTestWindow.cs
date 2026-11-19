@@ -46,7 +46,7 @@ public sealed class XboxTestWindow : Window
     private readonly ComboBox deepLMode=new(){MinWidth=350,MinHeight=48};
     private readonly Button engineHelp=new(){Content="كيف تحصل على API؟ ↗",MinHeight=48,Padding=new Thickness(14,8,14,8),Margin=new Thickness(8,0,0,0)};
     private readonly ComboBox cloudModel=new(){MinWidth=350,MinHeight=48,FlowDirection=FlowDirection.LeftToRight};
-    private AiProvider CloudProvider => engineChoice.SelectedIndex==8?AiProvider.OpenAi:engineChoice.SelectedIndex==9?AiProvider.Claude:AiProvider.Gemini;
+    private AiProvider CloudProvider => engineChoice.SelectedIndex==11?AiProvider.Local:engineChoice.SelectedIndex==8?AiProvider.OpenAi:engineChoice.SelectedIndex==9?AiProvider.Claude:AiProvider.Gemini;
     private string? SelectedCloudModel => cloudModel.SelectedItem as string;
     private string ProviderKeyId => engineChoice.SelectedIndex==10?"arabic-cloud-key:azure":"arabic-cloud-key:"+CloudProvider.Id();
     private readonly InputBox azureRegion=new(){MinHeight=48,FlowDirection=FlowDirection.LeftToRight,MaxLength=64,Tag="azure-region"};
@@ -136,7 +136,7 @@ public sealed class XboxTestWindow : Window
         var gameName=new InputBox{Text=LiveServices.DialogueGame,MaxLength=100,Foreground=Brushes.White,Background=new SolidColorBrush(Color.FromRgb(34,50,71)),FlowDirection=FlowDirection.LeftToRight};
         gameName.TextChanged+=(_,_)=>{if(controller.IsRunning)controller.Stop();LiveServices.DialogueGame=gameName.Text;controller.DialogueGame=gameName.Text;};root.Children.Add(gameName);
         var gamePresets=Row();gamePresets.Children.Add(Button("Grand Theft Auto VI — GTA 6",()=>{controller.Stop();gameName.Text="Grand Theft Auto VI";status.Text="تم اختيار GTA 6. ابدأ الترجمة بالسياق والحزمة الصحيحين.";}));gamePresets.Children.Add(Button("Red Dead Redemption 2",()=>{controller.Stop();gameName.Text="Red Dead Redemption 2";}));root.Children.Add(gamePresets);
-        engineChoice.Items.Add("Gemini — اختر نموذج Flash من القائمة أدناه");engineChoice.Items.Add("DeepL — مفتاح الخدمة الخاص بك");engineChoice.Items.Add("QuickMT — محلي على اللابتوب");engineChoice.Items.Add("Jisr فصحى — محلي");engineChoice.Items.Add("Jisr سعودي — محلي");engineChoice.Items.Add("Gemini — اختيار Flash-Lite");engineChoice.Items.Add("HY-MT 1.8B — محلي Q4_K_M / تجريبي");engineChoice.Items.Add("Google — إنترنت بدون مفتاح / تجريبي");engineChoice.Items.Add("OpenAI — مفتاح مستقل / اختباري");engineChoice.Items.Add("Claude — مفتاح مستقل / اختباري");engineChoice.Items.Add("Microsoft Azure — ترجمة سحابية / للمقارنة");engineChoice.SelectedIndex=Math.Clamp(controller.ArabicEngineChoice,0,10);engineChoice.Tag="engine-choice";LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;
+        engineChoice.Items.Add("Gemini — اختر نموذج Flash من القائمة أدناه");engineChoice.Items.Add("DeepL — مفتاح الخدمة الخاص بك");engineChoice.Items.Add("QuickMT — محلي على اللابتوب");engineChoice.Items.Add("Jisr فصحى — محلي");engineChoice.Items.Add("Jisr سعودي — محلي");engineChoice.Items.Add("Gemini — اختيار Flash-Lite");engineChoice.Items.Add("HY-MT 1.8B — محلي Q4_K_M / تجريبي");engineChoice.Items.Add("Google — إنترنت بدون مفتاح / تجريبي");engineChoice.Items.Add("OpenAI — مفتاح مستقل / اختباري");engineChoice.Items.Add("Claude — مفتاح مستقل / اختباري");engineChoice.Items.Add("Microsoft Azure — ترجمة سحابية / للمقارنة");engineChoice.Items.Add("Ollama — ذكاء اصطناعي محلي / تجريبي");engineChoice.SelectedIndex=Math.Clamp(controller.ArabicEngineChoice,0,11);engineChoice.Tag="engine-choice";LiveServices.GeminiModel=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":null;
         engineChoice.SelectionChanged+=(_,_)=>ChooseEngine();var engineRow=new WrapPanel();engineRow.Children.Add(engineChoice);engineRow.Children.Add(engineHelp);engineHelp.Click+=(_,_)=>OpenEnginePage();root.Children.Add(engineRow);root.Children.Add(cloudModel);
         foreach(var label in new[]{"DeepL: تلقائي — إعداد الخدمة الحالي","DeepL: أسرع — latency_optimized","DeepL: تفضيل الجودة — prefer_quality_optimized"})deepLMode.Items.Add(label);
         deepLMode.SelectedIndex=Math.Clamp(controller.DeepLModeChoice,0,2);
@@ -258,9 +258,9 @@ public sealed class XboxTestWindow : Window
             if(DirectPs5){if(!controller.HasAccount||controller.Console==null||!GameTranslator.RemotePlay.StreamSession.IsNativeAvailable){status.Text="أكمل اقتران PS5 المباشر وتأكد من وجود المحرك الأصلي.";return;}}
             else if(target==null){status.Text="اختر نافذة البث أولًا.";return;}
             if((engineChoice.SelectedIndex==0||engineChoice.SelectedIndex==5)&&!controller.HasGeminiKey || engineChoice.SelectedIndex==1&&!controller.HasDeepLKey){status.Text="أدخل مفتاح المحرك المختار واحفظه أولًا؛ لن نستبدله بمترجم آخر تلقائيًا.";return;}
-            if(engineChoice.SelectedIndex>=8 && string.IsNullOrWhiteSpace(SecureStore.Default.Load<string>(ProviderKeyId))){status.Text="أدخل مفتاح هذا المزوّد واحفظه أولًا.";return;}
+            if(engineChoice.SelectedIndex is >=8 and <=10 && string.IsNullOrWhiteSpace(SecureStore.Default.Load<string>(ProviderKeyId))){status.Text="أدخل مفتاح هذا المزوّد واحفظه أولًا.";return;}
             try {
-            if(IsLocalModel){try{controller.SessionTranslator=LocalTranslator();}catch{status.Text="شغّل النموذج المحلي أولًا وانتظر Ready، ثم ابدأ القراءة.";return;}}else controller.SessionTranslator=engineChoice.SelectedIndex==10?new AzureTranslator(SecureStore.Default.Load<string>(ProviderKeyId)!,azureRegion.Text):engineChoice.SelectedIndex>=8?new AiTranslator(CloudProvider,SecureStore.Default.Load<string>(ProviderKeyId)!,SelectedCloudModel,null,game:LiveServices.DialogueGame):engineChoice.SelectedIndex==7?new GoogleGtxTranslator():null;
+            if(IsLocalModel){try{controller.SessionTranslator=LocalTranslator();}catch{status.Text="شغّل النموذج المحلي أولًا وانتظر Ready، ثم ابدأ القراءة.";return;}}else controller.SessionTranslator=engineChoice.SelectedIndex==11?new AiTranslator(AiProvider.Local,"",SelectedCloudModel,null,game:LiveServices.DialogueGame):engineChoice.SelectedIndex==10?new AzureTranslator(SecureStore.Default.Load<string>(ProviderKeyId)!,azureRegion.Text):engineChoice.SelectedIndex>=8?new AiTranslator(CloudProvider,SecureStore.Default.Load<string>(ProviderKeyId)!,SelectedCloudModel,null,game:LiveServices.DialogueGame):engineChoice.SelectedIndex==7?new GoogleGtxTranslator():null;
             } catch(ArgumentException){status.Text="راجع إعداد المحرك ومنطقة Azure قبل بدء الترجمة.";return;}
             start.IsEnabled = false;
             try
@@ -353,6 +353,8 @@ public sealed class XboxTestWindow : Window
     }
     private async Task SaveKeyCore()
     {
+        if(engineChoice.SelectedIndex==11){try{status.Text="جارٍ اختبار Ollama المحلي؛ أول طلب قد يحتاج تحميل النموذج إلى الذاكرة…";var result=await AiTranslator.TestAsync(AiProvider.Local,"",SelectedCloudModel);if(result.State==OnlineKeyState.Valid)EngineSuccess(result.Sample);else status.Text="Ollama غير جاهز: "+result.State+". شغّل Ollama وثبّت النموذج المختار؛ لا يحتاج API.";}catch{status.Text="تعذر الاتصال بـOllama على هذا الكمبيوتر. شغّله ثم نزّل النموذج المختار.";}return;}
+
         if(engineChoice.SelectedIndex==10){
             try {
                 var value=string.IsNullOrWhiteSpace(key.Password)?SecureStore.Default.Load<string>(ProviderKeyId):key.Password.Trim();
@@ -483,33 +485,35 @@ public sealed class XboxTestWindow : Window
     }
     private void RefreshCloudModels()
     {
-        credentialPanel.Visibility=IsLocalModel||engineChoice.SelectedIndex==7?Visibility.Collapsed:Visibility.Visible;
+        credentialPanel.Visibility=IsLocalModel||engineChoice.SelectedIndex is 7 or 11?Visibility.Collapsed:Visibility.Visible;
         localLauncher.Visibility=IsLocalModel?Visibility.Visible:Visibility.Collapsed;
         foreach(var element in credentialPanel.Children.OfType<FrameworkElement>())if(Equals(element.Tag,"azure-region-group"))element.Visibility=engineChoice.SelectedIndex==10?Visibility.Visible:Visibility.Collapsed;
-        testEngine.Content=IsLocalModel?"اختبار النموذج المحلي":engineChoice.SelectedIndex==7?"اختبار Google بدون مفتاح":"حفظ واختبار المحرك";
+        testEngine.Content=engineChoice.SelectedIndex==11?"اختبار Ollama بدون مفتاح":IsLocalModel?"اختبار النموذج المحلي":engineChoice.SelectedIndex==7?"اختبار Google بدون مفتاح":"حفظ واختبار المحرك";
         engineHint.Text=engineChoice.SelectedIndex switch{
             2=>"QuickMT: نقطة المقارنة المحلية الأسرع في سجلك السابق. اختبر نفس الحوارات؛ ليس مضمونًا أن يترجم كل تعبير بدقة.",
             3 or 4=>"Jisr: محلي وخفيف؛ قارن اللهجة والمعنى على المشهد نفسه.",
             6=>"HY-MT: محلي وتجريبي، أثقل على المعالج. لا يُنصح به كخيار سرعة لهذا اللابتوب دون قياس.",
             1=>"DeepL: جرّب تلقائيًا أولًا؛ يمكنك مقارنة وضع السرعة ووضع الجودة. اسم اللعبة والحوار السابق يساعدان في السياق.",
             7=>"Google بدون مفتاح: خدمة إنترنت تجريبية، وليست Google Cloud API الرسمي. يرسل نص الحوار فقط وقد يحدد الطلبات.",
+            11=>"Ollama: تثبيت مستقل على هذا الكمبيوتر، بلا API. نزّل Qwen2.5 3B أو 7B من Ollama. يدعمان العربية، لكنهما أثقل من QuickMT؛ السرعة والجودة تحتاجان مقارنة على جهازك. لا ننزّل النموذج تلقائيًا.",
             10=>"Azure: خيار رسمي جديد للمقارنة؛ يحتاج مفتاح مورد Translator ومنطقته إن كان إقليميًا. لا يوجد إثبات أنه أدق من DeepL على لعبتك بعد.",
             _=>"AI: يرسل نص الحوار وسياقه للمزوّد. اختر النموذج ثم اختبر؛ حصة API مستقلة عن اشتراك تطبيق المحادثة. لا نبدّل المحرك تلقائيًا عند الخطأ."};
-        engineHelp.Content=IsLocalModel?"تنزيل / تشغيل النموذج":engineChoice.SelectedIndex==7?"بدون مفتاح — التفاصيل ↗":"كيف تحصل على API؟ ↗";
+        engineHelp.Content=engineChoice.SelectedIndex==11?"تنزيل Ollama والنموذج ↗":IsLocalModel?"تنزيل / تشغيل النموذج":engineChoice.SelectedIndex==7?"بدون مفتاح — التفاصيل ↗":"كيف تحصل على API؟ ↗";
         deepLMode.Visibility=engineChoice.SelectedIndex==1?Visibility.Visible:Visibility.Collapsed;
         cloudModel.Items.Clear();
-        cloudModel.Visibility=engineChoice.SelectedIndex is 0 or 5 or 8 or 9?Visibility.Visible:Visibility.Collapsed;
+        cloudModel.Visibility=engineChoice.SelectedIndex is 0 or 5 or 8 or 9 or 11?Visibility.Visible:Visibility.Collapsed;
         if(cloudModel.Visibility!=Visibility.Visible)return;
         var provider=CloudProvider;
-        foreach(var model in provider.Models())cloudModel.Items.Add(model.Id);
+        if(provider==AiProvider.Local){cloudModel.Items.Add("qwen2.5:3b");cloudModel.Items.Add("qwen2.5:7b");}else foreach(var model in provider.Models())cloudModel.Items.Add(model.Id);
         var saved=SecureStore.Default.Load<string>("arabic-cloud-model:"+provider.Id());
-        var preferred=engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":saved??provider.DefaultModel().Id;
+        var preferred=engineChoice.SelectedIndex==11?saved??"qwen2.5:3b":engineChoice.SelectedIndex==5?"gemini-3.5-flash-lite":saved??provider.DefaultModel().Id;
         cloudModel.SelectedItem=preferred;
         if(cloudModel.SelectedIndex<0)cloudModel.SelectedIndex=0;
     }
     private void OpenEnginePage()
     {
         var url=engineChoice.SelectedIndex switch {
+            11=>"https://ollama.com/library/"+(SelectedCloudModel??"qwen2.5:3b"),
             1=>"https://www.deepl.com/your-account/keys",
             10=>"https://learn.microsoft.com/azure/ai-services/translator/create-translator-resource",
             8=>"https://platform.openai.com/api-keys",

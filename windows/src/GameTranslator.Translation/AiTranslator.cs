@@ -124,9 +124,10 @@ public static class AiRequest
                         new JsonObject { ["role"] = "system", ["content"] = SystemPrompt },
                         new JsonObject { ["role"] = "user", ["content"] = user }),
                     ["temperature"] = LocalTemperature,
-                    ["max_tokens"] = MaxOutputTokens,
+                    ["max_tokens"] = 256,
                     ["stream"] = false,
                 };
+                if(local.Kind==LocalAiServerKind.Ollama)body["keep_alive"]="10m";
                 break;
             default:
                 // https://docs.anthropic.com/en/api/messages (platform.claude.com/docs/en/api/messages): POST /v1/messages,
