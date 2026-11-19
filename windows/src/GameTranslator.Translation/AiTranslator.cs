@@ -124,7 +124,7 @@ public static class AiRequest
                         new JsonObject { ["role"] = "system", ["content"] = SystemPrompt },
                         new JsonObject { ["role"] = "user", ["content"] = user }),
                     ["temperature"] = LocalTemperature,
-                    ["max_tokens"] = 256,
+                    ["max_tokens"] = local.Kind==LocalAiServerKind.Ollama?Math.Clamp(sentences.Sum(s=>s.Length),256,MaxOutputTokens):MaxOutputTokens,
                     ["stream"] = false,
                 };
                 if(local.Kind==LocalAiServerKind.Ollama)body["keep_alive"]="10m";
