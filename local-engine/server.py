@@ -18,10 +18,32 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 QUICKMT_REVISION = '37f2b37486c29b457971295d7711b5ac1869775d'
 JISR_REVISION = '8803d9d4e3b53e96783968237aa32425eb83922e'
 
+def load_sentencepiece(module, path):
+    # Python opens Unicode Windows paths correctly; the native narrow-path loader may not.
+    processor = module.SentencePieceProcessor()
+    if not processor.LoadFromSerializedProto(Path(path).read_bytes()):
+        raise ValueError('Invalid tokenizer model: ' + Path(path).name)
+    return processor
+
+
+def ensure_quickmt_files(folder, offline, download):
+    for name in ('config.json', 'model.bin', 'src.spm.model', 'tgt.spm.model'):
+        path = folder / name
+        if path.is_file() and path.stat().st_size > 0:
+            continue
+        if offline:
+            raise FileNotFoundError('QuickMT cache is incomplete: ' + name)
+        # Repair only a missing/empty file, never force a full weight download.
+        repaired = Path(download('quickmt/quickmt-en-ar', filename=name,
+            revision=QUICKMT_REVISION, force_download=True))
+        if not repaired.is_file() or repaired.stat().st_size == 0:
+            raise FileNotFoundError('QuickMT file repair failed: ' + name)
+
+
 class Engine:
     def __init__(self, name, offline=False):
         self.name = name
-        from huggingface_hub import snapshot_download
+        from huggingface_hub import snapshot_download, hf_hub_download
         if name == 'hy-mt':
             from hymt_engine import HyMtEngine
             self.hy = HyMtEngine(offline)
@@ -30,9 +52,14 @@ class Engine:
             import sentencepiece as sp
             folder = Path(snapshot_download('quickmt/quickmt-en-ar', revision=QUICKMT_REVISION,
                 allow_patterns=['config.json', 'model.bin', '*vocabulary.json', '*.spm.model', 'README.md'], local_files_only=offline))
-            self.source = sp.SentencePieceProcessor(model_file=str(folder / 'src.spm.model'))
-            self.target = sp.SentencePieceProcessor(model_file=str(folder / 'tgt.spm.model'))
-            self.runtime = ctranslate2.Translator(str(folder), device='cpu', compute_type='int8', inter_threads=1, intra_threads=2)
+            ensure_quickmt_files(folder, offline, hf_hub_download)
+            self.source = load_sentencepiece(sp, folder / 'src.spm.model')
+            self.target = load_sentencepiece(sp, folder / 'tgt.spm.model')
+            # CTranslate2 4.6 supports files=; bypass its native Windows path reader too.
+            files = {path.name: path.read_bytes() for path in folder.iterdir()
+                     if path.is_file() and (path.name == 'model.bin' or path.suffix == '.json')}
+            self.runtime = ctranslate2.Translator('quickmt-memory', files=files,
+                device='cpu', compute_type='int8', inter_threads=1, intra_threads=2)
         else:
             import torch
             from transformers import PreTrainedTokenizerFast, AutoModelForSeq2SeqLM

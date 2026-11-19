@@ -8,6 +8,7 @@ if __name__=='__main__':
  version=json.loads((root/'release/version.json').read_text())['version'];files=[]
  for name in NAMES:
   src=Path(a.publish)/name;assert src.is_file(),name;shutil.copyfile(src,out/'files'/name);files.append({'path':name,'sha256':hashlib.sha256(src.read_bytes()).hexdigest()})
+ name='local-engine/server.py';src=root/name;(out/'files/local-engine').mkdir(parents=True,exist_ok=True);shutil.copyfile(src,out/'files'/name);files.append({'path':name,'sha256':hashlib.sha256(src.read_bytes()).hexdigest()})
  (out/'patch.json').write_text(json.dumps({'version':version,'files':files},indent=2),encoding='utf-8')
  for name in ['Reading-Fix.ps1','Reading-Fix.cmd']:shutil.copyfile(root/'installer'/name,out/name)
  for name in ['LICENSE','NOTICE']:shutil.copyfile(root/name,out/name)

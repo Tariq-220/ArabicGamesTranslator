@@ -44,6 +44,16 @@ jobs:
           gh release view "v$($info.version)" --repo '${{ github.repository }}' 2>$null
           if($env:PUBLISH -eq 'true' -and $LASTEXITCODE -eq 0){throw 'This version is already published; bump release/version.json first'}
           $global:LASTEXITCODE=0
+      - name: Unicode model loading and bridge-only repair tests
+        shell: pwsh
+        run: |
+          python -m pip install sentencepiece==0.2.1
+          if($LASTEXITCODE -ne 0){throw 'Tokenizer test dependency unavailable'}
+          python -m unittest discover -s local-engine -p "test_*.py"
+          if($LASTEXITCODE -ne 0){throw 'Local engine regressions failed'}
+          python release/package_quickmt_repair.py
+          Expand-Archive out/quickmt-repair/QuickMT-Path-Fix.zip quickmt-test
+          ./installer/Test-QuickMT-Fix.ps1 -Package (Resolve-Path quickmt-test)
       - name: Community review data validation tests
         run: python scripts/test-community-review.py
       - name: Regression tests
@@ -168,5 +178,5 @@ jobs:
           gh release view $tag --repo '${{ github.repository }}' --json isDraft > preview-state.json 2>$null
           if($LASTEXITCODE -eq 0){if(-not((Get-Content preview-state.json -Raw|ConvertFrom-Json).isDraft)){throw 'Published previews are immutable'}}
           else{gh release create $tag --repo '${{ github.repository }}' --target '${{ github.sha }}' --draft --prerelease --title "ArabicGames $($info.version) — إصلاح القراءة والمظهر" --notes-file release/NOTES.md}
-          gh release upload $tag $update --repo '${{ github.repository }}' --clobber
+          gh release upload $tag $update out/quickmt-repair/QuickMT-Path-Fix.zip --repo '${{ github.repository }}' --clobber
           if($LASTEXITCODE -ne 0){throw 'Repair upload failed'}

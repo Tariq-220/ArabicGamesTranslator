@@ -1,6 +1,6 @@
 ﻿param([string]$BasePath,[string]$InstallRoot=(Join-Path $env:LOCALAPPDATA 'ArabicGamesLauncher'),[switch]$TestMode)
 $ErrorActionPreference='Stop'
-$allowed=@('GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','GameTranslator.TvInstall.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json')
+$allowed=@('GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','GameTranslator.TvInstall.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json','local-engine/server.py')
 try {
     $manifest=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'patch.json') -Raw | ConvertFrom-Json
     if($manifest.version -notmatch '^\d+\.\d+\.\d+$' -or @($manifest.files).Count -ne $allowed.Count){throw 'Invalid repair manifest.'}
@@ -35,7 +35,7 @@ try {
     Write-Host 'Applying reading fix locally. No model or API key download is needed...'
     [void](New-Item -ItemType Directory -Path $target -Force)
     Get-ChildItem -LiteralPath $BasePath -Force | Copy-Item -Destination $target -Recurse -Force
-    foreach($entry in $manifest.files){Copy-Item -LiteralPath (Join-Path (Join-Path $PSScriptRoot 'files') $entry.path) -Destination (Join-Path $target $entry.path) -Force}
+    foreach($entry in $manifest.files){[void](New-Item -ItemType Directory -Path (Split-Path (Join-Path $target $entry.path)) -Force);Copy-Item -LiteralPath (Join-Path (Join-Path $PSScriptRoot 'files') $entry.path) -Destination (Join-Path $target $entry.path) -Force}
     foreach($entry in $manifest.files){if((Get-FileHash -LiteralPath (Join-Path $target $entry.path) -Algorithm SHA256).Hash -ne $entry.sha256){throw 'Installed file checksum mismatch.'}}
     if(-not $TestMode){
         foreach($app in @(Get-Process -Name GameTranslator -ErrorAction SilentlyContinue | Where-Object {$_.Path -and $_.Path.Equals((Join-Path $BasePath 'GameTranslator.exe'),[StringComparison]::OrdinalIgnoreCase)})){

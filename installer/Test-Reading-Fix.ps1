@@ -5,6 +5,8 @@ try{
  $baseline=Join-Path $root 'baseline';$install=Join-Path $root 'managed'
  [void](New-Item -ItemType Directory -Path $baseline -Force)
  foreach($name in @('GameTranslator.exe','GameTranslator.RemotePlay.dll','GameTranslator.TvInstall.dll','keep-model-cache.txt')){Set-Content -LiteralPath (Join-Path $baseline $name) -Value 'existing-file'}
+ [void](New-Item -ItemType Directory -Path (Join-Path $baseline 'local-engine') -Force)
+ Set-Content -LiteralPath (Join-Path $baseline 'local-engine/server.py') -Value 'old bridge'
  $old=Get-FileHash -LiteralPath (Join-Path $baseline 'GameTranslator.exe')
  $target=& (Join-Path $Package 'Reading-Fix.ps1') -BasePath $baseline -InstallRoot $install -TestMode
  if(-not(Test-Path -LiteralPath (Join-Path $target 'keep-model-cache.txt'))){throw 'Existing app resources were lost'}
@@ -17,5 +19,6 @@ try{
  try{& (Join-Path $copy 'Reading-Fix.ps1') -BasePath $baseline -InstallRoot $install -TestMode}catch{$rejected=$true}
  if(-not $rejected){throw 'Tampered repair was accepted'}
  if((Get-Content -LiteralPath (Join-Path $install 'current.json') -Raw) -ne $before){throw 'Failed patch changed the selected version'}
+ if((Get-FileHash -LiteralPath (Join-Path $target 'local-engine/server.py')).Hash -ne (Get-FileHash -LiteralPath (Join-Path $Package 'files/local-engine/server.py')).Hash){throw 'Engine bridge was not updated'}
  Write-Host 'Reading fix integration and checksum rejection passed.'
 }finally{if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force}}
