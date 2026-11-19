@@ -155,6 +155,7 @@ public final class MainActivity extends Activity {
 
  private void restoreAudio(){if(tv==null||audio==null)return;if(!resumed){tv.setStreamVolume(0f);return;}if(audio.isChecked()){audioManager.requestAudioFocus(audioFocus);tv.setStreamVolume(1f);}else{tv.setStreamVolume(0f);audioManager.abandonAudioFocusRequest(audioFocus);}}
  private void connect(){
+  pairingAttempt++; // A manual/new connection invalidates a pending approval for an older source.
   String address=host.getText().toString().trim(),pair=desktop.isChecked()?null:code.getText().toString().trim();
   if(!Pairing.privateIpv4(address)||(pair!=null&&!Pairing.validCode(pair))){status.setText("أدخل IPv4 محليًا ورمز الجوال كاملًا.");return;}
   getPreferences(0).edit().putString("host",address).putString("code",pair==null?"":pair).putBoolean("desktop",desktop.isChecked()).apply();int generation=++session;HttpURLConnection old=connection;if(old!=null)old.disconnect();status.setText(desktop.isChecked()?"جارٍ إعادة ربط الكمبيوتر المحفوظ…":"جارٍ إعادة ربط الجوال المحفوظ…");acceptedRevision=0;if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();

@@ -2,6 +2,9 @@ package dev.arabicgames.tv;
 import android.os.Looper;import android.widget.EditText;import java.net.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.util.concurrent.atomic.*;import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import org.robolectric.util.ReflectionHelpers;import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=35)
 public class TvPairRetryTest {
+ @Test public void NewConnectionInvalidatesAnOlderPendingPairing(){try(var activity=Robolectric.buildActivity(MainActivity.class).setup()){
+  MainActivity a=activity.get();ReflectionHelpers.setField(a,"pairingAttempt",4);EditText host=ReflectionHelpers.getField(a,"host");host.setText("");ReflectionHelpers.callInstanceMethod(a,"connect");assertEquals(5,(int)ReflectionHelpers.getField(a,"pairingAttempt"));
+ }}
  @Test public void TemporaryBusyResponseDoesNotAbortPairing()throws Exception{
   ServerSocket server=new ServerSocket(8787);AtomicReference<Throwable> failure=new AtomicReference<>();AtomicInteger requests=new AtomicInteger();
   Thread responder=new Thread(()->{try{for(int n=0;n<2;)try(Socket peer=server.accept()){
