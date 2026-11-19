@@ -20,6 +20,22 @@ public class ExtraRegionTests
     }
 
     [Fact]
+    public async Task MenuRegionRequiresARunningFrameAndAutomaticPollingIsOptIn(){
+        var (controller,_) = Ready();
+        Assert.False(controller.AutomaticMenuRegion);
+        Assert.Contains("أولًا",await controller.TranslateMenuRegionAsync());
+        Assert.False(controller.IsRunning);
+        controller.Dispose();
+    }
+    [Fact]
+    public async Task MenuRegionOverlappingDialogueDoesNotStartTranslation(){
+        var (controller,services)=Ready();await controller.StartAsync();
+        services.Streams[0].Emit(Frame.Blank(64,64));
+        controller.MenuDisplayRegion=new CropRegion(.9,.99,.2,.8);
+        Assert.Contains("فوق منطقة الحوار",await controller.TranslateMenuRegionAsync());
+        controller.Stop();controller.Dispose();
+    }
+    [Fact]
     public void ExtraRegionsAreOffByDefault()
     {
         var settings = new UserSettings();

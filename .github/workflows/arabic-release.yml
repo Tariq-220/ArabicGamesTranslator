@@ -80,7 +80,7 @@ jobs:
       - name: Native PS5 registration and account regression tests
         run: |
           dotnet test windows/tests/GameTranslator.RemotePlay.Tests/GameTranslator.RemotePlay.Tests.csproj -c Release -r win-x64
-          dotnet test windows/tests/GameTranslator.Shell.Tests/GameTranslator.Shell.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~NativePs5RegistrationNeverInventsAnAccountAndUpdatesCanBeDisabled|FullyQualifiedName~Gta6DefaultMigratesOldChoiceOnce"
+          dotnet test windows/tests/GameTranslator.Shell.Tests/GameTranslator.Shell.Tests.csproj -c Release -r win-x64 --filter "FullyQualifiedName~NativePs5RegistrationNeverInventsAnAccountAndUpdatesCanBeDisabled|FullyQualifiedName~Gta6DefaultMigratesOldChoiceOnce|FullyQualifiedName~MenuRegion"
       - name: Publish Windows application
         shell: pwsh
         run: |
