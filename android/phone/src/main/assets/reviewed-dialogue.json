@@ -1,6 +1,6 @@
 {
   "format": "arabic-games-reviewed-v1",
-  "revision": 9,
+  "revision": 10,
   "source": "en",
   "target": "ar",
   "entries": [
@@ -2012,6 +2012,69 @@
       "arabic": "ساوثويند",
       "reviewed": true,
       "reason": "Reviewed from November 19 phone/Windows logs: idiom, task or furniture/firearms meaning; exact game-scoped source, no invented completion of damaged dialogue."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What? Uh",
+      "arabic": "ماذا؟ آه...",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I'm gonna go make a sandwich. you want",
+      "arabic": "سأذهب لأعد شطيرة. هل تريد...؟",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "What's up with her?",
+      "arabic": "ما خطبها؟",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "[scoffs]",
+      "arabic": "[يسخر]",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Hell yeah See. I told you!",
+      "arabic": "أكيد! أرأيت؟ قلت لك!",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "That lawyer sounds great",
+      "arabic": "يبدو أن ذلك المحامي ممتاز.",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "I'm gonna go down there and back you up.",
+      "arabic": "سأنزل إلى هناك وأساندك.",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Got some work",
+      "arabic": "لدي بعض العمل.",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
+    },
+    {
+      "game": "Grand Theft Auto VI",
+      "source": "Don't blink",
+      "arabic": "لا ترمش.",
+      "reviewed": true,
+      "reason": "Exact dialogue reviewed from the supplied 0.4.26 log; no completion of missing words."
     }
   ],
   "ignored_sources": [

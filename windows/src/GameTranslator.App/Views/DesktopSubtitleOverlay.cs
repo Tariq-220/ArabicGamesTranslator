@@ -38,6 +38,8 @@ public sealed class DesktopSubtitleOverlay : Window
     private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
 
     private static DesktopSubtitleOverlay? _instance;
+    private static readonly List<DesktopSubtitleOverlay> interfaceWindows=[];
+    private bool interfaceOnly;
     private static bool _enabled = false; // Varsayılan olarak kapalı (kullanıcı isterse açar)
     private static double? _customLeft;
     private static double? _customTop;
@@ -94,6 +96,17 @@ public sealed class DesktopSubtitleOverlay : Window
         });
     }
 
+    public static void DisplayInterface(IReadOnlyList<ScreenTranslation.Item> items,int ms,SubtitleStyle style){
+        if(!_enabled||Application.Current==null)return;
+        Application.Current.Dispatcher.BeginInvoke(()=>{
+            foreach(var window in interfaceWindows)window.HideText();
+            for(int i=0;i<Math.Min(3,items.Count);i++){
+                if(i==interfaceWindows.Count)interfaceWindows.Add(new DesktopSubtitleOverlay{interfaceOnly=true});
+                interfaceWindows[i].ShowText(items[i].Translation,ms,style with{Placement=SubtitlePlacement.Cover},items[i].Box);
+            }
+        });
+    }
+
     public static void StartDragMode()
     {
         if (Application.Current == null) return;
@@ -126,6 +139,7 @@ public sealed class DesktopSubtitleOverlay : Window
             try
             {
                 _instance?.HideText();
+                foreach(var window in interfaceWindows)window.HideText();
             }
             catch { }
         });
@@ -323,7 +337,7 @@ public sealed class DesktopSubtitleOverlay : Window
         var desiredWidth = Math.Max(ActualWidth, DesiredSize.Width);
         var desiredHeight = Math.Max(ActualHeight, DesiredSize.Height);
 
-        if (_customLeft.HasValue && _customTop.HasValue)
+        if (!interfaceOnly && _customLeft.HasValue && _customTop.HasValue)
         {
             Left = _customLeft.Value;
             Top = _customTop.Value;
@@ -344,7 +358,7 @@ public sealed class DesktopSubtitleOverlay : Window
                 // Orijinal altyazının tam üstüne oturup onu tamamen kapatır (MORT gibi)
                 double originalCenterY = work.Top + (((b.Top + b.Bottom) / 2.0) * work.Height);
                 Top = Math.Clamp(originalCenterY - (desiredHeight / 2.0), work.Top, Math.Max(work.Top, work.Bottom - desiredHeight));
-                _container.MinWidth = Math.Max(420, (b.Right - b.Left) * work.Width + 40);
+                _container.MinWidth = Math.Max(interfaceOnly?90:420, (b.Right - b.Left) * work.Width + (interfaceOnly?10:40));
                 return;
             }
             else if (style?.Placement == SubtitlePlacement.Above)

@@ -4,6 +4,8 @@ namespace GameTranslator.Translation;
 /// <summary>Reject untranslated prose, while retaining speaker names, acronyms and product names.</summary>
 public static class ArabicOutputGuard {
  public static bool Reject(string source,string result){
+  // Degenerate decoding can repeat single letters, which the prose-token check below excludes.
+  if(Regex.IsMatch(result,@"(?i)(?:\b([a-z])\b[\s.,•]*)\1(?:[\s.,•]+\1){4,}"))return true;
   var words=Regex.Matches(result,@"[A-Za-z][A-Za-z’']*").Select(m=>m.Value).Where(w=>w.Length>=2).ToArray();
   if(words.Length==0)return false;
   if(!Regex.IsMatch(result,@"\p{IsArabic}"))return !(words.All(w=>w.All(char.IsUpper)&&w.Length<=6&&Regex.Matches(source,@"[A-Za-z][A-Za-z’']*").Any(m=>m.Value==w))||OnlyProperName(source,result,words));

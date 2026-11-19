@@ -6,7 +6,7 @@ public static class DialogueReadingPolicy {
   // Preserve pre-menu dialogue timing: no mandatory extra wait or immediate offscreen drop.
   pipeline.MinimumStableMs=0;pipeline.DropOffscreenResults=false;
   pipeline.PendingLineLimit=latestOnly?1:SubtitlePipeline.MaxWaiting;
-  pipeline.DialogueBlockOnly=ReadingModes.DialogueOnly(mode);
+  pipeline.DialogueBlockOnly=true; // Interface groups have their own bounded, transient lane.
   // Pack-specific fuzzy holding must not gate ordinary Arabic dialogue: slang/names may look misspelled.
   pipeline.HoldWithoutPacks=false;
   pipeline.CleanWait=120;pipeline.PackWait=240;

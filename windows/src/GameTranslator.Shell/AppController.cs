@@ -656,6 +656,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     /// <summary>Canlı çeviri metni bilgisayar ekranında da (overlay) gösterilsin diye tetiklenir (metin, süre ms, kutu koordinatı).</summary>
     public event Action<string, int, TextBox?>? LiveSubtitleShown;
+    public event Action<IReadOnlyList<ScreenTranslation.Item>,int>? InterfaceShown;
 
     /// <summary>Son altyazının algılandığı normalize ekran koordinatı kutusu.</summary>
     public TextBox? LastSubtitleBox => lastSubtitleBox;
@@ -969,7 +970,35 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
-    private SubtitleStyle PresentationStyle => settings.Style with {Placement=ReadingModes.DialogueOnly(ReadingContentMode)?SubtitlePlacement.Fixed:SubtitlePlacement.Cover};
+    private int interfaceBusy;
+    private long nextInterfaceAt;
+    private string lastInterfaceSource="";
+    // Reuse the dialogue OCR result. Never start another OCR pass or build an interface queue.
+    private async void ObserveInterface(SubtitlePipeline owner,Reading reading,TextBox area,string game){
+        if(ReadingModes.DialogueOnly(ReadingContentMode)||owner!=pipeline||owner.TranslationBusy||Environment.TickCount64<nextInterfaceAt)return;
+        var dialogue=DialogueProfile.DialogueLane(reading,area,game);
+        var dialogueLines=dialogue.Lines.ToHashSet();
+        var groups=ScreenTranslation.Groups(new Reading(reading.Lines.Where(line=>!dialogueLines.Contains(line))).PlacedIn(area)).Take(3).ToArray();
+        string signature=string.Join("\n",groups.Select(g=>string.Join(" ",g.Paragraphs)));
+        if(signature.Length==0){lastInterfaceSource="";return;}
+        if(signature==lastInterfaceSource||Interlocked.Exchange(ref interfaceBusy,1)==1)return;
+        nextInterfaceAt=Environment.TickCount64+2500;
+        try{
+            var translator=new ProfileTranslator(MakeTranslator(),game,validateArabic:settings.TargetLanguage=="ar");
+            var items=new List<ScreenTranslation.Item>();
+            foreach(var group in groups){
+                if(owner!=pipeline||owner.TranslationBusy)break;
+                string source=string.Join("\n",group.Paragraphs);
+                var result=await translator.TranslateAsync(source);
+                if(owner!=pipeline)return;
+                items.Add(new ScreenTranslation.Item(source,result,group.Box,group.LineHeight));
+            }
+            if(items.Count>0&&owner==pipeline){server.SendScreen(items,3500);post(()=>InterfaceShown?.Invoke(items,3500));lastInterfaceSource=signature;}
+        }catch{/* Interface failure must never interrupt dialogue. */}
+        finally{Volatile.Write(ref interfaceBusy,0);}
+    }
+
+    private SubtitleStyle PresentationStyle => settings.Style with {Placement=SubtitlePlacement.Fixed};
     public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??new(.70,.97,.12,.78);
     public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set {if(value!="dialogue"&&ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",settings.Region);store.Save("ReadingContentMode",value);}}
     public void PrepareDialogueReading(){
@@ -996,7 +1025,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (reader is null) return;
         var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
-        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):DialogueProfile.DialogueLane(reading,area,gameProfile);
+        built.ReadingObserved+=(reading,area)=>ObserveInterface(built,reading,area,gameProfile);built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode);
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);

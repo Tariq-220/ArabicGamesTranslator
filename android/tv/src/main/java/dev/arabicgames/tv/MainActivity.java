@@ -30,6 +30,7 @@ public final class MainActivity extends Activity {
   @Override public void onInputStateChanged(String id,int state){inputsChanged();}
  };
  private TvView.TvInputCallback videoCallbacks;
+ private FrameLayout interfaceLayer;private final Runnable hideInterface=()->{if(interfaceLayer!=null)interfaceLayer.removeAllViews();};
  private TvView tv;private LinearLayout panel,connectionPanel;private ScrollView panelWindow;
  private TextView subtitle,status,received,hdmiStatus;private Button menuHandle;private int swallowedKey=-1;private android.window.OnBackInvokedCallback backCallback;
  private EditText host,code;private Spinner input;private CheckBox desktop,audio;
@@ -54,6 +55,7 @@ public final class MainActivity extends Activity {
   };tv.setCallback(videoCallbacks);
   subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
+  interfaceLayer=new FrameLayout(this);interfaceLayer.setTag("interface-translations");interfaceLayer.setFocusable(false);root.addView(interfaceLayer,new FrameLayout.LayoutParams(-1,-1));
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
   panel.addView(label("الترجمة العربية · 0.3.18",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
@@ -169,6 +171,8 @@ public final class MainActivity extends Activity {
       if(line.startsWith("event: "))event=line.substring(7);else if(line.startsWith("data: "))data=line.substring(6);else if(line.isEmpty()){
        if("subtitle".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->applyCaption(json,"بث لحظي"));}
        else if("style".equals(event)){JSONObject style=new JSONObject(data);post(generation,()->{sourcePlacement="cover".equals(style.optString("placement"));captionPositionKey="";sourceTransparent=style.optInt("background",70)==0;applySubtitleStyle();});}
+       else if("screen".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->showInterface(json));}
+       else if("screen-clear".equals(event)){post(generation,()->{ui.removeCallbacks(hideInterface);hideInterface.run();});}
        else if("settings".equals(event)){post(generation,this::showPanel);}
        else if("clear".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->applyClear(json.optLong("revision",0)));}event="";data="";
       }
@@ -189,6 +193,22 @@ public final class MainActivity extends Activity {
  private void applyCaption(JSONObject json,String route){
   String text=json.optString("text","");long rev=json.optLong("revision",0);if(text.isEmpty()||rev>0&&rev<acceptedRevision)return;if(rev>0&&rev==acceptedRevision&&text.equals(lastArabic))return;
   acceptedRevision=Math.max(acceptedRevision,rev);manualTestUntil=0;if(!text.equals(lastArabic)){subtitleCount++;lastArabic=text;}positionCaption(json.optJSONObject("box"));String receipt="سطور مستلمة: "+subtitleCount+" · "+route;if(!android.text.TextUtils.equals(received.getText(),receipt))received.setText(receipt);show(text,Math.max(250,Math.min(10000,json.optInt("duration",5000))));
+ }
+ private void showInterface(JSONObject json){
+  if(interfaceLayer==null)return;ui.removeCallbacks(hideInterface);interfaceLayer.removeAllViews();
+  org.json.JSONArray items=json.optJSONArray("items");if(items==null)return;
+  int w=getResources().getDisplayMetrics().widthPixels,h=getResources().getDisplayMetrics().heightPixels;
+  for(int i=0;i<Math.min(8,items.length());i++){
+   JSONObject item=items.optJSONObject(i);if(item==null)continue;JSONObject box=item.optJSONObject("box");if(box==null)continue;
+   double l=box.optDouble("left",-1),t=box.optDouble("top",-1),r=box.optDouble("right",-1),b=box.optDouble("bottom",-1);
+   if(!Double.isFinite(l)||!Double.isFinite(t)||!Double.isFinite(r)||!Double.isFinite(b)||l<0||t<0||r>1||b>1||r<=l||b<=t)continue;
+   TextView view=label(item.optString("text",""),Math.max(14,Math.min(24,getPreferences(0).getInt("subtitleSize",20))));
+   view.setTextDirection(View.TEXT_DIRECTION_RTL);view.setGravity(Gravity.CENTER);view.setShadowLayer(4f,0,1,Color.BLACK);view.setPadding(dp(5),dp(3),dp(5),dp(3));
+   int mode=getPreferences(0).getInt("subtitleTextMode",0);view.setBackgroundColor(mode==1||mode==0&&sourceTransparent?Color.TRANSPARENT:0xB3000000);
+   FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(Math.max(dp(90),(int)((r-l)*w)),-2,Gravity.TOP|Gravity.LEFT);
+   p.leftMargin=Math.max(0,Math.min((int)(l*w),w-p.width));p.topMargin=Math.max(0,Math.min((int)(t*h),h-dp(60)));interfaceLayer.addView(view,p);
+  }
+  ui.postDelayed(hideInterface,Math.max(1000,Math.min(5000,json.optInt("duration",3500))));
  }
  private void positionCaption(JSONObject box){
   FrameLayout.LayoutParams p=(FrameLayout.LayoutParams)subtitle.getLayoutParams();int w=getResources().getDisplayMetrics().widthPixels,h=getResources().getDisplayMetrics().heightPixels;

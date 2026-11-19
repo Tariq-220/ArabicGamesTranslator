@@ -201,18 +201,22 @@ public sealed class XboxTestWindow : Window
         heading.Children.Add(Label("ArabicGames · ترجمة الألعاب · الإصدار "+ArabicRelease.Version,24));
         updateLabel.Tag="update-status";heading.Children.Add(updateLabel);
         connectionBar.Tag="connection-status"; heading.Children.Add(connectionBar);
-        heading.Children.Add(Label("① اختر المصدر  ② اختر المحرك واللعبة  ③ اربط الشاشة  ثم اضغط بدء الترجمة.",14));
-        var ambient=new Border{CornerRadius=new CornerRadius(18),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
+        heading.Children.Add(Label("ابدأ من ① ثم اضغط «التالي». اختبر المحرك في الخطوة ②، واختبر الشاشة في ③، ثم ابدأ الترجمة.",14));
+        var ambient=new Border{BorderBrush=new SolidColorBrush(Color.FromArgb(110,160,210,240)),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(22),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
         shell.Children.Add(ambient);
         var actions=new WrapPanel{Margin=new Thickness(0,0,0,10)};
-        actions.Children.Add(start);actions.Children.Add(testEngine);
-        var quickTest=Button("اختبار العربية على الشاشة",()=>{controller.SendTestSubtitle();status.Text="أُرسلت جملة اختبار للربط فقط. لترجمة اللعبة اضغط بدء الترجمة.";});quickTest.Tag="screen-test";actions.Children.Add(quickTest);
+        actions.Children.Add(start);
+        var quickTest=Button("اختبار العربية على الشاشة",()=>{controller.SendTestSubtitle();status.Text="أُرسلت جملة اختبار للربط فقط. لترجمة اللعبة اضغط بدء الترجمة.";});quickTest.Tag="screen-test";
         actions.Children.Add(Button("خطوات التفعيل",ShowActivationSteps));actions.Children.Add(updateButton);
         Grid.SetRow(actions,1);shell.Children.Add(actions);
         // The old controls row owned start; it is detached before reparenting below.
         var tabs=new TabControl{Background=Brushes.Transparent,BorderThickness=new Thickness(0),Padding=new Thickness(10)};
         void AddTab(string title,int from,int until){
             var content=new StackPanel{Margin=new Thickness(8)};
+            string instruction=from==sourceAt?"١. افتح Remote Play واختر نافذة اللعبة. تأكد أن الحوار الإنجليزي ظاهر قبل المتابعة.":from==engineAt?"٢. اختر المحرك واللعبة، نزّل النموذج المحلي أو احفظ مفتاح الخدمة، ثم اختبر المحرك هنا.":from==screenAt?"٣. اربط الشاشة ثم أرسل جملة الاختبار. إذا ظهرت العربية يمكنك بدء الترجمة.":"٤. إعدادات اختيارية: عدّل حجم الخط والخلفية ومكان النص. لا تحتاج إعادة الإعداد كل مرة.";
+            content.Children.Add(Label(instruction,16));
+            if(from==engineAt)content.Children.Add(testEngine);
+            if(from==screenAt)content.Children.Add(quickTest);
             for(int n=from;n<until;n++){
                 if(n==cropAt){
                     var advanced=new StackPanel();
@@ -228,7 +232,17 @@ public sealed class XboxTestWindow : Window
         AddTab("② محرك الترجمة",engineAt,screenAt);
         AddTab("③ الشاشة والربط",screenAt,styleAt);
         AddTab("④ الخط والمظهر",styleAt,lastOptions);
-        Grid.SetRow(tabs,2);shell.Children.Add(tabs);
+        var setup=new DockPanel();
+        var navigation=new DockPanel{Margin=new Thickness(8)};
+        var nextStep=Button("التالي ←",()=>tabs.SelectedIndex=Math.Min(tabs.Items.Count-1,tabs.SelectedIndex+1));
+        var previousStep=Button("→ السابق",()=>tabs.SelectedIndex=Math.Max(0,tabs.SelectedIndex-1));
+        var stepText=Label("",14);
+        void UpdateStep(){previousStep.IsEnabled=tabs.SelectedIndex>0;nextStep.IsEnabled=tabs.SelectedIndex<tabs.Items.Count-1;stepText.Text=$"الخطوة {tabs.SelectedIndex+1} من 4 · زر بدء الترجمة ثابت بالأعلى";}
+        tabs.SelectionChanged+=(_,_)=>UpdateStep();tabs.SelectedIndex=0;UpdateStep();
+        DockPanel.SetDock(nextStep,Dock.Left);DockPanel.SetDock(previousStep,Dock.Right);
+        navigation.Children.Add(nextStep);navigation.Children.Add(previousStep);navigation.Children.Add(stepText);
+        DockPanel.SetDock(navigation,Dock.Bottom);setup.Children.Add(navigation);setup.Children.Add(tabs);
+        Grid.SetRow(setup,2);shell.Children.Add(setup);
         var live=new StackPanel{Margin=new Thickness(8)};
         live.Children.Add(new ScrollViewer{Content=status,MaxHeight=54,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly});
         var livePreview=new StackPanel();livePreview.Children.Add(timing);livePreview.Children.Add(Card(source));livePreview.Children.Add(Card(translated));
@@ -242,12 +256,15 @@ public sealed class XboxTestWindow : Window
         Action<string,string> discarded=(english,reason)=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,"",null,controller.Settings.Region,comparisonLatest,"discarded",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,reason,CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));};
         controller.TranslationRejected+=rejected;controller.LineDiscarded+=discarded;Closed+=(_,_)=>{controller.TranslationRejected-=rejected;controller.LineDiscarded-=discarded;};
         overlay = (text, ms, box) => {
-            DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style, box);
+            DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style with {Placement=SubtitlePlacement.Fixed}, box);
             if(recordComparison.IsChecked==true && controller.IsRunning && text==controller.LastTranslation && !string.IsNullOrWhiteSpace(controller.LastSource)) {
                 var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,text,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest,controller.LastLineMetrics?.Origin==LineOrigin.Pack?"reviewed_dictionary":"engine_or_cache",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,RulesRevision:CommunityCorrections.CurrentRevision,PublicCorrections:CommunityCorrections.PublicEnabled));
                 logState.Text=comparison.Error ?? (queued?"السجل مفعّل — يحفظ السطور المعروضة وأوقاتها محليًا. لا يشمل زمن البث والتلفزيون.":"ازدحم السجل؛ لم يُحفظ هذا السطر.");
             }
         };
+        Action<IReadOnlyList<ScreenTranslation.Item>,int> interfaceOverlay=(items,ms)=>DesktopSubtitleOverlay.DisplayInterface(items,ms,controller.Settings.Style);
+        controller.InterfaceShown+=interfaceOverlay;
+        Closed+=(_,_)=>controller.InterfaceShown-=interfaceOverlay;
         controller.LiveSubtitleShown += overlay;
         controller.SubtitlesCleared += DesktopSubtitleOverlay.Clear;
         controller.PropertyChanged += Changed;
@@ -566,5 +583,5 @@ public sealed class XboxTestWindow : Window
         var b = new Button { MinHeight=48, FontSize=16, Content = text, Foreground = Brushes.White, Padding = new Thickness(12, 7, 12, 7), Margin = new Thickness(4) };
         b.Click += (_, _) => action(); return b;
     }
-    private static Border Card(UIElement child) => new() { Child = child, Padding = new Thickness(10), Margin = new Thickness(0, 6, 0, 6), Background = new SolidColorBrush(Color.FromRgb(30, 40, 56)), CornerRadius = new CornerRadius(8) };
+    private static Border Card(UIElement child) => new() { Child = child, Padding = new Thickness(10), Margin = new Thickness(0, 6, 0, 6), BorderBrush = new SolidColorBrush(Color.FromArgb(80,160,195,225)), BorderThickness = new Thickness(1), Background = new LinearGradientBrush(Color.FromArgb(220,40,57,78),Color.FromArgb(210,27,38,56),90), CornerRadius = new CornerRadius(14) };
 }

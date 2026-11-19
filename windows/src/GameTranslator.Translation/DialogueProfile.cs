@@ -27,6 +27,12 @@ public static class DialogueProfile {
    return !words.Any(w=>w is "greet" or "antagonize" or "rob")||!words.All(prompts.Contains);
   }));
  }
+ public static Reading DialogueLane(Reading reading,TextBox area,string game){
+  // In mixed mode only the lower central caption lane is dialogue. Objectives remain in the interface lane.
+  var eligible=new Reading(reading.Lines.Where(line=>!IsObjective(line.Text)&&(line.Box is not {} relative||
+   relative.PlacedIn(area) is var box&&box.Top>=.55&&(box.Left+box.Right)/2 is >=.22 and <=.78)));
+  return DialogueOnly(eligible,area,game).SubtitleBlock(area);
+ }
  public static string DialogueSource(string text,string game){
   var letters=text.Where(char.IsLetter).ToArray();var symbols=text.Count(c=>!char.IsWhiteSpace(c)&&!char.IsLetterOrDigit(c)&&!".,!?':;—-’…\"".Contains(c));
   if(System.Text.RegularExpressions.Regex.IsMatch(text,@"(?:[A-Za-z]\d|\d[A-Za-z])")&&letters.Any(c=>c>127))return "";
@@ -34,6 +40,8 @@ public static class DialogueProfile {
   return English(text,game);
  }
  public static string English(string text,string game){
+  // Apostrophe glyphs misread as bullets occur in both games. Repair only English contractions.
+  text=Regex.Replace(text,@"(?<=[A-Za-z])[•·](?=(?:s|re|ve|ll|d|m|t)\b)", "'",RegexOptions.IgnoreCase);
   if(!Rdr2(game))return text;
   var fixes=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){["Itrank you..."]="Thank you...",["VII hold them off."]="I'll hold them off.",["rm coming with you."]="I'm coming with you.",["1 did."]="I did.",["1 do."]="I do."};
   if(fixes.TryGetValue(text.Trim(),out var value))return value;

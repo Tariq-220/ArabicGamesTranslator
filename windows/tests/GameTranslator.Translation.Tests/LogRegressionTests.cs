@@ -10,6 +10,7 @@ public class LogRegressionTests {
  [InlineData("Y See ac", "Y انظر ac")]
  [InlineData("Hello.", "Hello")]
  [InlineData("Hmm", "HTML")]
+ [InlineData("What? Uh", "ماذا؟ U U U U U U U U U")]
  public void MixedOrUntranslatedProseIsRejected(string source,string arabic)=>Assert.True(ArabicOutputGuard.Reject(source,arabic));
  [Theory]
  [InlineData("Jason: Let's go.", "Jason: هيا بنا.")]
@@ -18,6 +19,12 @@ public class LogRegressionTests {
  [InlineData("GTA VI", "GTA VI")]
  [InlineData("Follow Lucia", "اتبع لوسيا.")]
  public void NamesAndArabicArePreserved(string source,string arabic)=>Assert.False(ArabicOutputGuard.Reject(source,arabic));
+ [Fact]public void MixedModeKeepsDialogueSeparateFromObjectiveAndPhone(){
+  var reading=new Reading([new("Follow Lucia",new(.4,.9,.6,.94)),new("Are you ready?",new(.3,.75,.7,.8)),new("Call me tonight.",new(.8,.2,.95,.3))]);
+  Assert.Equal("Are you ready?",DialogueProfile.DialogueLane(reading,new(0,0,1,1),"GTA6").Text);
+ }
+ [Fact]public void AStandaloneObjectiveIsNotSpokenDialogue()=>Assert.Empty(DialogueProfile.DialogueLane(Reading.FromText("Follow Lucia"),new(0,0,1,1),"GTA6").Lines);
+ [Fact]public void GtaContractionBulletIsRepairedBeforeTranslation()=>Assert.Equal("Donnie's gone",DialogueProfile.English("Donnie•s gone","GTA6"));
  [Theory][InlineData("Rescue Donnie again")][InlineData("Hold off the Fnal Chapter")][InlineData("Help build the coffee table")][InlineData("Pick up the glass top")]
  public void NewPhoneObjectivesDoNotHideDialogue(string task){Assert.Equal("Get down!",DialogueProfile.DialogueOnly(Reading.FromText("Get down!\n"+task),new(0,0,1,1),"GTA6").Text);}
  [Fact]public void PersistentObjectiveCannotHideDialogueAboveIt(){var r=new Reading([new("You're not going anywhere.",new(.15,.1,.85,.2)),new("Follow Lucia",new(.4,.7,.6,.8))]);var f=DialogueProfile.DialogueOnly(r,new(0,.7,1,.97),"GTA6").SubtitleBlock(new(0,.7,1,.97));Assert.Equal("You're not going anywhere.",f.Text);}
