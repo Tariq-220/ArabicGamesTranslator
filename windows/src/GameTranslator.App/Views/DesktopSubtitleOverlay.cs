@@ -44,6 +44,8 @@ public sealed class DesktopSubtitleOverlay : Window
     private static Rect? _targetMonitorRect;
     private static bool _isPositioningMode;
 
+    public static Rect CaptionBounds => _targetMonitorRect ?? new Rect(SystemParameters.WorkArea.Left,SystemParameters.WorkArea.Top,SystemParameters.WorkArea.Width,SystemParameters.WorkArea.Height);
+
     public static void SetTargetMonitor(int left, int top, int width, int height)
     {
         _targetMonitorRect = new Rect(left, top, width, height);
@@ -149,7 +151,7 @@ public sealed class DesktopSubtitleOverlay : Window
         _subtitleText = new TextBlock
         {
             FlowDirection = FlowDirection.RightToLeft,
-            FontFamily = new FontFamily("Segoe UI"),
+            FontFamily = new FontFamily("pack://application:,,,/GameTranslator;component/Assets/Fonts/#Noto Sans Arabic"),
             Foreground = Brushes.White,
             FontSize = 28,
             FontWeight = FontWeights.Bold,

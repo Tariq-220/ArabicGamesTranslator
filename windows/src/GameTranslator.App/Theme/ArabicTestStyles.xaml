@@ -4,8 +4,8 @@
     <!-- Scoped to the Arabic test window, independent of system light/dark control templates. -->
     <Style TargetType="Button">
         <Setter Property="Foreground" Value="#F4F7FA"/>
-        <Setter Property="Background" Value="#31445D"/>
-        <Setter Property="BorderBrush" Value="#7893B2"/>
+        <Setter Property="Background" Value="#273247"/>
+        <Setter Property="BorderBrush" Value="#4B5269"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="MinHeight" Value="42"/>
         <Setter Property="FontSize" Value="15"/>
@@ -13,13 +13,13 @@
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="Template">
             <Setter.Value><ControlTemplate TargetType="Button">
-                <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                 </Border>
                 <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="#405B7B"/></Trigger>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="#3B3A59"/></Trigger>
                     <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Background" Value="#243449"/></Trigger>
-                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#72E2B1"/><Setter TargetName="Frame" Property="BorderThickness" Value="2"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#EC75B9"/><Setter TargetName="Frame" Property="BorderThickness" Value="2"/></Trigger>
                     <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#B7C4D4"/><Setter TargetName="Frame" Property="Background" Value="#253143"/></Trigger>
                 </ControlTemplate.Triggers>
             </ControlTemplate></Setter.Value>
@@ -28,23 +28,23 @@
     <Style TargetType="TextBox">
         <Setter Property="Foreground" Value="#F4F7FA"/><Setter Property="Background" Value="#223247"/>
         <Setter Property="CaretBrush" Value="#FFFFFF"/><Setter Property="SelectionBrush" Value="#3C6D94"/>
-        <Setter Property="BorderBrush" Value="#7893B2"/><Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="#4B5269"/><Setter Property="BorderThickness" Value="1"/>
         <Setter Property="MinHeight" Value="42"/><Setter Property="Padding" Value="10,7"/><Setter Property="FontSize" Value="15"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
-            <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+            <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
                 <ScrollViewer x:Name="PART_ContentHost"/>
             </Border>
-            <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#72E2B1"/></Trigger></ControlTemplate.Triggers>
+            <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#EC75B9"/></Trigger></ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="PasswordBox">
         <Setter Property="Foreground" Value="#F4F7FA"/><Setter Property="Background" Value="#223247"/><Setter Property="CaretBrush" Value="White"/>
-        <Setter Property="SelectionBrush" Value="#3C6D94"/><Setter Property="BorderBrush" Value="#7893B2"/><Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="SelectionBrush" Value="#3C6D94"/><Setter Property="BorderBrush" Value="#4B5269"/><Setter Property="BorderThickness" Value="1"/>
         <Setter Property="MinHeight" Value="42"/><Setter Property="Padding" Value="10,7"/>
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="PasswordBox">
-            <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}"><ScrollViewer x:Name="PART_ContentHost"/></Border>
-            <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#72E2B1"/></Trigger></ControlTemplate.Triggers>
+            <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}"><ScrollViewer x:Name="PART_ContentHost"/></Border>
+            <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#EC75B9"/></Trigger></ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="ComboBoxItem">
@@ -53,7 +53,7 @@
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
             <Border x:Name="Frame" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/></Border>
             <ControlTemplate.Triggers>
-                <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Frame" Property="Background" Value="#405B7B"/></Trigger>
+                <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Frame" Property="Background" Value="#3B3A59"/></Trigger>
                 <Trigger Property="IsSelected" Value="True"><Setter TargetName="Frame" Property="Background" Value="#345E7D"/></Trigger>
                 <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#B7C4D4"/></Trigger>
             </ControlTemplate.Triggers>
@@ -61,7 +61,7 @@
     </Style>
     <Style TargetType="ComboBox">
         <Setter Property="Foreground" Value="#F4F7FA"/><Setter Property="Background" Value="#223247"/>
-        <Setter Property="BorderBrush" Value="#7893B2"/><Setter Property="BorderThickness" Value="1"/><Setter Property="MinHeight" Value="42"/>
+        <Setter Property="BorderBrush" Value="#4B5269"/><Setter Property="BorderThickness" Value="1"/><Setter Property="MinHeight" Value="42"/>
         <Setter Property="FontSize" Value="15"/><Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
@@ -69,20 +69,20 @@
                 <ToggleButton Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                     <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border Background="Transparent"/></ControlTemplate></ToggleButton.Template>
                 </ToggleButton>
-                <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" IsHitTestVisible="False">
+                <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" IsHitTestVisible="False">
                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="30"/></Grid.ColumnDefinitions>
                         <ContentPresenter Margin="10,7" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" TextElement.Foreground="{TemplateBinding Foreground}"/>
                         <TextBlock Grid.Column="1" Text="▼" Foreground="#F4F7FA" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="11"/>
                     </Grid>
                 </Border>
                 <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" IsOpen="{TemplateBinding IsDropDownOpen}" Focusable="False" PopupAnimation="Fade">
-                    <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="320" Background="#223247" BorderBrush="#7893B2" BorderThickness="1">
+                    <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="320" Background="#223247" BorderBrush="#4B5269" BorderThickness="1">
                         <ScrollViewer CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer>
                     </Border>
                 </Popup>
             </Grid>
             <ControlTemplate.Triggers>
-                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#72E2B1"/></Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="#EC75B9"/></Trigger>
                 <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="#B7C4D4"/></Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>

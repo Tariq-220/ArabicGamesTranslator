@@ -502,7 +502,9 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         {
             Write(request, $"{SubtitleLog.Excerpt(source)} → çeviriye");
             inFlight = request;
-            pump = Task.Run(() => Pump(request));
+            var cancellation=new CancellationTokenSource();
+            inFlightCancel=cancellation;
+            pump = Task.Run(() => Pump(request,cancellation));
         }
         else
         {
@@ -623,13 +625,11 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     }
 
     /// <summary>Süren çeviriyi, bitince de sıradakini çevirir; sıra boşalınca durur.</summary>
-    private async Task Pump(Request first)
+    private async Task Pump(Request first,CancellationTokenSource cancel)
     {
         var request = first;
         while (true)
         {
-            var cancel = new CancellationTokenSource();
-            lock (gate) inFlightCancel = cancel;
             // Olay işleyicilerinden biri hata verse de sıra takılı kalmasın.
             try { await Translate(request, cancel.Token); }
             catch { }
@@ -651,6 +651,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                 inFlight = next;
                 if (next is null) return;
                 request = next;
+                cancel = new CancellationTokenSource();
+                inFlightCancel=cancel;
             }
         }
     }

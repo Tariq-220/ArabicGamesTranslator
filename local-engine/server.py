@@ -30,8 +30,8 @@ class Engine:
             import sentencepiece as sp
             folder = Path(snapshot_download('quickmt/quickmt-en-ar', revision=QUICKMT_REVISION,
                 allow_patterns=['config.json', 'model.bin', '*vocabulary.json', '*.spm.model', 'README.md'], local_files_only=offline))
-            self.source = sp.SentencePieceProcessor(model_file=str(folder / 'src.spm.model'))
-            self.target = sp.SentencePieceProcessor(model_file=str(folder / 'tgt.spm.model'))
+            self.source = sp.SentencePieceProcessor(model_proto=(folder / 'src.spm.model').read_bytes())
+            self.target = sp.SentencePieceProcessor(model_proto=(folder / 'tgt.spm.model').read_bytes())
             self.runtime = ctranslate2.Translator(str(folder), device='cpu', compute_type='int8', inter_threads=1, intra_threads=2)
         else:
             import torch

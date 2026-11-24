@@ -66,13 +66,14 @@ public sealed class XboxTestWindow : Window
         this.controller = controller;
         if(!preview)controller.PrepareDialogueReading();
         if(!controller.ReadingRecoveryApplied){controller.Settings=controller.Settings with{Region=new CropRegion(.62,.97,.12,.78)};controller.DesktopOverlayEnabled=false;controller.ReadingRecoveryApplied=true;}
+        if(!preview)controller.PrepareRebuildAreas();
         start.MinHeight=56;start.MinWidth=190;start.Tag="translation-start";windows.MinHeight=48;engineChoice.MinHeight=48;key.MinHeight=48;recordComparison.MinHeight=44;
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/GameTranslator;component/Theme/ArabicTestStyles.xaml",UriKind.Relative) });
         Icon=System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/GameTranslator;component/Assets/GameTranslator.ico"));
         Title = "مترجم الألعاب بالعربية — لابتوب Xbox / PS5 — "+ArabicRelease.Version;
         Width = 960; Height = Math.Min(820,SystemParameters.WorkArea.Height); MinWidth = 700; MinHeight = 600;
         FlowDirection = FlowDirection.RightToLeft;
-        FontFamily = new FontFamily("Segoe UI"); FontSize = 15;
+        FontFamily = new FontFamily("pack://application:,,,/GameTranslator;component/Assets/Fonts/#Noto Sans Arabic"); FontSize = 15;
         Background = new SolidColorBrush(Color.FromRgb(18, 24, 35)); Foreground = Brushes.White;
         Resources.Add(typeof(Slider),new Style(typeof(Slider)){Setters={new Setter(Slider.MinHeightProperty,44.0),new Setter(Slider.IsMoveToPointEnabledProperty,true)}});
         Resources.Add(typeof(ComboBoxItem),new Style(typeof(ComboBoxItem), (Style)FindResource(typeof(ComboBoxItem))){Setters={new Setter(ComboBoxItem.MinHeightProperty,44.0)}});
@@ -96,6 +97,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(sourceInstruction);
         consoleDetails.Children.Add(Label("المحركات السحابية ترسل النص المقروء للمزوّد؛ اختر نافذة اللعبة لتجنّب قراءة إشعاراتك. QuickMT المحلي لا يحتاج خدمة ترجمة سحابية."));
         var pick = Row(); pick.Children.Add(windows); pick.Children.Add(Button("تحديث النوافذ", RefreshWindows)); capturePicker=pick;pick.Visibility=DirectPs5?Visibility.Collapsed:Visibility.Visible;root.Children.Add(pick);
+        root.Children.Add(Button("معاينة المصدر وضبط المناطق — بدون تشغيل الترجمة",()=>{var target=(windows.SelectedItem as ComboBoxItem)?.Tag as string;if(!DirectPs5&&target is null){status.Text="اختر نافذة البث أولًا.";return;}controller.Settings=controller.Settings with{VideoSource=DirectPs5?VideoSourceType.RemotePlay:VideoSourceType.DesktopScreen,DesktopWindowName=target};try{controller.StartSourcePreview();status.Text="المعاينة تعمل. افتح مناطق القراءة؛ الترجمة لم تبدأ بعد.";}catch{status.Text="تعذر فتح المعاينة؛ تحقق من مصدر البث.";}}));
         consoleDetails.Children.Add(Label("عند ظهور صورة سوداء جرّب التقاط الشاشة كاملة. عند اللعب على التلفزيون تصغر هذه الواجهة تلقائيًا؛ أبقِ نافذة البث ظاهرة."));
         root.Children.Add(new Expander{Header="تفاصيل ربط الكونسول والخصوصية",Content=consoleDetails,Foreground=Brushes.White,Margin=new Thickness(4,8,4,8)});
         var crop = Row(); crop.Children.Add(Label("بداية منطقة القراءة من أعلى الصورة (%)")); crop.Children.Add(top); root.Children.Add(crop);
@@ -104,7 +106,7 @@ public sealed class XboxTestWindow : Window
         var leftRow=Row();leftRow.Children.Add(Label("بداية القراءة من اليسار (%)"));leftRow.Children.Add(readLeft);root.Children.Add(leftRow);
         var rightRow=Row();rightRow.Children.Add(Label("نهاية القراءة من اليمين (%) — قلّلها لاستبعاد الأزرار"));rightRow.Children.Add(readRight);root.Children.Add(rightRow);
         var regionLabel=Label("");root.Children.Add(regionLabel);
-        void ApplyCrop(){controller.Settings=controller.Settings with {Region=new CropRegion(top.Value/100,.97,readLeft.Value/100,readRight.Value/100)};regionLabel.Text=$"منطقة الحوار: أعلى {(int)top.Value}% · يسار {(int)readLeft.Value}% · يمين {(int)readRight.Value}%";}
+        void ApplyCrop(){controller.Settings=controller.Settings with {Region=new CropRegion(top.Value/100,controller.Settings.Region.Bottom,readLeft.Value/100,readRight.Value/100)};regionLabel.Text=$"منطقة الحوار: أعلى {(int)top.Value}% · يسار {(int)readLeft.Value}% · يمين {(int)readRight.Value}%";}
         top.ValueChanged+=(_,_)=>ApplyCrop();readLeft.ValueChanged+=(_,_)=>ApplyCrop();readRight.ValueChanged+=(_,_)=>ApplyCrop();ApplyCrop();
         var dialogueOnly=Button("الحوار فقط — استبعاد أزرار اليمين",()=>{controller.Stop();controller.ReadingContentMode="dialogue";top.Value=70;readLeft.Value=12;readRight.Value=78;ApplyCrop();status.Text="ضُيقت القراءة للحوار. اضغط بدء الترجمة؛ إذا انقص آخر الحوار ارفع نهاية اليمين تدريجيًا.";});root.Children.Add(dialogueOnly);
         root.Children.Add(Button("استعادة منطقة القراءة الواسعة",()=>{top.Value=62;readLeft.Value=10;readRight.Value=90;ApplyCrop();}));
@@ -128,7 +130,7 @@ public sealed class XboxTestWindow : Window
         var controls = Row(); controls.Children.Add(start); controls.Children.Add(Button("اختبار الحروف العربية", () => controller.SendTestSubtitle()));
         var show = new CheckBox { Content = "إظهار العربية على الكمبيوتر — اتركه مطفأً عند اللعب على التلفزيون", Tag="desktop-overlay", IsChecked = controller.DesktopOverlayEnabled, Margin = new Thickness(10), VerticalAlignment = VerticalAlignment.Center };
         show.Checked += (_, _) => {controller.DesktopOverlayEnabled=true;DesktopSubtitleOverlay.IsOverlayEnabled = true;};
-        show.Unchecked += (_, _) => {controller.DesktopOverlayEnabled=false;DesktopSubtitleOverlay.IsOverlayEnabled = false;};
+        show.Unchecked += (_, _) => {AreaOverlayWindow.ClearAll();controller.DesktopOverlayEnabled=false;DesktopSubtitleOverlay.IsOverlayEnabled = false;};
         root.Children.Insert(root.Children.IndexOf(pick)+1,show);
         var recover=Button("إصلاح القراءة — استعادة الحوار واستبعاد الأزرار",()=>{controller.ResetDialogueReading();show.IsChecked=false;top.Value=70;readLeft.Value=12;readRight.Value=78;ApplyCrop();source.Text="";translated.Text="";DesktopSubtitleOverlay.Clear();status.Text="استُعيدت قراءة الحوار. اختر نافذة اللعبة ثم اضغط بدء الترجمة؛ مفاتيحك ونماذجك محفوظة.";});recover.Tag="reading-recovery";
         root.Children.Insert(root.Children.IndexOf(pick)+2,recover);root.Children.Add(controls);
@@ -210,12 +212,9 @@ public sealed class XboxTestWindow : Window
         void AddTab(string title,int from,int until){
             var content=new StackPanel{Margin=new Thickness(8)};
             for(int n=from;n<until;n++){
-                if(n==cropAt){
-                    var advanced=new StackPanel();
-                    for(int a=cropAt;a<controlsAt;a++)advanced.Children.Add(items[a]);
-                    content.Children.Add(new Expander{Header="السجل وخيارات الالتقاط المتقدمة",IsExpanded=false,Content=advanced,Foreground=Brushes.White,Margin=new Thickness(4,14,4,8)});
-                    n=controlsAt;continue;
-                }
+                if(n==cropAt){n=controlsAt;continue;}
+                if(items[n] is FrameworkElement obsolete && Equals(obsolete.Tag,"reading-recovery"))continue;
+                if(items[n] is Border oldMode && ReferenceEquals(oldMode.Child,quickReading))continue;
                 if(items[n]!=controls&&items[n]!=testEngine)content.Children.Add(items[n]);
             }
             var scroll=new ScrollViewer{Tag="setup-scroll",Content=content,VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};var hint=Label("↓ مرّر لعرض بقية الخيارات",13);var next=Button("بقية الخيارات ↓",()=>scroll.ScrollToVerticalOffset(scroll.VerticalOffset+Math.Max(150,scroll.ViewportHeight*.75)));void UpdateHint(){bool more=scroll.ScrollableHeight>1&&scroll.VerticalOffset<scroll.ScrollableHeight-2;hint.Text=more?"↓ توجد خيارات إضافية بالأسفل — مرّر أو اضغط السهم":"✓ كل الخيارات ظاهرة أو وصلت إلى نهايتها";next.IsEnabled=more;}scroll.ScrollChanged+=(_,_)=>UpdateHint();scroll.Loaded+=(_,_)=>UpdateHint();var hintRow=new DockPanel();DockPanel.SetDock(next,Dock.Left);hintRow.Children.Add(next);hintRow.Children.Add(hint);var area=new DockPanel();DockPanel.SetDock(hintRow,Dock.Bottom);area.Children.Add(hintRow);area.Children.Add(scroll);tabs.Items.Add(new TabItem{Header=title,MinHeight=44,Padding=new Thickness(10,8,10,8),Content=area});
@@ -224,7 +223,13 @@ public sealed class XboxTestWindow : Window
         AddTab("② محرك الترجمة",engineAt,screenAt);
         tabs.Items.Add(new TabItem{Header="③ مناطق القراءة",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Content=new GameTranslator.App.Controls.ReadingAreaEditor(controller),VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly}});
         AddTab("④ الشاشة والربط",screenAt,styleAt);
-        AddTab("⑤ الخط والمظهر",styleAt,lastOptions);
+        var appearance=new StackPanel{Margin=new Thickness(12)};
+        appearance.Children.Add(Label("الخط والخلفية والموقع تُعدّل لكل مربع من «مناطق القراءة». الحوار مستقل عن القوائم والرسائل.",18));
+        appearance.Children.Add(recordComparison);appearance.Children.Add(logState);
+        appearance.Children.Add(Button("تصدير سجل المقارنة",()=>ComparisonExportDialog.Save(this,comparison.FilePath,text=>logState.Text=text)));
+        appearance.Children.Add(Button("التصحيحات والسجل",()=>new TranslationHistoryWindow(comparison.FilePath){Owner=this}.ShowDialog()));
+        appearance.Children.Add(automaticUpdates);
+        tabs.Items.Add(new TabItem{Header="⑤ السجل والتحديث",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Content=appearance,VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});
         Grid.SetRow(tabs,2);shell.Children.Add(tabs);
         var live=new StackPanel{Margin=new Thickness(8)};
         live.Children.Add(new ScrollViewer{Content=status,MaxHeight=54,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly});
@@ -239,18 +244,19 @@ public sealed class XboxTestWindow : Window
         Action<string,string> discarded=(english,reason)=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,"",null,controller.Settings.Region,comparisonLatest,"discarded",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,reason,CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));};
         controller.TranslationRejected+=rejected;controller.LineDiscarded+=discarded;Closed+=(_,_)=>{controller.TranslationRejected-=rejected;controller.LineDiscarded-=discarded;};
         overlay = (text, ms, box) => {
-            DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style, box);
+            DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style with{Placement=SubtitlePlacement.Cover,StackPrevious=false}, box);
             if(recordComparison.IsChecked==true && controller.IsRunning && text==controller.LastTranslation && !string.IsNullOrWhiteSpace(controller.LastSource)) {
                 var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,text,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest,controller.LastLineMetrics?.Origin==LineOrigin.Pack?"reviewed_dictionary":"engine_or_cache",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,RulesRevision:CommunityCorrections.CurrentRevision,PublicCorrections:CommunityCorrections.PublicEnabled));
                 logState.Text=comparison.Error ?? (queued?"السجل مفعّل — يحفظ السطور المعروضة وأوقاتها محليًا. لا يشمل زمن البث والتلفزيون.":"ازدحم السجل؛ لم يُحفظ هذا السطر.");
             }
         };
+        controller.AreaCaptionShown+=AreaOverlayWindow.Apply;
         controller.LiveSubtitleShown += overlay;
         controller.SubtitlesCleared += DesktopSubtitleOverlay.Clear;
         controller.PropertyChanged += Changed;
         start.Click += async (_, _) =>
         {
-            if (controller.IsRunning) { controller.Stop(); return; }
+            if (controller.IsRunning) { controller.Stop();AreaOverlayWindow.ClearAll(); return; }
             string? target=(windows.SelectedItem as ComboBoxItem)?.Tag as string;
             if(DirectPs5){if(!controller.HasAccount||controller.Console==null||!GameTranslator.RemotePlay.StreamSession.IsNativeAvailable){status.Text="أكمل اقتران PS5 المباشر وتأكد من وجود المحرك الأصلي.";return;}}
             else if(target==null){status.Text="اختر نافذة البث أولًا.";return;}
@@ -265,7 +271,7 @@ public sealed class XboxTestWindow : Window
                 controller.Settings = controller.Settings with
                 {
                     SourceLanguage = "en", TargetLanguage = "ar", VideoSource = DirectPs5?VideoSourceType.RemotePlay:VideoSourceType.DesktopScreen,
-                    DesktopWindowName = target, Region = new CropRegion(top.Value / 100, 0.97, readLeft.Value/100, readRight.Value/100),
+                    DesktopWindowName = target, Region = controller.Settings.Region,
                     DubbingEnabled = false, Engine = engineChoice.SelectedIndex==1 ? TranslationEngine.DeepL : TranslationEngine.Gemini
                 };
                 comparisonSession=Guid.NewGuid().ToString("N");comparisonEngine=(engineChoice.SelectedItem?.ToString()??"unknown")+(engineChoice.SelectedIndex==1?" / "+(LiveServices.DeepLModelType??"automatic"):(cloudModel.Visibility==Visibility.Visible?" / "+SelectedCloudModel:""));comparisonGame=LiveServices.DialogueGame;comparisonLatest=controller.PreferLatestDialogue;
@@ -279,6 +285,7 @@ public sealed class XboxTestWindow : Window
         {
             xboxPlayer?.Close();
             updateCancel.Cancel();
+            controller.AreaCaptionShown-=AreaOverlayWindow.Apply;AreaOverlayWindow.ClearAll();
             controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
             controller.PropertyChanged -= Changed; DesktopSubtitleOverlay.Clear(); controller.Dispose(); comparison.DisposeAsync().AsTask().GetAwaiter().GetResult();
         };
@@ -315,7 +322,7 @@ public sealed class XboxTestWindow : Window
         controller.Stop();controller.PreferPlayStation=false;controller.NativePlayStationEnabled=false;
         if(xboxPlayer is null){xboxPlayer=new XboxPlayerWindow();xboxPlayer.Closed+=(_,_)=>xboxPlayer=null;xboxPlayer.Show();}
         else {xboxPlayer.WindowState=WindowState.Normal;xboxPlayer.Activate();}
-        controller.Settings=controller.Settings with {DesktopWindowName=XboxPlayerWindow.PlayerTitle,VideoSource=VideoSourceType.DesktopScreen};
+        controller.Settings=controller.Settings with {DesktopWindowName="window:"+XboxPlayerWindow.PlayerTitle,VideoSource=VideoSourceType.DesktopScreen};
         resetWindowPreference=false;RefreshWindows();UpdateConsoleHelp();
     }
 

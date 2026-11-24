@@ -185,14 +185,17 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
 
     /// <param name="paragraphs">true ise metin satır satır, sola yaslı gösterilir (görev paneli gibi başlık ve maddeli yazılar).</param>
     /// <param name="replaces">TV satırı öncekinin üstüne yığmaz, yerine koyar (<c>replace</c> alanı; eski TV uygulamaları yok sayar).</param>
+    public TextBox? DialogueOutput {get;set;}
     public void SendSubtitle(string text, int durationMs = 15000, TextBox? box = null, bool paragraphs = false, bool replaces = false)
     {
+        if(DialogueOutput is {} output){box=output;}
         var json = new SortedDictionary<string, object>
         {
             ["at"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             ["duration"] = durationMs,
             ["text"] = text,
         };
+        if(DialogueOutput is not null)json["customPlacement"]=true;
         if (paragraphs) json["paragraphs"] = true;
         if (replaces) json["replace"] = true;
         if (box is { } b) json["box"] = BoxJson(b);

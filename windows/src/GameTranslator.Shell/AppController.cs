@@ -58,6 +58,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private SubtitleServer server = new(DefaultServerPort);
     private bool serverStarted;
     private IStreamSession? session;
+    private IStreamSession? previewSession;
     private IKeeper? keeper;
     private SubtitlePipeline? pipeline;
     /// <summary>Hattın yazı okuyucusu; ek bölgelerin tek seferlik okuması da bunu kullanır.</summary>
@@ -835,11 +836,22 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     // --- Çeviri ---
 
+    public void StartSourcePreview()
+    {
+        if(isRunning)return;
+        StopSourcePreview();
+        var preview=services.MakeStream(console,accountId,settings);
+        preview.FrameReceived+=frame=>post(()=>LastFrame=frame);
+        previewSession=preview;preview.Start();
+    }
+    public void StopSourcePreview(){previewSession?.Stop();previewSession?.Dispose();previewSession=null;}
+
     public async Task StartAsync()
     {
         // Düğmeye iki kez basılması ya da beklerken tekrar çağrılması ikinci bir oturum açmaz.
         if (isRunning || isStarting) return;
         if (settings.VideoSource == VideoSourceType.RemotePlay && (console is null || accountId is null)) return;
+        StopSourcePreview();
         IsStarting = true;
         try
         {
@@ -961,6 +973,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     public void Dispose()
     {
+        StopSourcePreview();
         Stop();
         server.Dispose();
     }
@@ -971,7 +984,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
-    private SubtitleStyle PresentationStyle => settings.Style with {StackPrevious=false,Placement=ReadingModes.DialogueOnly(ReadingContentMode)?SubtitlePlacement.Fixed:SubtitlePlacement.Cover};
+    private SubtitleStyle PresentationStyle => settings.Style with {StackPrevious=false,Placement=SubtitlePlacement.Cover};
     public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??new(.70,.97,.12,.78);
     public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set {if(value!="dialogue"&&ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",settings.Region);store.Save("ReadingContentMode",value);}}
     public void PrepareDialogueReading(){
@@ -980,11 +993,23 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public void ResetDialogueReading(){Stop();store.Save("ReadingContentMode","dialogue");DesktopOverlayEnabled=false;Settings=settings with{Region=new CropRegion(.70,.97,.12,.78)};}
 
-    public string DialogueGame {get=>store.Load<string>("DialogueGame")??"Red Dead Redemption 2";set=>store.Save("DialogueGame",value);}
+    public string DialogueGame {get=>store.Load<string>("DialogueGame")??"Grand Theft Auto VI";set=>store.Save("DialogueGame",value);}
 
     public event Action<string,string>? TranslationRejected;
     public event Action<string,string>? LineDiscarded;
     private ReadingAreaSession? areaSession;
+    public CropRegion DialogueOutput
+    {
+        get=>store.Load<CropRegion>("dialogue-output-v1")??new(.65,.83,.10,.90);
+        set{var area=ReadingArea.Bound(value);store.Save("dialogue-output-v1",area);server.DialogueOutput=new TextBox(area.Left,area.Top,area.Right,area.Bottom);}
+    }
+    public void PrepareRebuildAreas()
+    {
+        if(store.Load<bool>("v024-rebuild-areas"))return;
+        Settings=settings with{Region=new(.80,.918,.10,.90),Style=settings.Style with{Background=0,StackPrevious=false}};
+        DialogueOutput=new(.65,.83,.10,.90);
+        store.Save("v024-rebuild-areas",true);
+    }
     public IReadOnlyList<ReadingArea> ReadingAreas
     {
         get => store.Load<List<ReadingArea>>("reading-areas-v1") ?? [];
@@ -1006,6 +1031,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         pipeline?.Reset();
         pipeline = null;
+        var output=DialogueOutput;server.DialogueOutput=new TextBox(output.Left,output.Top,output.Right,output.Bottom);
         ActiveSourceLanguage = settings.SourceLanguage;
         var reader = services.MakeReader(settings.SourceLanguage);
         activeReader = reader;
@@ -1023,7 +1049,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if (settings.TargetLanguage == "tr") built.PackLookup = CommunityPatchManager.Shared.Match;
         built.PairShown += (source, translation) =>
         {
-            var box = built.LastBox;
+            var outputArea=DialogueOutput;
+            TextBox? box = new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom);
             var ms = RegionTranslation.DisplayMilliseconds(translation);
             post(() =>
             {

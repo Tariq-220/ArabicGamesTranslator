@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\Fonts\*.ttf" />
+    <Content Include="Assets\Fonts\*-OFL.txt" CopyToOutputDirectory="PreserveNewest" />
     <!-- ShellWindow.xaml pencere simgesi olarak bunu okur; ApplicationIcon yalnız exe simgesidir. -->
     <Resource Include="Assets\GameTranslator.ico" />
   </ItemGroup>

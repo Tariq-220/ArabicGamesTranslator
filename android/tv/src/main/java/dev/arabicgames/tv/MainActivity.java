@@ -52,7 +52,7 @@ public final class MainActivity extends Activity {
    @Override public void onVideoUnavailable(String id,int reason){if(!id.equals(tunedInput))return;videoAvailable=false;restoreHdmi=true;hdmiStatus.setText("تغيّرت إشارة HDMI ("+reason+")؛ بانتظار الصورة…");scheduleVideoRecovery();}
    @Override public void onDisconnected(String id){if(!id.equals(tunedInput))return;videoAvailable=false;tunedInput=null;restoreHdmi=true;scheduleVideoRecovery();}
   };tv.setCallback(videoCallbacks);
-  subtitle=label("",20);subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
+  subtitle=label("",20);subtitle.setTypeface(android.graphics.Typeface.createFromAsset(getAssets(),"fonts/NotoSansArabic.ttf"));subtitle.setMaxWidth((int)(getResources().getDisplayMetrics().widthPixels*.84));subtitle.setPadding(dp(12),dp(5),dp(12),dp(5));subtitle.setGravity(Gravity.CENTER);subtitle.setTextDirection(View.TEXT_DIRECTION_RTL);subtitle.setVisibility(View.INVISIBLE);applySubtitleStyle();
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   areaLayer=new AreaCaptionLayer(this);root.addView(areaLayer,new FrameLayout.LayoutParams(-1,-1));
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
@@ -206,9 +206,15 @@ public final class MainActivity extends Activity {
    JSONObject json=new JSONObject(body.toString());post(generation,()->{if(json.optBoolean("active"))applyCaption(json,"استقبال احتياطي");else applyClear(json.optLong("revision",0));});
   }catch(Exception ignored){}finally{if(c!=null)c.disconnect();}
  }
+ private void positionCustomCaption(JSONObject box){
+  if(box==null)return;double l=box.optDouble("left",.1),t=box.optDouble("top",.65),r=box.optDouble("right",.9),b=box.optDouble("bottom",.83);
+  if(!Double.isFinite(l)||!Double.isFinite(t)||!Double.isFinite(r)||!Double.isFinite(b)||l<0||t<0||r>1||b>1||r<=l||b<=t)return;
+  View parent=(View)subtitle.getParent();int w=parent.getWidth(),h=parent.getHeight();if(w<1||h<1)return;
+  captionPositionKey="";FrameLayout.LayoutParams p=new FrameLayout.LayoutParams((int)((r-l)*w),-2,Gravity.TOP|Gravity.LEFT);p.leftMargin=(int)(l*w);p.topMargin=(int)(t*h);subtitle.setLayoutParams(p);
+ }
  private void applyCaption(JSONObject json,String route){
   String text=json.optString("text","");long rev=json.optLong("revision",0);if(text.isEmpty()||rev>0&&rev<acceptedRevision)return;if(rev>0&&rev==acceptedRevision&&text.equals(lastArabic))return;
-  acceptedRevision=Math.max(acceptedRevision,rev);manualTestUntil=0;if(!text.equals(lastArabic)){subtitleCount++;lastArabic=text;}positionCaption(json.optJSONObject("box"));String receipt="سطور مستلمة: "+subtitleCount+" · "+route;if(!android.text.TextUtils.equals(received.getText(),receipt))received.setText(receipt);show(text,Math.max(250,Math.min(10000,json.optInt("duration",5000))));
+  acceptedRevision=Math.max(acceptedRevision,rev);manualTestUntil=0;if(!text.equals(lastArabic)){subtitleCount++;lastArabic=text;}if(json.optBoolean("customPlacement",false))positionCustomCaption(json.optJSONObject("box"));else positionCaption(json.optJSONObject("box"));String receipt="سطور مستلمة: "+subtitleCount+" · "+route;if(!android.text.TextUtils.equals(received.getText(),receipt))received.setText(receipt);show(text,Math.max(250,Math.min(10000,json.optInt("duration",5000))));
  }
  private void positionCaption(JSONObject box){
   FrameLayout.LayoutParams p=(FrameLayout.LayoutParams)subtitle.getLayoutParams();int w=getResources().getDisplayMetrics().widthPixels,h=getResources().getDisplayMetrics().heightPixels;
