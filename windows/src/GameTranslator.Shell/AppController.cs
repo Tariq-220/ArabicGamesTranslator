@@ -1010,7 +1010,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public void PrepareRebuildAreas()
     {
         if(store.Load<bool>("v024-rebuild-areas"))return;
-        Settings=settings with{Region=new(.80,.918,.10,.90),Style=settings.Style with{Background=0,StackPrevious=false}};
+        Settings=settings with{Region=new(.80,.918,.10,.90),Style=settings.Style with{FontSize=32,Background=0,StackPrevious=false}};
         DialogueOutput=new(.65,.83,.10,.90);
         store.Save("v024-rebuild-areas",true);
     }

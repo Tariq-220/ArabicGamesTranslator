@@ -71,7 +71,7 @@ public sealed class XboxTestWindow : Window
         Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/GameTranslator;component/Theme/ArabicTestStyles.xaml",UriKind.Relative) });
         Icon=System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/GameTranslator;component/Assets/GameTranslator.ico"));
         Title = "مترجم الألعاب بالعربية — لابتوب Xbox / PS5 — "+ArabicRelease.Version;
-        Width = 960; Height = Math.Min(820,SystemParameters.WorkArea.Height); MinWidth = 700; MinHeight = 600;
+        Width = 1120; Height = Math.Min(820,SystemParameters.WorkArea.Height); MinWidth = 700; MinHeight = 600;
         FlowDirection = FlowDirection.RightToLeft;
         FontFamily = new FontFamily("pack://application:,,,/GameTranslator;component/Assets/Fonts/#Noto Sans Arabic"); FontSize = 15;
         Background = new SolidColorBrush(Color.FromRgb(18, 24, 35)); Foreground = Brushes.White;
@@ -196,10 +196,10 @@ public sealed class XboxTestWindow : Window
         shell.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});
         shell.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
         var heading=new StackPanel{Margin=new Thickness(10)};
-        heading.Children.Add(Label("ArabicGames · ترجمة الألعاب · الإصدار "+ArabicRelease.Version,24));
-        updateLabel.Tag="update-status";heading.Children.Add(updateLabel);
+        heading.Children.Add(Label("ArabicGames · ترجمة الألعاب · الإصدار "+ArabicRelease.Version,20));
+        updateLabel.Tag="update-status";
         connectionBar.Tag="connection-status"; heading.Children.Add(connectionBar);
-        heading.Children.Add(Label("① اختر المصدر  ② اختر المحرك واللعبة  ③ اربط الشاشة  ثم اضغط بدء الترجمة.",14));
+
         var ambient=new Border{CornerRadius=new CornerRadius(18),Padding=new Thickness(6),Margin=new Thickness(0,0,0,12),Background=new LinearGradientBrush(Color.FromRgb(34,54,77),Color.FromRgb(39,32,65),0),Child=heading};
         shell.Children.Add(ambient);
         var actions=new WrapPanel{Margin=new Thickness(0,0,0,10)};
@@ -221,14 +221,14 @@ public sealed class XboxTestWindow : Window
         }
         AddTab("① مصدر اللعبة",sourceAt,engineAt);
         AddTab("② محرك الترجمة",engineAt,screenAt);
-        tabs.Items.Add(new TabItem{Header="③ مناطق القراءة",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Tag="setup-scroll",Content=new GameTranslator.App.Controls.ReadingAreaEditor(controller),VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly}});
+        tabs.Items.Add(new TabItem{Header="③ مناطق القراءة",Padding=new Thickness(12),MinHeight=52,Content=new GameTranslator.App.Controls.ReadingAreaEditor(controller)});
         AddTab("④ الشاشة والربط",screenAt,styleAt);
         var appearance=new StackPanel{Margin=new Thickness(12)};
         appearance.Children.Add(Label("الخط والخلفية والموقع تُعدّل لكل مربع من «مناطق القراءة». الحوار مستقل عن القوائم والرسائل.",18));
         appearance.Children.Add(recordComparison);appearance.Children.Add(logState);
         appearance.Children.Add(Button("تصدير سجل المقارنة",()=>ComparisonExportDialog.Save(this,comparison.FilePath,text=>logState.Text=text)));
         appearance.Children.Add(Button("التصحيحات والسجل",()=>new TranslationHistoryWindow(comparison.FilePath){Owner=this}.ShowDialog()));
-        appearance.Children.Add(automaticUpdates);
+        appearance.Children.Add(updateLabel);appearance.Children.Add(automaticUpdates);
         tabs.Items.Add(new TabItem{Header="⑤ السجل والتحديث",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Tag="setup-scroll",Content=appearance,VerticalScrollBarVisibility=ScrollBarVisibility.Visible}});
         Grid.SetRow(tabs,2);shell.Children.Add(tabs);
         var live=new StackPanel{Margin=new Thickness(8)};
@@ -492,10 +492,10 @@ public sealed class XboxTestWindow : Window
     {
         var tabs=new TabControl{Margin=new Thickness(12)};
         void Page(string title,string text){tabs.Items.Add(new TabItem{Header=title,Content=new ScrollViewer{Content=Label(text,17),VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});}
-        Page("Xbox","1. Xbox: الإعدادات ← الأجهزة والاتصالات ← الميزات البعيدة، ثم فعّلها.\n2. افتح Xbox Remote Play في المتصفح أو تطبيق Xbox الرسمي بنفس الحساب؛ لا تحتاج كتابة عنوان الكونسول هنا.\n3. ابدأ البث ثم اختر نافذته من تحديث النوافذ.\n4. للعب بأقل تأخير، العب على HDMI مباشرة واترك البث للقراءة فقط.\nربط Microsoft بالكود داخل مترجمنا لم يُدمج بعد؛ لا تدخل كلمة المرور فيه.");
+        Page("Xbox","1. فعّل الميزات البعيدة في Xbox.\n2. من مصدر اللعبة اضغط فتح البث داخل التطبيق، وسجّل الدخول في صفحة Microsoft الرسمية ثم افتح كونسولك.\n3. ارجع للمترجم واضغط معاينة المصدر؛ افتح مناطق القراءة لضبط المربعات. نافذة البث تبقى شغالة عند التنقل.\n4. يمكنك بدلًا من ذلك اختيار نافذة Xbox أو متصفح خارجي من القائمة.\n5. اختر المحرك واختبره، واربط الشاشة ثم ابدأ الترجمة. للعب الأقل تأخرًا استخدم صورة HDMI الأصلية.");
         Page("PS5","1. أضف حساب PSN ثانويًا مجانيًا على PS5 وفعّل اللعب عن بُعد وأنت به.\n2. اضغط PS5 — اقتران مباشر في مترجمنا وسجّل بالحساب الثانوي نفسه في صفحة Sony.\n3. اكتشف PS5 تلقائيًا، وافتح ربط جهاز على الكونسول واكتب رمز الـ8 أرقام هنا.\n4. ارجع للأساسي من يد PS5 وافتح لعبتك، واترك الثانوي للبث.\n5. اختر المحرك وابدأ الترجمة؛ لا تحتاج نافذة Sony أو مشاركة الشاشة. أغلق جلسات Remote Play الخارجية.\nيحفظ الحساب والربط مشفّرًا؛ لا نحتفظ بكلمة مرور Sony.");
-        Page("الشاشة","TCL / Google TV: ثبّت تطبيق الشاشة 0.3.8، افتحه على نفس الشبكة، وسيبحث عن الكمبيوتر. إذا تعددت الأجهزة تختار واحدًا.\nLG webOS: ثبّت حزمة LG عبر Developer Mode وwebOS Dev Manager مرة واحدة؛ بعدها استخدم اكتشاف الشاشات ووافق على الاقتران. دعم HDMI يختلف حسب موديل LG.\nMonitor: العربية فوق نافذة اللعبة على الكمبيوتر، أو امسح QR من جوال/تابلت لعرض النص بجانب شاشة الكونسول. الباركود لا يجعل شاشة HDMI العادية تعرض طبقة ترجمة.\nعند عدم الاتصال: اسمح للتطبيق في جدار حماية Windows على الشبكة الخاصة، وأوقف عزل أجهزة Wi-Fi في الراوتر إن كان مفعّلًا.");
-        Page("المحرك والسرعة","1. ابدأ بـ QuickMT المحلي: اختره ثم تشغيل النموذج، وانتظر Ready، ثم حفظ واختبار. لا يحتاج API.\n2. Gemini / OpenAI / Claude / DeepL: اختر المزوّد ثم الحصول على المفتاح. المفتاح لكل مزوّد مستقل، ولا تستعمل اشتراك تطبيق المحادثة بدل رصيد API.\n3. اختر النموذج ثم حفظ واختبار. الخانة الفارغة بعد الحفظ تستخدم المفتاح المحفوظ؛ لا تحتاج إدخاله كل مرة.\n4. 429: الحصة أو معدل الطلبات؛ 503: الخدمة غير متاحة مؤقتًا. تغيير المفتاح داخل المشروع نفسه لا يزيد الحصة.\n5. للحوار فقط: استبعد أزرار اليمين. فعّل تقليل ازدحام الطلبات قبل البدء، وجرّب التقاط 40ms إذا كان حمل اللابتوب مناسبًا.\n6. قارن المشهد نفسه بمحركين من سجل المقارنة؛ زمن البرنامج لا يشمل تأخير البث أو التلفزيون. اختيار نموذج جديد لا يضمن جودة أعلى.");
+        Page("الشاشة","Google TV / Android TV: ثبّت تطبيق الشاشة، واضغط اكتشاف الجوال أو الكمبيوتر ثم اختر جهازك. زر إصلاح الاتصال يعيد الربط دون مسح الإعدادات.\nالمدخل: اختر HDMI واضغط عرض اللعبة؛ العودة للعب تخفي الواجهة، وOK أو رجوع يُظهرها.\nإذا نقلتك الشاشة إلى تطبيق HDMI آخر، أوقف HDMI-CEC من إعدادات التلفزيون؛ HDR لا نغيره. إصلاح الصورة منفصل عن إصلاح الاتصال.\nLG/Samsung يحتاجان تثبيت حزمهما الخاصة. المونيتور العادي لا يعرض طبقة تلقائيًا فوق HDMI؛ استخدم عرض الكمبيوتر أو صفحة شاشة ثانية بجهاز آخر.\nاسمح للمترجم في جدار حماية Windows على الشبكة الخاصة. الإدخال اليدوي يقبل IP أو IP:منفذ، كما هو ظاهر في الكمبيوتر.");
+        Page("المحرك والمناطق","1. اختر QuickMT ثم تنزيل/تشغيل وانتظر Ready، أو اختر مزودًا سحابيًا وافتح رابط API بجانبه.\n2. اضغط حفظ واختبار المحرك؛ المفتاح الفارغ يبقي المحفوظ. نموذج التنزيل المحلي يبقى محفوظًا، ولا تحذفه عند تحديث التطبيق.\n3. في مناطق القراءة: الحوار مستقل. أضف جوالًا أو قائمة أو هدف مهمة، وارسم المصدر ثم اختر مربع ظهور العربية وحدد الخط والخلفية والمدة.\n4. يمكن ضبط المناطق أثناء المعاينة أو اللعب. أوقف المنطقة غير اللازمة لتخفيف الحمل.\n5. 429 حصة/معدل طلبات، و503 خدمة غير متاحة مؤقتًا؛ تغيير المفتاح وحده لا يعالج حد المشروع.\n6. السجل محلي، ويمكن تصديره من صفحة السجل والتحديث.");
         new Window{Title="التفعيل خطوة بخطوة",Owner=this,Width=760,Height=630,Content=tabs,Background=Background,Foreground=Foreground,FlowDirection=FlowDirection.RightToLeft}.ShowDialog();
     }
     private void RefreshCloudModels()

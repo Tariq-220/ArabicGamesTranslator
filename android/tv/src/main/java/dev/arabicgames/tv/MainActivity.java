@@ -68,7 +68,7 @@ public final class MainActivity extends Activity {
   button(connectionPanel,"حفظ وربط الجوال",this::connect);panel.addView(connectionPanel);
   connectionPanel.setVisibility(host.getText().toString().isEmpty()||!desktop.isChecked()&&!Pairing.validCode(code.getText().toString())?View.VISIBLE:View.GONE);
   input=new Spinner(this);refreshInputs();panel.addView(input);hdmiStatus=label("اختر HDMI ثم عرض اللعبة.",12);panel.addView(hdmiStatus);
-  button(panel,"عرض اللعبة عبر HDMI",this::tune);
+  button(panel,"عرض اللعبة عبر HDMI",()->{if(tune())hidePanel();});
   button(panel,"إصلاح صورة HDMI السوداء",()->{videoRetries=0;repairVideo();});
   audio=new CheckBox(this);audio.setText("تشغيل صوت HDMI من الشاشة");audio.setTextSize(13);audio.setChecked(getPreferences(0).getBoolean("hdmiAudio",true));audio.setOnCheckedChangeListener((b,on)->{getPreferences(0).edit().putBoolean("hdmiAudio",on).apply();restoreAudio();});panel.addView(audio);
   LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);actions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);

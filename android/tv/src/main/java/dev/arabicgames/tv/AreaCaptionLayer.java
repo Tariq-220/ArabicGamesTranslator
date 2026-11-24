@@ -41,7 +41,7 @@ public final class AreaCaptionLayer extends FrameLayout {
   FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(Math.max(40,(int)((right-left)*width)),Math.max(30,(int)((bottom-top)*height)),Gravity.TOP|Gravity.LEFT);p.leftMargin=(int)(left*width);p.topMargin=(int)(top*height);view.setLayoutParams(p);
   int font=Math.max(14,Math.min(48,data.optInt("fontSize",24)));view.setTextSize(TypedValue.COMPLEX_UNIT_PX,Math.max(14,width*font/1280f));
   view.setVisibility(View.VISIBLE);final TextView caption=view;
-  Runnable hide=()->{if(revisions.getOrDefault(id,-1L)==revision)caption.setVisibility(View.INVISIBLE);expiry.remove(id);};expiry.put(id,hide);handler.postDelayed(hide,Math.max(1200,Math.min(10000,data.optInt("duration",3500))));
+  Runnable hide=()->{if(revisions.getOrDefault(id,-1L)==revision)caption.setVisibility(View.INVISIBLE);expiry.remove(id);};expiry.put(id,hide);handler.postDelayed(hide,Math.max(1200,Math.min(30000,data.optInt("duration",3500))));
  }
  private static double bound(double value){return Double.isFinite(value)?Math.max(0,Math.min(1,value)):0;}
  private void remove(String id){TextView view=views.remove(id);if(view!=null)removeView(view);}

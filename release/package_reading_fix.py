@@ -8,6 +8,11 @@ if __name__=='__main__':
  version=json.loads((root/'release/version.json').read_text())['version'];files=[]
  for name in NAMES:
   src=Path(a.publish)/name;assert src.is_file(),name;shutil.copyfile(src,out/'files'/name);files.append({'path':name,'sha256':hashlib.sha256(src.read_bytes()).hexdigest()})
+ for relative in ['local-engine/server.py','local-engine/Start-Local.cmd','local-engine/requirements.txt','local-engine/hymt_engine.py','windows/src/GameTranslator.App/Assets/Fonts/NotoSansArabic-OFL.txt']:
+  src=root/relative;assert src.is_file(),relative
+  relative=relative.replace('windows/src/GameTranslator.App/','')
+  dst=out/'files'/relative;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,dst)
+  files.append({'path':relative,'sha256':hashlib.sha256(src.read_bytes()).hexdigest()})
  (out/'patch.json').write_text(json.dumps({'version':version,'files':files},indent=2),encoding='utf-8')
  for name in ['Reading-Fix.ps1','Reading-Fix.cmd']:shutil.copyfile(root/'installer'/name,out/name)
  for name in ['LICENSE','NOTICE']:shutil.copyfile(root/name,out/name)

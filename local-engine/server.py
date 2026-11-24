@@ -28,11 +28,22 @@ class Engine:
         elif name == 'quickmt':
             import ctranslate2
             import sentencepiece as sp
-            folder = Path(snapshot_download('quickmt/quickmt-en-ar', revision=QUICKMT_REVISION,
-                allow_patterns=['config.json', 'model.bin', '*vocabulary.json', '*.spm.model', 'README.md'], local_files_only=offline))
+            options = dict(revision=QUICKMT_REVISION, allow_patterns=['config.json', 'model.bin', '*vocabulary.json', '*.spm.model', 'README.md'])
+            try:
+                folder = Path(snapshot_download('quickmt/quickmt-en-ar', local_files_only=True, **options))
+                if not all((folder / name).is_file() for name in ['model.bin', 'src.spm.model', 'tgt.spm.model']):
+                    raise FileNotFoundError('Incomplete cached QuickMT snapshot')
+            except (FileNotFoundError, OSError):
+                if offline:
+                    raise
+                folder = Path(snapshot_download('quickmt/quickmt-en-ar', local_files_only=False, **options))
             self.source = sp.SentencePieceProcessor(model_proto=(folder / 'src.spm.model').read_bytes())
             self.target = sp.SentencePieceProcessor(model_proto=(folder / 'tgt.spm.model').read_bytes())
-            self.runtime = ctranslate2.Translator(str(folder), device='cpu', compute_type='int8', inter_threads=1, intra_threads=2)
+            # Native narrow Windows paths can fail under an Arabic user profile. Feed immutable
+            # model bytes to CT2 instead; SentencePiece also receives bytes above.
+            model_files = {p.name: p.read_bytes() for p in folder.iterdir()
+                           if p.name == 'model.bin' or p.name == 'config.json' or p.name.endswith('vocabulary.json')}
+            self.runtime = ctranslate2.Translator('quickmt', files=model_files, device='cpu', compute_type='int8', inter_threads=1, intra_threads=2)
         else:
             import torch
             from transformers import PreTrainedTokenizerFast, AutoModelForSeq2SeqLM

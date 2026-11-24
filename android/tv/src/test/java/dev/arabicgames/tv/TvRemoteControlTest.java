@@ -22,6 +22,6 @@ public class TvRemoteControlTest {
   }
  }
  @Test public void noHdmiInputDoesNotHideTheOnlyUsableControls(){try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
-  View root=c.get().getWindow().getDecorView();find(root,"عرض اللعبة / إخفاء اللوحة").performClick();assertEquals(View.GONE,root.findViewWithTag("menu-handle").getVisibility());
+  View root=c.get().getWindow().getDecorView();find(root,"عرض اللعبة عبر HDMI").performClick();assertEquals(View.GONE,root.findViewWithTag("menu-handle").getVisibility());
  }}
 }

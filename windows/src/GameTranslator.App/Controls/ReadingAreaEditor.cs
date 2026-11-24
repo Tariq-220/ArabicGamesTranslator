@@ -25,6 +25,7 @@ public sealed class ReadingAreaEditor : UserControl
     private readonly CheckBox enabled=new(){Content="تفعيل المنطقة",MinHeight=40};
     private readonly ComboBox mode=new(){MinHeight=40};
     private readonly Slider font=new(){Minimum=14,Maximum=48,TickFrequency=1,IsSnapToTickEnabled=true};
+    private readonly Slider duration=new(){Minimum=1200,Maximum=30000,TickFrequency=500,IsSnapToTickEnabled=true};
     private readonly Slider background=new(){Minimum=0,Maximum=100};
     private readonly TextBlock note=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(8)};
     private readonly DispatcherTimer timer=new(){Interval=TimeSpan.FromMilliseconds(400)};
@@ -47,17 +48,20 @@ public sealed class ReadingAreaEditor : UserControl
         root.Children.Add(list);
         var actions=new WrapPanel();
         actions.Children.Add(Action("+ رسائل جوال",()=>Add(ReadingArea.Phone())));
+        actions.Children.Add(Action("+ أهداف المهمة",()=>Add(ReadingArea.Instructions())));
         actions.Children.Add(Action("+ قائمة / نص",()=>Add(ReadingArea.Menu())));
         actions.Children.Add(Action("رسم مربع جديد",()=>{draw=true;note.Text="اسحب على المعاينة لرسم المربع المحدد.";}));
         actions.Children.Add(Action("حذف المنطقة",Remove));root.Children.Add(actions);
         root.Children.Add(name);root.Children.Add(enabled);
         root.Children.Add(new TextBlock{Text="حجم خط المنطقة"});root.Children.Add(font);
         root.Children.Add(new TextBlock{Text="خلفية المنطقة · صفر = بدون خلفية"});root.Children.Add(background);
+        root.Children.Add(new TextBlock{Text="مدة بقاء المنطقة الإضافية · حتى 30 ثانية"});root.Children.Add(duration);
         root.Children.Add(note);Content=root;
         list.SelectionChanged+=(_,_)=>LoadSelection();mode.SelectionChanged+=(_,_)=>Render();
         name.TextChanged+=(_,_)=>Edit(a=>a with{Name=name.Text});
         enabled.Checked+=(_,_)=>Edit(a=>a with{Enabled=true});enabled.Unchecked+=(_,_)=>Edit(a=>a with{Enabled=false});
         font.ValueChanged+=(_,_)=>Edit(a=>a with{FontSize=(int)font.Value});
+        duration.ValueChanged+=(_,_)=>Edit(a=>a with{DurationMs=(int)duration.Value});
         background.ValueChanged+=(_,_)=>Edit(a=>a with{Background=(int)background.Value});
         canvas.MouseLeftButtonDown+=(_,e)=>{Begin(e.GetPosition(canvas));canvas.CaptureMouse();e.Handled=true;};
         canvas.MouseMove+=(_,e)=>{if(dragging)Move(e.GetPosition(canvas));};
@@ -69,13 +73,23 @@ public sealed class ReadingAreaEditor : UserControl
         saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};
         name.LostKeyboardFocus+=(_,_)=>{var index=list.SelectedIndex;if(index>=0)RebuildList(index);};
         timer.Tick+=(_,_)=>RefreshFrame();Loaded+=(_,_)=>timer.Start();Unloaded+=(_,_)=>{timer.Stop();if(saveTimer.IsEnabled){saveTimer.Stop();Save();}};
+        // Keep the picture visible while scrolling settings: no giant preview followed by hidden controls.
+        var children=root.Children.Cast<UIElement>().ToList();root.Children.Clear();
+        var editor=new Grid();editor.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});editor.RowDefinitions.Add(new RowDefinition());
+        editor.Children.Add(children[0]);
+        var body=new Grid();body.ColumnDefinitions.Add(new ColumnDefinition());body.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(225)});Grid.SetRow(body,1);editor.Children.Add(body);
+        var picture=new Grid();picture.RowDefinitions.Add(new RowDefinition());picture.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+        picture.Children.Add(preview);Grid.SetRow(mode,1);picture.Children.Add(mode);body.Children.Add(picture);
+        var settings=new StackPanel{Margin=new Thickness(8)};foreach(var child in children.Skip(3))settings.Children.Add(child);
+        var settingsScroll=new ScrollViewer{Tag="setup-scroll",Content=settings,VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly};Grid.SetColumn(settingsScroll,1);body.Children.Add(settingsScroll);
+        Content=editor;
         RebuildList(0);
     }
     private static Button Action(string title,Action run){var b=new Button{Content=title,MinHeight=44,Margin=new Thickness(4),Padding=new Thickness(10)};b.Click+=(_,_)=>run();return b;}
     private void Add(ReadingArea area){if(areas.Count>=9){note.Text="الحد الأقصى 8 مناطق إضافية لحماية أداء الجهاز.";return;}areas.Add(area);RebuildList(areas.Count-1);Save();}
     private void Remove(){if(list.SelectedIndex<=0)return;var i=list.SelectedIndex;areas.RemoveAt(i);RebuildList(Math.Min(i,areas.Count-1));Save();}
     private void RebuildList(int index){updating=true;list.Items.Clear();foreach(var area in areas)list.Items.Add(area.Name);updating=false;list.SelectedIndex=index;LoadSelection();}
-    private void LoadSelection(){if(updating||Selected is not {} area)return;updating=true;name.Text=area.Name;enabled.IsChecked=area.Enabled;font.Value=area.FontSize;background.Value=area.Background;enabled.IsEnabled=area.Id!="dialogue";name.IsEnabled=area.Id!="dialogue";mode.IsEnabled=true;updating=false;Render();}
+    private void LoadSelection(){if(updating||Selected is not {} area)return;updating=true;name.Text=area.Name;enabled.IsChecked=area.Enabled;font.Value=area.FontSize;background.Value=area.Background;duration.Value=area.DurationMs;duration.IsEnabled=area.Id!="dialogue";enabled.IsEnabled=area.Id!="dialogue";name.IsEnabled=area.Id!="dialogue";mode.IsEnabled=true;updating=false;Render();}
     private void Edit(Func<ReadingArea,ReadingArea> change){if(updating||Selected is not {} area)return;areas[list.SelectedIndex]=change(area).Validate();saveTimer.Stop();saveTimer.Start();Render();}
     private void Save(){controller.DialogueOutput=areas[0].Output;controller.Settings=controller.Settings with{Region=areas[0].Source,Style=controller.Settings.Style with{FontSize=areas[0].FontSize,Background=areas[0].Background,StackPrevious=false}};controller.ReadingAreas=areas.Skip(1).ToArray();note.Text="حُفظت المناطق. الحوار مستقل عن الرسائل والقوائم؛ يمكن إيقاف أي منطقة إضافية.";}
     private void RefreshFrame(){if(!IsVisible||controller.LastFrame is not {} frame||ReferenceEquals(last,frame))return;last=frame;var bmp=BitmapSource.Create(frame.Width,frame.Height,96,96,PixelFormats.Bgra32,null,frame.Pixels,frame.Stride);bmp.Freeze();image.Source=bmp;Render();}

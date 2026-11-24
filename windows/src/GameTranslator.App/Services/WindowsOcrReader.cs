@@ -51,10 +51,11 @@ public sealed class WindowsOcrReader : ITextReader
         var whiteText = RecognizeOnce(TextImage.WhiteTextOnly(image));
         // Prefer actual English/slang over a longer but corrupt high-contrast OCR reading.
         // Dictionary availability only affects ranking, never whether dialogue is allowed.
-        var score=WindowsSpellDictionary.Shared.IsWorking ? (Func<string,int>)(t=>spelling.Score(t)) : OcrNoise.Score;
+        var english=engine.RecognizerLanguage.LanguageTag.StartsWith("en",StringComparison.OrdinalIgnoreCase);
+        var score=english && WindowsSpellDictionary.Shared.IsWorking ? (Func<string,int>)(t=>spelling.Score(t)) : OcrNoise.Score;
         var best=score(whiteText.Text)>score(raw.Text)?SpeakerMerge.WithSpeakerFrom(whiteText,raw):SpeakerMerge.WithSpeakerFrom(raw,whiteText);
         // A damaged reading gets one alternate shadow radius. No six-pass OCR on every frame.
-        if(WindowsSpellDictionary.Shared.IsWorking && spelling.IsMisread(best.Text) && score(best.Text)<8)
+        if(english && WindowsSpellDictionary.Shared.IsWorking && spelling.IsMisread(best.Text) && score(best.Text)<8)
         {
             var alternate=RecognizeOnce(TextImage.WhiteTextOnly(image,3));
             if(score(alternate.Text)>score(best.Text))best=alternate;
