@@ -1048,7 +1048,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode);
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
-        if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
+        if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>{
+            var reviewed=CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
+            return reviewed is not null&&ArabicOutputQuality.Accepts(text,reviewed)?ArabicGameNames.Localize(text,reviewed):null;
+        };
 
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });

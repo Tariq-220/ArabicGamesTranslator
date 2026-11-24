@@ -4,12 +4,12 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>1.5.0</Version>
-    <AssemblyVersion>1.5.0.0</AssemblyVersion>
-    <FileVersion>1.5.0.0</FileVersion>
-    <Company>Sefflex</Company>
-    <Authors>Sefflex</Authors>
-    <Product>GameTranslator</Product>
+    <Version>0.5.0</Version>
+    <AssemblyVersion>0.5.0.0</AssemblyVersion>
+    <FileVersion>0.5.0.0</FileVersion>
+    <Company>ArabicGames</Company>
+    <Authors>ArabicGames contributors; Sefflex; Nino; VI Translator contributors</Authors>
+    <Product>ArabicGames Translator</Product>
     <Copyright>Telif Hakkı © 2026 Sefflex. AGPL-3.0. Uses chiaki-ng (AGPL-3.0).</Copyright>
     <!-- WPF projesi Mac'te de derlenebilsin (çalıştırmak için Windows gerekir). -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>

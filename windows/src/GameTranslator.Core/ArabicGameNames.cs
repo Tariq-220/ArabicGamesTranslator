@@ -8,7 +8,7 @@ public static class ArabicGameNames
     private static readonly IReadOnlyDictionary<string,string> Names=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
         ["Jason"]="جيسون",["Lucia"]="لوسيا",["Donnie"]="دوني",["Leonida"]="ليونيدا",
         ["Kenton"]="كينتون",["Andy"]="آندي",["Shirley"]="شيرلي",["Brian"]="براين",
-        ["Arthur"]="آرثر",["Marston"]="مارستون",["Atreus"]="أتريوس",["Kratos"]="كريتوس",["Mimir"]="ميمير"
+        ["John"]="جون",["Arthur"]="آرثر",["Marston"]="مارستون",["Atreus"]="أتريوس",["Kratos"]="كريتوس",["Mimir"]="ميمير"
     };
     public static string Localize(string source,string output)
     {

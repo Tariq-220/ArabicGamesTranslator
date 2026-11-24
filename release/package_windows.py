@@ -26,6 +26,7 @@ def package(root,publish,runtime,output):
             if p.name=='local.properties' or p.suffix.lower() in ['.exe','.dll','.apk','.zip','.nupkg','.jks','.keystore','.p12','.pfx','.gguf','.pyc','.ipk','.wgt','.so','.a','.o']:continue
             z.write(p,'ArabicGames-Source/'+rel.as_posix())
     output.mkdir(parents=True,exist_ok=True)
+    (output/f'ArabicGames-Source-{version}.zip').write_bytes(source.getvalue())
     archive=output/f'ArabicGames-Windows-{version}-Full-Install.zip'
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,6) as z:
         for p,name in files:z.write(p,'ArabicGames-Windows/'+name)

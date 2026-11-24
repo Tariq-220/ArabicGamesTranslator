@@ -81,8 +81,8 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Label("مترجم الألعاب بالعربية", 30));
         root.Children.Add(Button("ابدأ هنا — خطوات التفعيل وحل المشاكل",ShowActivationSteps));
         root.Children.Add(Button("ربط الشاشة: العنوان والخطوات",()=>MessageBox.Show(this,
-            $"عنوان اللابتوب: {controller.ComputerAddress??"غير متصل"}\nالمنفذ: {controller.ServerPort}\n\nعلى TCL: OK ثم إعدادات الربط.\nفعّل مصدر كمبيوتر (بدون رمز الجوال).\nاكتب عنوان اللابتوب بدل عنوان الجوال، ثم حفظ وربط الجوال.\nاختر HDMI ثم عرض اللعبة وعودة للعب.\nمن اللابتوب اضغط اختبار الحروف العربية.\n\nالجهازان على نفس الشبكة الخاصة. لا تفتح منفذ الراوتر للإنترنت.",
-            "ربط TCL باللابتوب",MessageBoxButton.OK,MessageBoxImage.Information)));
+            $"عنوان اللابتوب: {controller.ComputerAddress??"غير متصل"}\nالمنفذ: {controller.ServerPort}\n\nعلى شاشة Android / Google TV: OK ثم إعدادات الربط.\nفعّل مصدر كمبيوتر (بدون رمز الجوال).\nاكتب عنوان اللابتوب بدل عنوان الجوال، ثم حفظ وربط الجوال.\nاختر HDMI ثم عرض اللعبة وعودة للعب.\nمن اللابتوب اضغط اختبار الحروف العربية.\n\nالجهازان على نفس الشبكة الخاصة. لا تفتح منفذ الراوتر للإنترنت.",
+            "ربط الشاشة باللابتوب",MessageBoxButton.OK,MessageBoxImage.Information)));
         root.Children.Add(updateLabel);root.Children.Add(updateButton);
         updateButton.Click+=async(_,_)=>{if(checkingUpdate){activeUpdateDownload?.Cancel();return;}if(readyInstaller!=null)InstallReadyUpdate();else await CheckForUpdate();};
         var automaticUpdates=new CheckBox{Content="فحص وتنزيل التحديث تلقائيًا خارج اللعب",IsChecked=controller.AutoUpdateEnabled,Margin=new Thickness(4),MinHeight=40};automaticUpdates.Checked+=(_,_)=>controller.AutoUpdateEnabled=true;automaticUpdates.Unchecked+=(_,_)=>controller.AutoUpdateEnabled=false;root.Children.Add(automaticUpdates);
@@ -546,8 +546,8 @@ public sealed class XboxTestWindow : Window
         var found=new StackPanel();panel.Children.Add(found);
         panel.Children.Add(Label("LG webOS: ثبّت حزمة الشاشة مرة واحدة عبر Developer Mode، ثم وافق على طلب الاقتران الذي يظهر على التلفزيون. اكتشاف الجهاز وحده لا يثبت التطبيق."));
         panel.Children.Add(Button("تحميل حزمة LG webOS وتعليمات التثبيت",()=>OpenUrl("https://github.com/Tariq-220/ArabicGamesTranslator/releases/latest")));
-        panel.Children.Add(Button("تحميل تطبيق Google TV / Android TV — APK الشاشة",()=>OpenUrl("https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.19/ArabicGames-TV-0.3.8.apk")));
-        panel.Children.Add(Button("Samsung Tizen — نسخة مطوّر تحتاج توقيعًا وخطوات التثبيت",()=>OpenUrl("https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/v0.4.19/ArabicGames-Samsung-0.1.0-Developer-Kit.zip")));
+        panel.Children.Add(Button("تحميل تطبيق Google TV / Android TV — APK الشاشة",()=>OpenUrl($"https://github.com/Tariq-220/ArabicGamesTranslator/releases/download/preview-{ArabicRelease.Version}/ArabicGames-TV-{ArabicRelease.TvVersion}.apk")));
+        panel.Children.Add(Button("Samsung Tizen — نسخة مطوّر تحتاج توقيعًا وخطوات التثبيت",()=>OpenUrl("https://github.com/Tariq-220/ArabicGamesTranslator/releases")));
         panel.Children.Add(Label("TCL / Google TV: حدّث تطبيق الشاشة ثم اختر اكتشاف الكمبيوتر. إذا وُجد أكثر من كمبيوتر تختار واحدًا؛ لن نربط جهازًا عشوائيًا."));
         panel.Children.Add(Button("Monitor / شاشة غير مدعومة: عرض باركود الشاشة الثانية",ShowSecondScreen));
         var window=new Window{Title="ربط الشاشات",Owner=this,Width=650,Height=590,Content=new ScrollViewer{Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto},Background=Background,Foreground=Foreground,FlowDirection=FlowDirection.RightToLeft};

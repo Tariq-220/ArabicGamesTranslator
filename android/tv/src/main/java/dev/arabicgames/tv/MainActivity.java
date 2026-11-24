@@ -57,7 +57,7 @@ public final class MainActivity extends Activity {
   FrameLayout.LayoutParams sub=new FrameLayout.LayoutParams(-2,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);sub.bottomMargin=dp(28);root.addView(subtitle,sub);applySubtitleStyle();
   areaLayer=new AreaCaptionLayer(this);root.addView(areaLayer,new FrameLayout.LayoutParams(-1,-1));
   panel=column();panel.setPadding(dp(14),dp(12),dp(14),dp(12));GradientDrawable bg=new GradientDrawable();bg.setColor(0xf51d293a);bg.setCornerRadius(dp(14));panel.setBackground(bg);
-  panel.addView(label("الترجمة العربية · 0.3.10",18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
+  panel.addView(label("الترجمة العربية · "+BuildConfig.VERSION_NAME,18));status=label("اربط الجوال لبدء الاستقبال.",13);status.setMaxLines(3);panel.addView(status);
   received=label("سطور مترجمة مستلمة: 0",12);received.setTextColor(0xff72e2b1);panel.addView(received);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إصلاح الاتصال",this::repairConnection);
