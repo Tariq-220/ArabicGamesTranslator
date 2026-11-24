@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using GameTranslator.Core;
 using GameTranslator.Shell;
 using Frame=GameTranslator.Core.Frame;
+using TextBox=System.Windows.Controls.TextBox;
 namespace GameTranslator.App.Controls;
 
 /// <summary>Live normalized region editor. Source/output rectangles use the same coordinate space
@@ -27,6 +28,7 @@ public sealed class ReadingAreaEditor : UserControl
     private readonly Slider background=new(){Minimum=0,Maximum=100};
     private readonly TextBlock note=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(8)};
     private readonly DispatcherTimer timer=new(){Interval=TimeSpan.FromMilliseconds(400)};
+    private readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(350)};
     private bool updating,dragging,resize,draw;
     private Point anchor;
     private CropRegion original=new();
@@ -64,7 +66,9 @@ public sealed class ReadingAreaEditor : UserControl
         canvas.TouchMove+=(_,e)=>{if(dragging)Move(e.GetTouchPoint(canvas).Position);e.Handled=true;};
         canvas.TouchUp+=(_,e)=>{End();e.TouchDevice.Capture(null);e.Handled=true;};
         canvas.LostMouseCapture+=(_,_)=>End();
-        timer.Tick+=(_,_)=>RefreshFrame();Loaded+=(_,_)=>timer.Start();Unloaded+=(_,_)=>timer.Stop();
+        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};
+        name.LostKeyboardFocus+=(_,_)=>{var index=list.SelectedIndex;if(index>=0)RebuildList(index);};
+        timer.Tick+=(_,_)=>RefreshFrame();Loaded+=(_,_)=>timer.Start();Unloaded+=(_,_)=>{timer.Stop();if(saveTimer.IsEnabled){saveTimer.Stop();Save();}};
         RebuildList(0);
     }
     private static Button Action(string title,Action run){var b=new Button{Content=title,MinHeight=44,Margin=new Thickness(4),Padding=new Thickness(10)};b.Click+=(_,_)=>run();return b;}
@@ -72,7 +76,7 @@ public sealed class ReadingAreaEditor : UserControl
     private void Remove(){if(list.SelectedIndex<=0)return;var i=list.SelectedIndex;areas.RemoveAt(i);RebuildList(Math.Min(i,areas.Count-1));Save();}
     private void RebuildList(int index){updating=true;list.Items.Clear();foreach(var area in areas)list.Items.Add(area.Name);updating=false;list.SelectedIndex=index;LoadSelection();}
     private void LoadSelection(){if(updating||Selected is not {} area)return;updating=true;name.Text=area.Name;enabled.IsChecked=area.Enabled;font.Value=area.FontSize;background.Value=area.Background;enabled.IsEnabled=area.Id!="dialogue";name.IsEnabled=area.Id!="dialogue";mode.IsEnabled=area.Id!="dialogue";if(area.Id=="dialogue")mode.SelectedIndex=0;updating=false;Render();}
-    private void Edit(Func<ReadingArea,ReadingArea> change){if(updating||Selected is not {} area)return;areas[list.SelectedIndex]=change(area).Validate();if(list.Items[list.SelectedIndex] is string n&&n!=areas[list.SelectedIndex].Name)list.Items[list.SelectedIndex]=areas[list.SelectedIndex].Name;Save();Render();}
+    private void Edit(Func<ReadingArea,ReadingArea> change){if(updating||Selected is not {} area)return;areas[list.SelectedIndex]=change(area).Validate();saveTimer.Stop();saveTimer.Start();Render();}
     private void Save(){controller.Settings=controller.Settings with{Region=areas[0].Source,Style=controller.Settings.Style with{FontSize=areas[0].FontSize,Background=areas[0].Background,StackPrevious=false}};controller.ReadingAreas=areas.Skip(1).ToArray();note.Text="حُفظت المناطق. الحوار مستقل عن الرسائل والقوائم؛ يمكن إيقاف أي منطقة إضافية.";}
     private void RefreshFrame(){if(!IsVisible||controller.LastFrame is not {} frame||ReferenceEquals(last,frame))return;last=frame;var bmp=BitmapSource.Create(frame.Width,frame.Height,96,96,PixelFormats.Bgra32,null,frame.Pixels,frame.Stride);bmp.Freeze();image.Source=bmp;Render();}
     private void Render(){canvas.Children.Clear();canvas.Children.Add(image);foreach(var area in areas){var box=Output?area.Output:area.Source;var selected=Selected?.Id==area.Id;var color=selected?Brushes.HotPink:area.Enabled?Brushes.Turquoise:Brushes.Gray;var rectangle=new Rectangle{Width=(box.Right-box.Left)*1280,Height=(box.Bottom-box.Top)*720,Stroke=color,StrokeThickness=selected?4:2,Fill=new SolidColorBrush(Color.FromArgb(selected?(byte)22:(byte)5,220,80,180)),IsHitTestVisible=false};Canvas.SetLeft(rectangle,box.Left*1280);Canvas.SetTop(rectangle,box.Top*720);canvas.Children.Add(rectangle);var title=new TextBlock{Text=area.Name,Foreground=Brushes.White,Background=Brushes.Black,FontSize=21,IsHitTestVisible=false};Canvas.SetLeft(title,box.Left*1280);Canvas.SetTop(title,Math.Max(0,box.Top*720-30));canvas.Children.Add(title);}}

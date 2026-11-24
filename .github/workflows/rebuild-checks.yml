@@ -1,0 +1,23 @@
+name: Rebuild validation (no installers)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rebuild-validation
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: '10.0.x'
+      - name: Compile desktop projects (no publish or installers)
+        run: dotnet build windows/src/GameTranslator.App/GameTranslator.App.csproj -c Release
+      - name: Dialogue and independent region regression tests
+        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests"
+      - name: Translation quality validation
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ModelCompatibilityTests"

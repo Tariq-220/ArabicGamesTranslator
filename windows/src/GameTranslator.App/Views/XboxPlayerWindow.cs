@@ -53,6 +53,6 @@ public sealed class XboxPlayerWindow : Window
         """);
         web.Navigate("https://play.xbox.com/remoteplay");
         message.Text="سجّل الدخول في صفحة Microsoft الرسمية. اترك نافذة البث مفتوحة أثناء ضبط المناطق؛ صوت اللعب يبقى من التلفزيون.";
-        browser.IsMuted=true;
+        web.IsMuted=true;
     }
 }
