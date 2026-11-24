@@ -10,6 +10,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   windows:
+    permissions:
+      contents: write
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -31,6 +33,10 @@ jobs:
           name: rebuild-ui-preview
           path: ${{ runner.temp }}/rebuild-screens
           if-no-files-found: ignore
+      - name: Save demo-only screens for visual review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/save-rebuild-previews.py
       - name: Dialogue and independent region regression tests
         run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests|FullyQualifiedName~LanDiscoveryTests|FullyQualifiedName~SubtitleServerTests"
       - name: Preview lifecycle and persistence
@@ -50,3 +56,6 @@ jobs:
       - name: TV and LAN protocol tests (no APK packaging)
         working-directory: android
         run: bash gradlew :common:test :tv:testDebugUnitTest --tests dev.arabicgames.tv.AreaCaptionLayerTest --tests dev.arabicgames.tv.DesktopDiscoveryTest --tests dev.arabicgames.tv.TvRebuildLifecycleTest --tests dev.arabicgames.tv.TvLayoutTest --tests dev.arabicgames.tv.TvRemoteControlTest --console=plain
+      - name: Report individual test failures
+        if: always()
+        run: python scripts/rebuild-test-report.py
