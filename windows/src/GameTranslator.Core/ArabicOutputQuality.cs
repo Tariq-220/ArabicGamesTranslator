@@ -11,6 +11,7 @@ public static partial class ArabicOutputQuality
     public static bool Accepts(string source, string translated)
     {
         if (string.IsNullOrWhiteSpace(translated)) return false;
+        translated=ArabicGameNames.Localize(source,translated);
         var letters = translated.Where(char.IsLetter).ToArray();
         var arabic = letters.Count(c => c is >= '\u0620' and <= '\u064a' or >= '\u066e' and <= '\u06d3' or >= '\u06fa' and <= '\u06ff');
         if (arabic == 0) return false;

@@ -17,3 +17,14 @@ public class ArabicOutputQualityTests
     [Fact] public void VisualLineWrapIsNotASeparateSentence() =>
         Assert.Equal("You got all the weapons?", ArabicOutputQuality.DialogueInput("You got all\r\nthe weapons?"));
 }
+
+public class ArabicSpeakerTests
+{
+    [Fact]public void ProviderSpeakerLabelsAreLocalizedOnlyWhenGroundedInSource()
+    {
+        Assert.Equal("جيسون: هيا بنا.",ArabicGameNames.Localize("Jason: Let's go.","Jason: هيا بنا."));
+        Assert.Equal("Jason: هيا بنا.",ArabicGameNames.Localize("Let's go.","Jason: هيا بنا."));
+        Assert.False(ArabicOutputQuality.Accepts("Lucia: Are you ready?","Lucia: هل أنت ready؟"));
+        Assert.True(ArabicOutputQuality.Accepts("Lucia: Are you ready?","Lucia: هل أنت مستعد؟"));
+    }
+}

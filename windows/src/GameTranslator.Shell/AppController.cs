@@ -1121,7 +1121,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public async Task<string> TestSavedDeepLTranslationAsync(){
         var key=store.Load<string>(StoreKeys.DeepLKey)??throw new InvalidOperationException("No saved DeepL key");
         var translator=services.MakeOnlineTranslator(key,null)??throw new InvalidOperationException("DeepL unavailable");
-        return await translator.TranslateAsync("We need to get above the clouds. Use the burner.");
+        return await translator.TranslateAsync("Open the door.");
     }
     public bool DesktopOverlayEnabled {get=>store.Load<bool>("DesktopOverlayEnabled");set=>store.Save("DesktopOverlayEnabled",value);}
     public bool ReadingRecoveryApplied {get=>store.Load<bool>("ReadingRecoveryV1");set=>store.Save("ReadingRecoveryV1",value);}

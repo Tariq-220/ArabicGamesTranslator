@@ -68,6 +68,7 @@ public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<s
  public async Task<string> TranslateAsync(string text,CancellationToken token=default){
   if(validateArabic&&text==rejectedSource&&DateTimeOffset.UtcNow<retryAfter)throw new TranslatorException(TranslatorStatus.EngineFailed);
   var result=CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(joinLines?ArabicOutputQuality.DialogueInput(text):text,token),game));
+  result=ArabicGameNames.Localize(text,result);
   if(validateArabic&&!ArabicOutputQuality.Accepts(text,result)){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
   return result;
  }

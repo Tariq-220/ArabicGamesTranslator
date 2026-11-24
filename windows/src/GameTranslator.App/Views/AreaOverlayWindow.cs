@@ -23,7 +23,7 @@ internal sealed class AreaOverlayWindow : Window
     {
         AllowsTransparency=true;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;ShowActivated=false;ShowInTaskbar=false;Topmost=true;Focusable=false;
         Background=Brushes.Transparent;border.Child=caption;Content=border;
-        SourceInitialized+=(_,_)=>{var handle=new WindowInteropHelper(this).Handle;SetWindowLong(handle,-20,GetWindowLong(handle,-20)|0x20|0x08000000|0x80);};
+        SourceInitialized+=(_,_)=>{var handle=new WindowInteropHelper(this).Handle;SetWindowLong(handle,-20,GetWindowLong(handle,-20)|0x20|0x08000000|0x80);SetWindowDisplayAffinity(handle,0x11);};
         expiry.Tick+=(_,_)=>{expiry.Stop();Hide();};
     }
     public static void Apply(AreaCaption value)
@@ -40,6 +40,7 @@ internal sealed class AreaOverlayWindow : Window
         window.Show();window.expiry.Interval=TimeSpan.FromMilliseconds(value.DurationMs);window.expiry.Start();
     }
     public static void ClearAll(){foreach(var window in windows.Values){window.expiry.Stop();window.Close();}windows.Clear();}
+    [DllImport("user32.dll")]private static extern bool SetWindowDisplayAffinity(IntPtr window,uint affinity);
     [DllImport("user32.dll")]private static extern int GetWindowLong(IntPtr window,int index);
     [DllImport("user32.dll")]private static extern int SetWindowLong(IntPtr window,int index,int value);
 }
