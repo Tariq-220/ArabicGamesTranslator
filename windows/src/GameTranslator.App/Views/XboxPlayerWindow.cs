@@ -3,6 +3,8 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
+using GameTranslator.App.Services;
 using GameTranslator.Core;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -16,14 +18,16 @@ public sealed class XboxPlayerWindow : Window
     private readonly WebView2 browser=new();
     private readonly TextBlock message=new(){Text="جارٍ فتح Xbox الرسمي…",Margin=new Thickness(12)};
     private bool closing;
+    private IntPtr playerHandle;
     public XboxPlayerWindow()
     {
         Title=PlayerTitle;Width=1100;Height=700;MinWidth=640;MinHeight=400;
         var root=new DockPanel();DockPanel.SetDock(message,Dock.Bottom);root.Children.Add(message);root.Children.Add(browser);Content=root;
+        SourceInitialized+=(_,_)=>{playerHandle=new WindowInteropHelper(this).Handle;WindowCaptureService.RegisterInternalPlayer(playerHandle);};
         Loaded+=async(_,_)=>{try{await Open();}catch(Exception){message.Text="تعذر تشغيل WebView2. ثبّت Microsoft Edge WebView2 Runtime ثم أعد فتح المصدر.";}};
         // A minimized native window cannot be captured. Keep this player drawable during settings changes.
         StateChanged+=(_,_)=>{if(!closing&&WindowState==WindowState.Minimized)WindowState=WindowState.Normal;};
-        Closed+=(_,_)=>{closing=true;browser.Dispose();};
+        Closed+=(_,_)=>{closing=true;WindowCaptureService.UnregisterInternalPlayer(playerHandle);browser.Dispose();};
     }
     private async Task Open()
     {
@@ -38,7 +42,21 @@ public sealed class XboxPlayerWindow : Window
             if(Uri.TryCreate(e.Uri,UriKind.Absolute,out var url)&&url.Scheme=="https")
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url.AbsoluteUri){UseShellExecute=true});
         };
-        web.NewWindowRequested+=(_,e)=>{e.Handled=true;if(XboxNavigation.Allowed(e.Uri))web.Navigate(e.Uri);};
+        web.NewWindowRequested+=async(_,e)=>{
+            e.Handled=true;if(e.Uri!="about:blank"&&!XboxNavigation.Allowed(e.Uri))return;
+            var deferral=e.GetDeferral();
+            var content=new WebView2();var popup=new Window{Owner=this,Title="تسجيل Microsoft — ArabicGames",Width=540,Height=720,Content=content};
+            popup.Closed+=(_,_)=>content.Dispose();popup.Show();
+            try{
+                await content.EnsureCoreWebView2Async(environment);
+                var auth=content.CoreWebView2;auth.Settings.AreHostObjectsAllowed=false;auth.Settings.IsWebMessageEnabled=false;auth.Settings.AreDevToolsEnabled=false;
+                auth.NavigationStarting+=(_,navigation)=>{if(navigation.Uri!="about:blank"&&!XboxNavigation.Allowed(navigation.Uri))navigation.Cancel=true;};
+                auth.NewWindowRequested+=(_,navigation)=>navigation.Handled=true;
+                auth.WindowCloseRequested+=(_,_)=>popup.Close();
+                e.NewWindow=auth;
+            }catch{popup.Close();message.Text="تعذر فتح نافذة Microsoft. أغلق تسجيل الدخول وأعد المحاولة.";}
+            finally{deferral.Complete();}
+        };
         web.PermissionRequested+=(_,e)=>{
             // Translation consumes video only; microphone and camera are never required.
             if(e.PermissionKind is CoreWebView2PermissionKind.Microphone or CoreWebView2PermissionKind.Camera)e.State=CoreWebView2PermissionState.Deny;

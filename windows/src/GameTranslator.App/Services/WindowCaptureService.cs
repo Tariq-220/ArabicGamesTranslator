@@ -13,6 +13,10 @@ namespace GameTranslator.App.Services;
 /// </summary>
 public static class WindowCaptureService
 {
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<IntPtr,byte> InternalPlayers=new();
+    internal static void RegisterInternalPlayer(IntPtr handle){if(handle!=IntPtr.Zero)InternalPlayers[handle]=0;}
+    internal static void UnregisterInternalPlayer(IntPtr handle)=>InternalPlayers.TryRemove(handle,out _);
+
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     [DllImport("user32.dll")]
@@ -221,7 +225,7 @@ public static class WindowCaptureService
 
     [DllImport("user32.dll")]private static extern IntPtr GetForegroundWindow();
     public static bool SetupUiIsForeground(){
-        var window=GetForegroundWindow();GetWindowThreadProcessId(window,out var pid);if(pid==Environment.ProcessId)return true;
+        var window=GetForegroundWindow();GetWindowThreadProcessId(window,out var pid);if(pid==Environment.ProcessId)return !InternalPlayers.ContainsKey(window);
         try{using var process=System.Diagnostics.Process.GetProcessById((int)pid);return process.ProcessName.Equals("explorer",StringComparison.OrdinalIgnoreCase);}catch{return false;}
     }
 
@@ -549,7 +553,7 @@ public static class WindowCaptureService
             {
                 if (!IsWindowVisible(hWnd)) return true;
                 GetWindowThreadProcessId(hWnd, out var pid);
-                if (pid == 0 || pid == Environment.ProcessId) return true;
+                if (pid == 0 || pid == Environment.ProcessId && !InternalPlayers.ContainsKey(hWnd)) return true;
 
                 if (!GetClientRect(hWnd, out var rect) || rect.Width < 100 || rect.Height < 100)
                     return true;
@@ -606,7 +610,7 @@ public static class WindowCaptureService
                 {
                     if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
                     GetWindowThreadProcessId(hWnd, out var pid);
-                    if (pid == 0 || pid == Environment.ProcessId) return true;
+                    if (pid == 0 || pid == Environment.ProcessId && !InternalPlayers.ContainsKey(hWnd)) return true;
 
                     if (!GetClientRect(hWnd, out var rect) || rect.Width < 300 || rect.Height < 200)
                         return true;

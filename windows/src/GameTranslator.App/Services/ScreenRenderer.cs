@@ -29,6 +29,7 @@ public static class ScreenRenderer
         Directory.CreateDirectory(folder);app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
         ThemeManager.Apply(app.Resources,true);
         try {
+            AssertInternalPlayerSelectable();
             for(int variant=0;variant<10;variant++){
                 int selected=variant%5;
                 var controller=Demo(OnboardingStep.Done);
@@ -72,6 +73,18 @@ public static class ScreenRenderer
             }
             app.Shutdown(0);
         }catch(Exception error){File.WriteAllText(Path.Combine(folder,"errors.txt"),error.ToString());app.Shutdown(1);}
+    }
+
+    private static void AssertInternalPlayerSelectable()
+    {
+        var player=new Window{Title=XboxPlayerWindow.PlayerTitle,Width=640,Height=360,Left=-10000,Top=-10000,ShowActivated=false};
+        player.Show();var handle=new System.Windows.Interop.WindowInteropHelper(player).Handle;
+        try{
+            if(WindowCaptureService.GetTopLevelWindowTitles().Contains(player.Title))throw new InvalidOperationException("Unregistered app window leaked into capture sources.");
+            WindowCaptureService.RegisterInternalPlayer(handle);
+            if(!WindowCaptureService.GetTopLevelWindowTitles().Contains(player.Title)||WindowCaptureService.FindWindowBySubstring(player.Title)!=handle)
+                throw new InvalidOperationException("Internal Xbox player is not selectable as a capture source.");
+        }finally{WindowCaptureService.UnregisterInternalPlayer(handle);player.Close();}
     }
 
     public static void Run(Application app, string folder)
