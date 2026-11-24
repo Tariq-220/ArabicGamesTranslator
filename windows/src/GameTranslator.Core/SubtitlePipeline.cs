@@ -19,6 +19,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public const int MaxWaiting = 2;
     public int PendingLineLimit { get; set; } = MaxWaiting;
     public bool DropOffscreenResults {get;set;}
+    public int MinimumDisplayMs {get;set;}
+    private long lastPresentedAt=long.MinValue/2;
     public int MinimumStableMs {get=>stabilizer.MinimumStableMs;set=>stabilizer.MinimumStableMs=Math.Max(0,value); }
     /// <summary>
     /// Paketler açıkken bozuk okunan (OCR izi taşıyan) ve pakette bulunmayan satır en çok bu kadar bekletilir: aynı
@@ -500,7 +502,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         {
             Write(request, $"{SubtitleLog.Excerpt(source)} → çeviriye");
             inFlight = request;
-            pump = Pump(request);
+            pump = Task.Run(() => Pump(request));
         }
         else
         {
@@ -697,6 +699,11 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             return;
         }
 
+        // A single caption must remain readable. OCR continues while presentation waits;
+        // do not flush several completed requests as a burst of one-frame captions.
+        int presentationWait;
+        lock(gate)presentationWait=(int)Math.Max(0,MinimumDisplayMs-(now()-lastPresentedAt));
+        if(presentationWait>0)await Task.Delay(presentationWait,token).ConfigureAwait(false);
         var finished = now();
         var result = $"{probe.Outcome()} {now() - started} ms";
         lock (gate)
@@ -735,6 +742,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             }
             Write(request, $"{result}, gösterildi{(onScreen ? "" : " (satır kalkmıştı)")}");
             lastShown = request.Number;
+            lastPresentedAt=now();
             // Satır hâlâ ekrandaysa kalkınca silinir; kalktıysa okunacak kadar gösterilir.
             sender.SendSubtitle(translated, onScreen ? 15000 : ReadingTime(translated), request.Box, replaces: RevisesShown(source));
             LastPair = (source, translated);

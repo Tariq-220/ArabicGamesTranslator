@@ -16,6 +16,7 @@ namespace GameTranslator.App.Views;
 public sealed class XboxTestWindow : Window
 {
     private readonly AppController controller;
+    private XboxPlayerWindow? xboxPlayer;
     private readonly System.Threading.CancellationTokenSource updateCancel=new();
     private readonly TextBlock updateLabel=Label("جارٍ فحص قناة التحديث…");
     private readonly Button updateButton=new(){Content="فحص التحديث",MinHeight=48,Margin=new Thickness(4)};
@@ -86,7 +87,8 @@ public sealed class XboxTestWindow : Window
         var automaticUpdates=new CheckBox{Content="فحص وتنزيل التحديث تلقائيًا خارج اللعب",IsChecked=controller.AutoUpdateEnabled,Margin=new Thickness(4),MinHeight=40};automaticUpdates.Checked+=(_,_)=>controller.AutoUpdateEnabled=true;automaticUpdates.Unchecked+=(_,_)=>controller.AutoUpdateEnabled=false;root.Children.Add(automaticUpdates);
         if(!preview)Loaded+=async(_,_)=>{_=CommunityCorrections.RefreshAsync();if(controller.AutoUpdateEnabled)await CheckForUpdate();};
         root.Children.Add(Label("1 · مصدر اللعبة — Xbox أو PS5"));
-        var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح مصدر اللعبة",()=>{controller.Stop();controller.PreferPlayStation=false;controller.NativePlayStationEnabled=false;resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();OpenUrl("https://www.xbox.com/remoteplay");}));
+        var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح البث داخل التطبيق",OpenXboxPlayer));
+        consoleActions.Children.Add(Button("اختيار نافذة بث خارجية",()=>{resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();}));
         consoleActions.Children.Add(Button("PS5 — اقتران مباشر",ConfigurePlayStation));root.Children.Add(consoleActions);
         var consoleDetails=new StackPanel();consoleDetails.Children.Add(consoleHelp);UpdateConsoleHelp();
         consoleDetails.Children.Add(Button("بديل: قراءة Sony Remote Play الخارجي",LaunchPlayStation));
@@ -204,14 +206,14 @@ public sealed class XboxTestWindow : Window
         actions.Children.Add(Button("خطوات التفعيل",ShowActivationSteps));actions.Children.Add(updateButton);
         Grid.SetRow(actions,1);shell.Children.Add(actions);
         // The old controls row owned start; it is detached before reparenting below.
-        var tabs=new TabControl{Background=Brushes.Transparent,BorderThickness=new Thickness(0),Padding=new Thickness(10)};
+        var tabs=new TabControl{TabStripPlacement=Dock.Right,Background=Brushes.Transparent,BorderThickness=new Thickness(0),Padding=new Thickness(10)};
         void AddTab(string title,int from,int until){
             var content=new StackPanel{Margin=new Thickness(8)};
             for(int n=from;n<until;n++){
                 if(n==cropAt){
                     var advanced=new StackPanel();
                     for(int a=cropAt;a<controlsAt;a++)advanced.Children.Add(items[a]);
-                    content.Children.Add(new Expander{Header="منطقة القراءة والسجل — اضغط لعرض الخيارات",IsExpanded=true,Content=advanced,Foreground=Brushes.White,Margin=new Thickness(4,14,4,8)});
+                    content.Children.Add(new Expander{Header="السجل وخيارات الالتقاط المتقدمة",IsExpanded=false,Content=advanced,Foreground=Brushes.White,Margin=new Thickness(4,14,4,8)});
                     n=controlsAt;continue;
                 }
                 if(items[n]!=controls&&items[n]!=testEngine)content.Children.Add(items[n]);
@@ -220,8 +222,9 @@ public sealed class XboxTestWindow : Window
         }
         AddTab("① مصدر اللعبة",sourceAt,engineAt);
         AddTab("② محرك الترجمة",engineAt,screenAt);
-        AddTab("③ الشاشة والربط",screenAt,styleAt);
-        AddTab("④ الخط والمظهر",styleAt,lastOptions);
+        tabs.Items.Add(new TabItem{Header="③ مناطق القراءة",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Content=new GameTranslator.App.Controls.ReadingAreaEditor(controller),VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly}});
+        AddTab("④ الشاشة والربط",screenAt,styleAt);
+        AddTab("⑤ الخط والمظهر",styleAt,lastOptions);
         Grid.SetRow(tabs,2);shell.Children.Add(tabs);
         var live=new StackPanel{Margin=new Thickness(8)};
         live.Children.Add(new ScrollViewer{Content=status,MaxHeight=54,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly});
@@ -274,6 +277,7 @@ public sealed class XboxTestWindow : Window
         };
         Closed += (_, _) =>
         {
+            xboxPlayer?.Close();
             updateCancel.Cancel();
             controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
             controller.PropertyChanged -= Changed; DesktopSubtitleOverlay.Clear(); controller.Dispose(); comparison.DisposeAsync().AsTask().GetAwaiter().GetResult();
@@ -306,6 +310,15 @@ public sealed class XboxTestWindow : Window
         catch { updateLabel.Text="تعذر فحص أو تنزيل تحديث موثوق. ترجمة اللعبة مستمرة؛ حاول لاحقًا."; }
         finally{activeUpdateDownload=null;checkingUpdate=false;updateButton.IsEnabled=true;if(readyInstaller==null)updateButton.Content="فحص التحديث";}
     }
+    private void OpenXboxPlayer()
+    {
+        controller.Stop();controller.PreferPlayStation=false;controller.NativePlayStationEnabled=false;
+        if(xboxPlayer is null){xboxPlayer=new XboxPlayerWindow();xboxPlayer.Closed+=(_,_)=>xboxPlayer=null;xboxPlayer.Show();}
+        else {xboxPlayer.WindowState=WindowState.Normal;xboxPlayer.Activate();}
+        controller.Settings=controller.Settings with {DesktopWindowName=XboxPlayerWindow.PlayerTitle,VideoSource=VideoSourceType.DesktopScreen};
+        resetWindowPreference=false;RefreshWindows();UpdateConsoleHelp();
+    }
+
     private void InstallReadyUpdate()
     {
         if(readyInstaller==null)return;

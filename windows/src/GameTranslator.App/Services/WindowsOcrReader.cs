@@ -15,6 +15,7 @@ namespace GameTranslator.App.Services;
 public sealed class WindowsOcrReader : ITextReader
 {
     private readonly OcrEngine engine;
+    private readonly object recognizeGate = new();
     public static string SelectedLanguage {get;private set;}="unavailable";
 
     private WindowsOcrReader(OcrEngine engine) => this.engine = engine;
@@ -57,7 +58,8 @@ public sealed class WindowsOcrReader : ITextReader
             return Reading.Empty;
         using var bitmap = new SoftwareBitmap(BitmapPixelFormat.Bgra8, image.Width, image.Height, BitmapAlphaMode.Premultiplied);
         bitmap.CopyFromBuffer(image.Pixels.AsBuffer());
-        var result = engine.RecognizeAsync(bitmap).AsTask().GetAwaiter().GetResult();
+        Windows.Media.Ocr.OcrResult result;
+        lock (recognizeGate) result = engine.RecognizeAsync(bitmap).AsTask().GetAwaiter().GetResult();
         double width = image.Width, height = image.Height;
         var lines = result.Lines
             .SelectMany(line => Split(line, width, height))

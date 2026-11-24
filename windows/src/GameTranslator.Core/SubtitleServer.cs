@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 
 using System.Net;
 using System.Net.Sockets;
@@ -232,6 +232,9 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     }
 
     /// <summary>TV'deki "ekranı çevir" çevirilerini kaldırır (altyazıya dokunmaz).</summary>
+    /// <summary>Independent caption channel; never clears/replaces the dialogue channel.</summary>
+    public void SendArea(AreaCaption caption) => Broadcast(Frame("area", new SortedDictionary<string,object> { ["id"]=caption.Id, ["revision"]=caption.Revision, ["text"]=caption.Text, ["clear"]=caption.Clear, ["duration"]=caption.DurationMs, ["fontSize"]=caption.FontSize, ["background"]=caption.Background, ["output"]=new { left=caption.Output.Left, top=caption.Output.Top, right=caption.Output.Right, bottom=caption.Output.Bottom } }), subtitle: true);
+
     public void ClearScreen() => Broadcast(Frame("screen-clear", new SortedDictionary<string, object>()), subtitle: true);
 
     private static SortedDictionary<string, object> BoxJson(TextBox b) => new()

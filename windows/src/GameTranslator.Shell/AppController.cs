@@ -848,6 +848,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             server.SendStyle(PresentationStyle);
             SubtitlesPaused = false;
             MakePipeline();
+            MakeAreaSession();
             if (settings.Dubbing.Enabled && DubbingInstalled) MakeDubber()?.Prepare();
 
             var stream = services.MakeStream(console, accountId, settings);
@@ -880,6 +881,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     public void Stop()
     {
+        areaSession?.Dispose();areaSession=null;
         session?.Stop();
         session?.Dispose();
         session = null;
@@ -969,7 +971,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
-    private SubtitleStyle PresentationStyle => settings.Style with {Placement=ReadingModes.DialogueOnly(ReadingContentMode)?SubtitlePlacement.Fixed:SubtitlePlacement.Cover};
+    private SubtitleStyle PresentationStyle => settings.Style with {StackPrevious=false,Placement=ReadingModes.DialogueOnly(ReadingContentMode)?SubtitlePlacement.Fixed:SubtitlePlacement.Cover};
     public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??new(.70,.97,.12,.78);
     public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set {if(value!="dialogue"&&ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",settings.Region);store.Save("ReadingContentMode",value);}}
     public void PrepareDialogueReading(){
@@ -982,6 +984,24 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     public event Action<string,string>? TranslationRejected;
     public event Action<string,string>? LineDiscarded;
+    private ReadingAreaSession? areaSession;
+    public IReadOnlyList<ReadingArea> ReadingAreas
+    {
+        get => store.Load<List<ReadingArea>>("reading-areas-v1") ?? [];
+        set { store.Save("reading-areas-v1", value.Take(8).Select(a=>a.Validate()).ToList()); if(isRunning)MakeAreaSession(); Changed(nameof(ReadingAreas)); }
+    }
+    public event Action<AreaCaption>? AreaCaptionShown;
+    private void MakeAreaSession()
+    {
+        areaSession?.Dispose();areaSession=null;
+        var enabled=ReadingAreas.Where(a=>a.Enabled).ToList();
+        if(enabled.Count==0)return;
+        var current=new ReadingAreaSession(enabled,()=>services.MakeReader(settings.SourceLanguage) ?? throw new InvalidOperationException("OCR unavailable"),
+            new ProfileTranslator(MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false));
+        current.Caption+=caption=>{server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
+        areaSession=current;
+    }
+
     private void MakePipeline()
     {
         pipeline?.Reset();
@@ -1173,6 +1193,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private async void HandleFrame(Frame frame)
     {
         post(() => LastFrame = frame);
+        var areas=areaSession;
+        if(areas is not null)_=areas.ProcessAsync(frame);
         // Duraklatıldıysa kare yalnız ek bölgeler ve serbest alan için saklanır; altyazı okunmaz.
         if (subtitlesPaused) return;
         // Önceki kare hâlâ işleniyorsa bu kare atlanır; okuma kareleri biriktirmez.
