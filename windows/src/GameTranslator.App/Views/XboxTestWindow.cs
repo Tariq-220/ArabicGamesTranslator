@@ -364,8 +364,8 @@ public sealed class XboxTestWindow : Window
         try{await SaveKeyCore();}finally{lastEngineCheck=status.Text;testingKey=false;UpdateConnectionBar();start.IsEnabled=true;testEngine.IsEnabled=true;azureRegion.IsEnabled=true;engineChoice.IsEnabled=true;cloudModel.IsEnabled=true;deepLMode.IsEnabled=true;key.IsEnabled=true;}
     }
     private void EngineSuccess(string? sample=null){
-        if(sample!=null&&!System.Text.RegularExpressions.Regex.IsMatch(sample,@"[ء-ي]")){engineTestPassed=false;status.Text="وصل رد من المحرك لكنه ليس ترجمة عربية صالحة. أعد الاختبار أو اختر محركًا آخر.";return;}
-        engineTestPassed=true;status.Text="✓ نجح اختبار محرك الترجمة — أصبح جاهزًا لترجمة نص اللعبة. هذا لا يختبر ظهور النص على الشاشة.";
+        if(sample!=null&&!ArabicOutputQuality.Accepts("Open the door.",sample)){engineTestPassed=false;status.Text="وصل رد من المحرك لكنه ليس ترجمة عربية صالحة. أعد الاختبار أو اختر محركًا آخر.";return;}
+        engineTestPassed=true;status.Text="✓ نجح اختبار محرك الترجمة — أصبح جاهزًا لترجمة نص اللعبة. هذا لا يختبر ظهور النص على الشاشة."+(sample is null?"":"\nالعينة: «"+sample.Trim()+"»");
     }
     private async Task SaveKeyCore()
     {
@@ -376,7 +376,7 @@ public sealed class XboxTestWindow : Window
                 var translator=new AzureTranslator(value,azureRegion.Text);
                 SecureStore.Default.Save(ProviderKeyId,value);SecureStore.Default.Save("arabic-azure-region",azureRegion.Text.Trim());key.Clear();
                 status.Text="مفتاح Azure محفوظ؛ جارٍ اختبار الترجمة…";
-                var watch=System.Diagnostics.Stopwatch.StartNew();var sample=await translator.TranslateAsync("Keep going. Through the palms.");watch.Stop();
+                var watch=System.Diagnostics.Stopwatch.StartNew();var sample=await translator.TranslateAsync("Open the door.");watch.Stop();
                 EngineSuccess(sample);
             }catch(TranslatorException error){status.Text="المفتاح محفوظ. Azure: "+error.Status+". عند الرفض تأكد من مفتاح مورد Translator ومنطقته؛ عند الحصة أو تعذر الخدمة أعد المحاولة لاحقًا.";}
              catch(ArgumentException){status.Text="تحقق من المفتاح ومنطقة Azure: حروف إنجليزية وأرقام وشرطة فقط، أو فارغة للمورد العالمي.";}
@@ -391,8 +391,8 @@ public sealed class XboxTestWindow : Window
                 if(result.State==OnlineKeyState.Valid)EngineSuccess(result.Sample);else status.Text="لم ينجح اختبار المحرك: "+result.State+". المفتاح محفوظ؛ تحقق من الحصة والاتصال واسم النموذج.";
             }catch{status.Text="تعذر حفظ المفتاح أو اختبار النموذج؛ تحقق من الاتصال والمزوّد.";}return;
         }
-        if(engineChoice.SelectedIndex==7){status.Text="جارٍ اختبار Google بدون مفتاح…";try{EngineSuccess(await new GoogleGtxTranslator().TranslateAsync("Hello. How are you?"));}catch{status.Text="تعذر اختبار Google. تحقق من الإنترنت أو جرّب لاحقًا.";}return;}
-        if(IsLocalModel){try{var sample=await LocalTranslator().TranslateAsync("Hello. How are you?");EngineSuccess(sample);}catch(Exception error){status.Text=LocalError(error);}return;}
+        if(engineChoice.SelectedIndex==7){status.Text="جارٍ اختبار Google بدون مفتاح…";try{EngineSuccess(await new GoogleGtxTranslator().TranslateAsync("Open the door."));}catch{status.Text="تعذر اختبار Google. تحقق من الإنترنت أو جرّب لاحقًا.";}return;}
+        if(IsLocalModel){try{var sample=await LocalTranslator().TranslateAsync("Open the door.");EngineSuccess(sample);}catch(Exception error){status.Text=LocalError(error);}return;}
         if (string.IsNullOrWhiteSpace(key.Password) && !(engineChoice.SelectedIndex==1?controller.HasDeepLKey:controller.HasGeminiKey)) { status.Text = "أدخل المفتاح مرة واحدة؛ لا يوجد مفتاح محفوظ لهذا المحرك."; return; }
         status.Text = "جارٍ اختبار المفتاح؛ قد يستغرق الطلب الأول حتى 25 ثانية…";
         try
