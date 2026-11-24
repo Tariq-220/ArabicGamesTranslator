@@ -29,11 +29,11 @@ public static class ScreenRenderer
         Directory.CreateDirectory(folder);app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
         ThemeManager.Apply(app.Resources,true);
         try {
-            for(int variant=0;variant<8;variant++){
-                int selected=variant%4;
+            for(int variant=0;variant<10;variant++){
+                int selected=variant%5;
                 var controller=Demo(OnboardingStep.Done);
                 controller.Settings=controller.Settings with{Style=controller.Settings.Style with{FontSize=22,Background=40,BottomPercent=11}};
-                var window=new XboxTestWindow(controller,preview:true){Width=variant<4?960:700,Height=variant<4?850:700,Left=-10000,Top=-10000,ShowActivated=false};
+                var window=new XboxTestWindow(controller,preview:true){Width=variant<5?960:700,Height=variant<5?850:700,Left=-10000,Top=-10000,ShowActivated=false};
                 var grid=(System.Windows.Controls.Grid)window.Content;
                 var tabs=grid.Children.OfType<System.Windows.Controls.TabControl>().Single();tabs.SelectedIndex=selected;
                 window.Show();window.UpdateLayout();
@@ -55,8 +55,9 @@ public static class ScreenRenderer
                 if(selected==0){
                     var toggle=LogicalElements(grid).OfType<System.Windows.Controls.CheckBox>().Single(x=>Equals(x.Tag,"desktop-overlay"));
                     if(!toggle.IsVisible||toggle.IsChecked==true||DesktopSubtitleOverlay.IsOverlayEnabled)throw new InvalidOperationException("Desktop overlay must be visible as an option and disabled for TV reading.");
-                    if(!LogicalElements(grid).OfType<System.Windows.Controls.Button>().Any(x=>Equals(x.Tag,"reading-recovery")&&x.IsVisible))throw new InvalidOperationException("Reading recovery button is missing.");
+                    if(!LogicalElements(grid).OfType<System.Windows.Controls.Button>().Any(x=>x.Content is string text&&text.StartsWith("معاينة المصدر")&&x.IsVisible))throw new InvalidOperationException("Source preview action is missing.");
                 }
+                if(tabs.Items.Count!=5)throw new InvalidOperationException("Rebuild navigation pages are incomplete.");
                 var startButton=LogicalElements(grid).OfType<System.Windows.Controls.Button>().Single(x=>Equals(x.Tag,"translation-start"));var startBounds=startButton.TransformToAncestor(grid).TransformBounds(new Rect(startButton.RenderSize));if(!startButton.IsVisible||startBounds.Top<0||startBounds.Bottom>grid.ActualHeight)throw new InvalidOperationException("Start translation button is not visible");
                 foreach(var tag in new[]{"screen-test","connection-status","engine-test"}){
                     var control=LogicalElements(grid).Single(x=>Equals(x.Tag,tag));var bounds=control.TransformToAncestor(grid).TransformBounds(new Rect(control.RenderSize));

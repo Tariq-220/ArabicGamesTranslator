@@ -221,7 +221,7 @@ public sealed class XboxTestWindow : Window
         }
         AddTab("① مصدر اللعبة",sourceAt,engineAt);
         AddTab("② محرك الترجمة",engineAt,screenAt);
-        tabs.Items.Add(new TabItem{Header="③ مناطق القراءة",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Content=new GameTranslator.App.Controls.ReadingAreaEditor(controller),VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly}});
+        tabs.Items.Add(new TabItem{Header="③ مناطق القراءة",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Tag="setup-scroll",Content=new GameTranslator.App.Controls.ReadingAreaEditor(controller),VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly}});
         AddTab("④ الشاشة والربط",screenAt,styleAt);
         var appearance=new StackPanel{Margin=new Thickness(12)};
         appearance.Children.Add(Label("الخط والخلفية والموقع تُعدّل لكل مربع من «مناطق القراءة». الحوار مستقل عن القوائم والرسائل.",18));
@@ -229,7 +229,7 @@ public sealed class XboxTestWindow : Window
         appearance.Children.Add(Button("تصدير سجل المقارنة",()=>ComparisonExportDialog.Save(this,comparison.FilePath,text=>logState.Text=text)));
         appearance.Children.Add(Button("التصحيحات والسجل",()=>new TranslationHistoryWindow(comparison.FilePath){Owner=this}.ShowDialog()));
         appearance.Children.Add(automaticUpdates);
-        tabs.Items.Add(new TabItem{Header="⑤ السجل والتحديث",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Content=appearance,VerticalScrollBarVisibility=ScrollBarVisibility.Auto}});
+        tabs.Items.Add(new TabItem{Header="⑤ السجل والتحديث",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Tag="setup-scroll",Content=appearance,VerticalScrollBarVisibility=ScrollBarVisibility.Visible}});
         Grid.SetRow(tabs,2);shell.Children.Add(tabs);
         var live=new StackPanel{Margin=new Thickness(8)};
         live.Children.Add(new ScrollViewer{Content=status,MaxHeight=54,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,PanningMode=PanningMode.VerticalOnly});

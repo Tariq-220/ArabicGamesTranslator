@@ -114,6 +114,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     private TcpListener? listener;
     private int activeRequests;
     private Timer? pingTimer;
+    private LanDiscoveryResponder? lanDiscovery;
     private SubtitleStyle? lastStyle;
     private readonly Dictionary<string,(AreaCaption Caption,long Until)> latestAreas=new(StringComparer.Ordinal);
     /// <summary>GET ile verilen dosyalar: dublaj sesleri ve seslendirme modelinin ses örnekleri.</summary>
@@ -164,11 +165,14 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
         _ = AcceptLoop(listener);
         var every = pingInterval ?? TimeSpan.FromSeconds(15);
         pingTimer = new Timer(_ => Broadcast(PingFrame), null, every, every);
-        return Task.FromResult(((IPEndPoint)listener.LocalEndpoint).Port);
+        int actualPort=((IPEndPoint)listener.LocalEndpoint).Port;
+        lanDiscovery=LanDiscoveryResponder.TryStart(actualPort);
+        return Task.FromResult(actualPort);
     }
 
     public void Stop()
     {
+        lanDiscovery?.Dispose();lanDiscovery=null;
         pingTimer?.Dispose();
         pingTimer = null;
         listener?.Stop();

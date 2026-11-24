@@ -12,6 +12,7 @@ import android.text.InputType;
 import android.view.*;
 import android.widget.*;
 import dev.arabicgames.Pairing;
+import dev.arabicgames.LanEndpoint;
 import org.json.JSONObject;
 import java.io.*;
 import java.net.*;
@@ -122,7 +123,7 @@ public final class MainActivity extends Activity {
   status.setText("افتح تطبيق الجوال ووافق على رمز الربط: "+ticket.substring(0,6));
   new Thread(()->{for(int n=0;n<70&&!destroyed&&attempt==pairingAttempt;n++){
    HttpURLConnection c=null;try{
-    c=(HttpURLConnection)new URL("http://"+address+":8787/pair?ticket="+ticket).openConnection();c.setConnectTimeout(1500);c.setReadTimeout(1500);c.setInstanceFollowRedirects(false);
+    c=(HttpURLConnection)new URL(LanEndpoint.origin(address)+"/pair?ticket="+ticket).openConnection();c.setConnectTimeout(1500);c.setReadTimeout(1500);c.setInstanceFollowRedirects(false);
     if(c.getResponseCode()!=200)break;String body;try(InputStream in=c.getInputStream()){ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[128];int count;while((count=in.read(b))!=-1){out.write(b,0,count);if(out.size()>1024)throw new IOException();}body=out.toString("UTF-8");}
     String paired=new JSONObject(body).optString("code","");if(Pairing.validCode(paired)){ui.post(()->{if(destroyed||attempt!=pairingAttempt)return;host.setText(address);code.setText(paired);desktop.setChecked(false);connect();});return;}
     Thread.sleep(750);
@@ -167,12 +168,12 @@ public final class MainActivity extends Activity {
 
  private void restoreAudio(){if(tv==null||audio==null)return;if(!resumed){tv.setStreamVolume(0f);return;}if(audio.isChecked()){audioManager.requestAudioFocus(audioFocus);tv.setStreamVolume(1f);}else{tv.setStreamVolume(0f);audioManager.abandonAudioFocusRequest(audioFocus);}}
  private void repairConnection(){
-  if(Pairing.privateIpv4(host.getText().toString().trim())&&(desktop.isChecked()||Pairing.validCode(code.getText().toString().trim())))connect();else discoverDesktop();
+  if(LanEndpoint.valid(host.getText().toString().trim())&&(desktop.isChecked()||Pairing.validCode(code.getText().toString().trim())))connect();else discoverDesktop();
  }
  private void connect(){
   if(areaLayer!=null)areaLayer.clearAll();
   String address=host.getText().toString().trim(),pair=desktop.isChecked()?null:code.getText().toString().trim();
-  if(!Pairing.privateIpv4(address)||(pair!=null&&!Pairing.validCode(pair))){status.setText("أدخل IPv4 محليًا ورمز الجوال كاملًا.");return;}
+  if(!LanEndpoint.valid(address)||(pair!=null&&!Pairing.validCode(pair))){status.setText("أدخل IPv4 محليًا ورمز الجوال كاملًا.");return;}
   getPreferences(0).edit().putString("host",address).putString("code",pair==null?"":pair).putBoolean("desktop",desktop.isChecked()).apply();int generation=++session;HttpURLConnection old=connection;if(old!=null)old.disconnect();status.setText(desktop.isChecked()?"جارٍ إعادة ربط الكمبيوتر المحفوظ…":"جارٍ إعادة ربط الجوال المحفوظ…");acceptedRevision=0;if(pollTask!=null)pollTask.cancel(false);if(pollingConnection!=null)pollingConnection.disconnect();
   if(pair!=null)pollTask=poller.scheduleWithFixedDelay(()->pollLatest(address,pair,generation),0,500,TimeUnit.MILLISECONDS);
   new Thread(()->receive(address,pair,generation),"phone-subtitles").start();
@@ -180,7 +181,7 @@ public final class MainActivity extends Activity {
  private void receive(String address,String pair,int generation){int retry=250,failedConnections=0;boolean searched=false;
   while(!destroyed&&generation==session){HttpURLConnection conn=null;
    try{
-    conn=(HttpURLConnection)new URL("http://"+address+":8787/events"+(pair==null?"":"?code="+pair+"&receiver="+receiverId)).openConnection();connection=conn;conn.setConnectTimeout(4000);conn.setReadTimeout(45000);conn.setRequestProperty("Accept","text/event-stream");
+    conn=(HttpURLConnection)new URL(LanEndpoint.origin(address)+"/events"+(pair==null?"":"?code="+pair+"&receiver="+receiverId)).openConnection();connection=conn;conn.setConnectTimeout(4000);conn.setReadTimeout(45000);conn.setRequestProperty("Accept","text/event-stream");
     int result=conn.getResponseCode();if(result==403){post(generation,()->{status.setText("رمز الربط غير صحيح؛ حدّثه من إعدادات الربط.");connectionPanel.setVisibility(View.VISIBLE);});return;}
     if(result!=200)throw new IOException("HTTP "+result);retry=250;failedConnections=0;post(generation,()->{status.setText("✓ متصل. الترجمة تظهر فوق اللعبة.");connectionPanel.setVisibility(View.VISIBLE);});
     try(BufferedReader lines=new BufferedReader(new InputStreamReader(conn.getInputStream(),StandardCharsets.UTF_8))){String event="",data="",line;
@@ -202,7 +203,7 @@ public final class MainActivity extends Activity {
  }
  private void pollLatest(String address,String pair,int generation){
   if(destroyed||session!=generation)return;HttpURLConnection c=null;
-  try{c=(HttpURLConnection)new URL("http://"+address+":8787/latest?code="+pair+"&receiver="+receiverId).openConnection();pollingConnection=c;c.setConnectTimeout(1800);c.setReadTimeout(1800);c.setUseCaches(false);if(c.getResponseCode()!=200)return;
+  try{c=(HttpURLConnection)new URL(LanEndpoint.origin(address)+"/latest?code="+pair+"&receiver="+receiverId).openConnection();pollingConnection=c;c.setConnectTimeout(1800);c.setReadTimeout(1800);c.setUseCaches(false);if(c.getResponseCode()!=200)return;
    StringBuilder body=new StringBuilder();try(BufferedReader r=new BufferedReader(new InputStreamReader(c.getInputStream(),StandardCharsets.UTF_8))){String line;while((line=r.readLine())!=null){body.append(line);if(body.length()>20000)return;}}
    JSONObject json=new JSONObject(body.toString());post(generation,()->{if(json.optBoolean("active"))applyCaption(json,"استقبال احتياطي");else applyClear(json.optLong("revision",0));});
   }catch(Exception ignored){}finally{if(c!=null)c.disconnect();}
@@ -253,7 +254,7 @@ public final class MainActivity extends Activity {
   getPreferences(0).edit().putInt("subtitleSize",20).putInt("subtitleOpacity",70).putInt("subtitleBottom",7).apply();
   applySubtitleStyle();subtitle.bringToFront();panelWindow.bringToFront();
   testLocal("اختبار الإصلاح — الترجمة العربية تظهر هنا");
-  if(Pairing.privateIpv4(host.getText().toString().trim())&&(desktop.isChecked()||Pairing.validCode(code.getText().toString().trim())))connect();else discoverDesktop();
+  if(LanEndpoint.valid(host.getText().toString().trim())&&(desktop.isChecked()||Pairing.validCode(code.getText().toString().trim())))connect();else discoverDesktop();
  }
  private void hidePanel(){panelWindow.setVisibility(View.GONE);menuHandle.setVisibility(View.GONE);View root=(View)panelWindow.getParent();root.setFocusableInTouchMode(true);root.setDefaultFocusHighlightEnabled(false);root.requestFocus();}
  private void showPanel(){panelWindow.setVisibility(View.VISIBLE);panelWindow.bringToFront();if(menuHandle!=null)menuHandle.setVisibility(View.GONE);panelWindow.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);for(int n=0;n<panel.getChildCount();n++){View v=panel.getChildAt(n);if(v instanceof Button&&v.getVisibility()==View.VISIBLE){v.requestFocus();break;}}}

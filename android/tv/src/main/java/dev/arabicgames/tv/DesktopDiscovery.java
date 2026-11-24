@@ -21,13 +21,29 @@ public final class DesktopDiscovery {
    if(!nic.isUp()||nic.isLoopback())continue;
    for(InetAddress ip:Collections.list(nic.getInetAddresses()))if(ip instanceof Inet4Address){String sub=subnet(ip.getHostAddress());if(sub!=null)subnets.add(sub);}
   }
-  Set<String> found=Collections.synchronizedSet(new TreeSet<>());ExecutorService pool=Executors.newFixedThreadPool(16);
+  Set<String> found=Collections.synchronizedSet(new TreeSet<>());
+  findUdp(found);if(!found.isEmpty())return new ArrayList<>(found);ExecutorService pool=Executors.newFixedThreadPool(16);
   try{
    int scanned=0;
    for(String sub:subnets){if(scanned++>=2)break;for(int i=1;i<255;i++){String host=sub+"."+i;pool.submit(()->{String type=probe(host);if(type!=null)found.add(type+host);});}}
    pool.shutdown();if(!pool.awaitTermination(25,TimeUnit.SECONDS))pool.shutdownNow();
   }finally{pool.shutdownNow();}
   synchronized(found){return new ArrayList<>(found);}
+ }
+ private static void findUdp(Set<String> found){
+  String nonce=UUID.randomUUID().toString().replace("-","");byte[] query=("ARABICGAMES_DISCOVER_V1 "+nonce).getBytes(StandardCharsets.US_ASCII);
+  try(DatagramSocket socket=new DatagramSocket()){
+   socket.setBroadcast(true);socket.setSoTimeout(350);
+   for(NetworkInterface nic:Collections.list(NetworkInterface.getNetworkInterfaces()))if(nic.isUp()&&!nic.isLoopback())for(InterfaceAddress address:nic.getInterfaceAddresses()){
+    InetAddress broadcast=address.getBroadcast();if(broadcast!=null&&subnet(address.getAddress().getHostAddress())!=null)socket.send(new DatagramPacket(query,query.length,broadcast,8788));
+   }
+   long until=System.currentTimeMillis()+1200;while(System.currentTimeMillis()<until){try{byte[] bytes=new byte[160];DatagramPacket reply=new DatagramPacket(bytes,bytes.length);socket.receive(reply);String endpoint=discovered(reply.getAddress().getHostAddress(),new String(reply.getData(),0,reply.getLength(),StandardCharsets.US_ASCII),nonce);if(endpoint!=null)found.add("كمبيوتر · "+endpoint);}catch(SocketTimeoutException wait){}}
+  }catch(Exception ignored){}
+ }
+ static String discovered(String source,String body,String nonce){
+  if(subnet(source)==null||nonce==null||!nonce.matches("[a-f0-9]{32}"))return null;
+  String[] parts=body.split(" ",-1);if(parts.length!=3||!parts[0].equals("ARABICGAMES_V1")||!parts[1].equals(nonce))return null;
+  String endpoint=source+":"+parts[2];return dev.arabicgames.LanEndpoint.authority(endpoint);
  }
  private static String probe(String host){HttpURLConnection c=null;
   try{
