@@ -7,8 +7,13 @@ import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;impo
 public class TvRebuildLifecycleTest {
  private static Button button(View v,String label){if(v instanceof Button&&label.equals(((Button)v).getText().toString()))return(Button)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){Button b=button(((ViewGroup)v).getChildAt(i),label);if(b!=null)return b;}return null;}
  @Before public void reset(){new TvHdmiResumeTest().setup();TvHdmiResumeTest.Inputs.list.add(org.robolectric.shadow.api.Shadow.newInstanceOf(TvInputInfo.class));}
+ private org.robolectric.android.controller.ActivityController<MainActivity> controller(){
+  var c=Robolectric.buildActivity(MainActivity.class);android.content.Context base=c.get().getBaseContext();
+  org.robolectric.shadows.ShadowContextImpl shadow=org.robolectric.shadow.api.Shadow.extract(base);
+  shadow.setSystemService(android.content.Context.TV_INPUT_SERVICE,org.robolectric.shadow.api.Shadow.newInstanceOf(TvInputManager.class));c.setup();Shadows.shadowOf(Looper.getMainLooper()).idle();return c;
+ }
  @Test public void HdrTransitionAndActivityStopDoNotRetuneOrOpenExternalHdmi(){
-  try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
+  try(var c=controller()){
    Button play=button(c.get().getWindow().getDecorView(),"عرض اللعبة عبر HDMI");assertNotNull(play);play.performClick();
    var video=TvHdmiResumeTest.Video.callback;video.onVideoAvailable("tcl-HDMI-2");int resets=TvHdmiResumeTest.Video.resets;
    video.onVideoUnavailable("tcl-HDMI-2",TvInputManager.VIDEO_UNAVAILABLE_REASON_UNKNOWN);
@@ -18,7 +23,7 @@ public class TvRebuildLifecycleTest {
   }
  }
  @Test public void RepairConnectionIsSeparateFromHdmiRepair(){
-  try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
+  try(var c=controller()){
    assertNotNull(button(c.get().getWindow().getDecorView(),"إصلاح الاتصال"));
    assertNotNull(button(c.get().getWindow().getDecorView(),"إصلاح صورة HDMI السوداء"));
    assertNotNull(button(c.get().getWindow().getDecorView(),"عودة للعب"));

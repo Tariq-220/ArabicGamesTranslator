@@ -40,6 +40,8 @@ public sealed class ReadingAreaEditor : UserControl
     public ReadingAreaEditor(AppController controller)
     {
         this.controller=controller;
+        list.Background=new SolidColorBrush(Color.FromRgb(32,40,59));list.Foreground=Brushes.White;list.BorderBrush=Brushes.Transparent;
+        name.Background=list.Background;name.Foreground=Brushes.White;name.Padding=new Thickness(6);
         areas=[new("dialogue","الحوار",ReadingAreaKind.Dialogue,controller.Settings.Region,controller.DialogueOutput,FontSize:controller.Settings.Style.FontSize,Background:controller.Settings.Style.Background),..controller.ReadingAreas];
         var root=new StackPanel{Margin=new Thickness(10)};
         root.Children.Add(new TextBlock{Text="مناطق القراءة · اسحب داخل المربع لتحريكه، أو الزاوية لتغيير حجمه. يمكنك تعديلها أثناء البث.",TextWrapping=TextWrapping.Wrap,FontSize=17});

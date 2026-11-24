@@ -80,18 +80,19 @@ public final class MainActivity extends Activity {
   panelWindow=new PanelScroll(this);panelWindow.addView(panel);int w=Math.min(dp(340),(int)(getResources().getDisplayMetrics().widthPixels*.46));FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(w,-2,Gravity.TOP|Gravity.RIGHT);pp.setMargins(dp(16),dp(16),dp(16),dp(16));root.addView(panelWindow,pp);
   // Main panel stays small; setup and diagnostics are behind one explicit button.
   List<View> oldPanel=new ArrayList<>();for(int n=0;n<panel.getChildCount();n++)oldPanel.add(panel.getChildAt(n));
-  panel.removeAllViews();panel.addView(oldPanel.get(0));panel.addView(status);panel.addView(received);
+  panel.removeAllViews();panel.addView(oldPanel.get(0));panel.addView(status);panel.addView(received);panel.addView(actions);
   LinearLayout settings=column();settings.setTag("tv-settings");settings.setVisibility(View.GONE);
   for(View view:oldPanel){
    if(view==oldPanel.get(0)||view==status||view==received||view==actions)continue;
    if(view instanceof Button&&("إعدادات الربط ▾".contentEquals(((Button)view).getText())||"اكتشاف الجوال أو الكمبيوتر".contentEquals(((Button)view).getText())))continue;
+   if(view instanceof Button&&("عرض اللعبة عبر HDMI".contentEquals(((Button)view).getText())||"إصلاح الاتصال".contentEquals(((Button)view).getText())))continue;
    settings.addView(view);
   }
   connectionPanel.setVisibility(View.GONE);
   button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
   button(panel,"إصلاح الاتصال",this::repairConnection);
   button(settings,"عنوان ورمز يدوي — بديل",()->connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
-  button(panel,"عرض اللعبة / إخفاء اللوحة",()->{if(tune())hidePanel();});
+  button(panel,"عرض اللعبة عبر HDMI",()->{if(tune())hidePanel();});
   button(panel,"إصلاح ظهور الترجمة",this::repairDisplay);
   button(panel,"الإعدادات: الربط والخط والصوت",()->settings.setVisibility(settings.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
   button(settings,"التحديثات — فحص وتنزيل تلقائي",()->startActivity(new android.content.Intent(this,dev.arabicgames.update.UpdateActivity.class)));

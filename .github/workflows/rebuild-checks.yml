@@ -42,7 +42,7 @@ jobs:
       - name: Preview lifecycle and persistence
         run: dotnet test windows/tests/GameTranslator.Shell.Tests/GameTranslator.Shell.Tests.csproj -c Release --filter "FullyQualifiedName~RebuildPreviewTests"
       - name: Translation quality validation
-        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~ArabicSpeakerTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ModelCompatibilityTests"
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~ArabicSpeakerTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~DialogueReadingRegressionTests|FullyQualifiedName~ReadingRecoveryTests|FullyQualifiedName~ArabicDesktopUpdateTests|FullyQualifiedName~ComparisonLogTests"
 
   android:
     runs-on: ubuntu-latest
@@ -56,7 +56,7 @@ jobs:
           cache: gradle
       - name: TV and LAN protocol tests (no APK packaging)
         working-directory: android
-        run: bash gradlew :common:test :tv:testDebugUnitTest --tests dev.arabicgames.tv.AreaCaptionLayerTest --tests dev.arabicgames.tv.DesktopDiscoveryTest --tests dev.arabicgames.tv.TvRebuildLifecycleTest --tests dev.arabicgames.tv.TvLayoutTest --tests dev.arabicgames.tv.TvRemoteControlTest --console=plain
+        run: bash gradlew :common:test :tv:testDebugUnitTest --console=plain
       - name: Report individual test failures
         if: always()
         run: python scripts/rebuild-test-report.py
