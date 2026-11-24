@@ -9,6 +9,9 @@ public interface ITextTranslator
 {
     Task<string> TranslateAsync(string text, CancellationToken cancellationToken = default);
 
+    /// <summary>Independent conversational context for menus/phone; stateless engines may share themselves.</summary>
+    ITextTranslator ForIndependentArea() => this;
+
     /// <summary>Son çevrilen altyazının seslendirilecek cümleleri (konuşmacısıyla); dublaj için.</summary>
     IReadOnlyList<SpokenLine> SpokenLines(string text) => [];
 

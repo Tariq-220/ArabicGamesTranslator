@@ -359,6 +359,9 @@ public sealed class AiTranslator : ITextTranslator, IOnlineTranslator
         _budget = budget ?? RequestBudget.Shared(provider, Model);
     }
 
+    public ITextTranslator ForIndependentArea() => new AiTranslator(Provider,_key,Model.Id,_fallback,_http,
+        budget:_budget,server:Server,game:_game);
+
     public AiProvider Provider { get; }
     public AiModel Model { get; }
     /// <summary>Yerel modelin sunucusu; bulut hizmetlerinde null.</summary>

@@ -22,7 +22,7 @@ public sealed class LiveServices : IAppServices
     public static string LastKeyCheckDetail { get; private set; } = "";
     public ITranslationModel Translation { get; } = new MarianModel();
 
-    public ITextTranslator? MakeOnlineTranslator(string key, ITextTranslator? fallback) => new DeepLTranslator(key, fallback: null, modelType:DeepLModelType,game:DialogueGame);
+    public ITextTranslator? MakeOnlineTranslator(string key, ITextTranslator? fallback) => new DeepLTranslator(key, fallback: null, modelType:DeepLModelType,game:DialogueGame,validateArabic:true,cache:TranslationCache.Shared(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"ArabicGames","TranslationCache"),"deepl-v2-"+PackKey.Canon(DialogueGame)+"-"+(DeepLModelType??"auto"),"en","ar"));
 
     public Task<OnlineKeyCheck> CheckOnlineKeyAsync(string key) => DeepLTranslator.CheckAsync(key);
 

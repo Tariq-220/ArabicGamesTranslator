@@ -42,7 +42,7 @@ jobs:
       - name: Preview lifecycle and persistence
         run: dotnet test windows/tests/GameTranslator.Shell.Tests/GameTranslator.Shell.Tests.csproj -c Release --filter "FullyQualifiedName~RebuildPreviewTests"
       - name: Translation quality validation
-        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~ArabicSpeakerTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~DialogueReadingRegressionTests|FullyQualifiedName~ReadingRecoveryTests|FullyQualifiedName~ArabicDesktopUpdateTests|FullyQualifiedName~ComparisonLogTests"
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~ArabicSpeakerTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~DeepLRebuildTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~DialogueReadingRegressionTests|FullyQualifiedName~ReadingRecoveryTests|FullyQualifiedName~ArabicDesktopUpdateTests|FullyQualifiedName~ComparisonLogTests"
 
   android:
     runs-on: ubuntu-latest

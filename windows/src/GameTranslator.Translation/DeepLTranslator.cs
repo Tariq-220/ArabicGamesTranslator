@@ -31,6 +31,8 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private static readonly Lazy<HttpClient> SharedClient = new(() => new HttpClient { Timeout = TimeSpan.FromSeconds(4) });
 
     private readonly string _key;
+    private readonly bool rememberDialogue,validateArabic;
+    private readonly Func<DateTimeOffset> now;
     private readonly string? _modelType,_game;
     public string? ActualModelType {get;private set;}
     private readonly ITextTranslator? _fallback;
@@ -42,10 +44,11 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private DateTimeOffset _pausedUntil = DateTimeOffset.MinValue;
 
     /// <param name="cache">Kalıcı önbellek; verilmezse yalnız bellekte tutulur.</param>
-    public DeepLTranslator(string key, ITextTranslator? fallback, HttpClient? http = null, TranslationCache? cache = null,string? modelType=null,string? game=null)
+    public DeepLTranslator(string key, ITextTranslator? fallback, HttpClient? http = null, TranslationCache? cache = null,string? modelType=null,string? game=null,bool rememberDialogue=true,bool validateArabic=false,Func<DateTimeOffset>? clock=null)
     {
         if(modelType is not (null or "latency_optimized" or "quality_optimized" or "prefer_quality_optimized"))throw new ArgumentException("Unsupported DeepL model type",nameof(modelType));
         _modelType=modelType;_game=game;
+        this.rememberDialogue=rememberDialogue;this.validateArabic=validateArabic;now=clock??(()=>DateTimeOffset.UtcNow);
         _key = key.Trim();
         _fallback = fallback;
         _http = http ?? SharedClient.Value;
@@ -71,12 +74,13 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     public async Task<string> TranslateAsync(string text, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
+        cancellationToken.ThrowIfCancellationRequested();
         // Bağlam, bu satırdan önce gösterilenlerdir; satırın kendisi bağlama girmez.
         var context = Context();
         var hint=CommunityCorrections.Hints(_game??"",text);if(hint.Length>0)context=string.Join("\n",new[]{context,hint}.Where(s=>!string.IsNullOrWhiteSpace(s)));
-        Shown(text);
-        if (_cache.TryGet(text, out var cached)) return cached;
-        if (DateTimeOffset.UtcNow < _pausedUntil) return await FallbackAsync(text, cancellationToken).ConfigureAwait(false);
+        if (_game is {Length:>0})context=string.Join("\n",new[]{context,(rememberDialogue?"Current complete dialogue: ":"Current screen text: ")+text}.Where(s=>!string.IsNullOrEmpty(s)));
+        if (_cache.TryGet(text, out var cached)){RememberIfValid(text,cached);return cached;}
+        if (now() < _pausedUntil) return await FallbackAsync(text, cancellationToken).ConfigureAwait(false);
 
         var pieces = SubtitleSegmenter.Split(text);
         foreach (var name in pieces.Select(SubtitleSegmenter.LabelName).OfType<string>())
@@ -98,7 +102,8 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
                                       && !cancellationToken.IsCancellationRequested)
         {
             Report(error is DeepLException deepL ? deepL.State : OnlineKeyState.Unreachable);
-            _pausedUntil = DateTimeOffset.UtcNow + RetryAfter;
+            var pause=error is DeepLException failed?failed.RetryDelay:TimeSpan.FromSeconds(2);
+            _pausedUntil = now() + pause;
             return await FallbackAsync(text, cancellationToken).ConfigureAwait(false);
         }
         for (var i = 0; i < missing.Count; i++)
@@ -112,15 +117,25 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         if (_speech.Count >= 512) _speech.Clear();
         _speech[text] = SpeechScript.Lines(pieces, translations);
         var result = builder.ToString();
+        cancellationToken.ThrowIfCancellationRequested();
         _cache.Store(text, result);
+        RememberIfValid(text,result);
         return result;
+    }
+
+    public ITextTranslator ForIndependentArea() => new DeepLTranslator(_key,_fallback,_http,cache:new TranslationCache(targetLanguage:validateArabic?"ar":null),
+        modelType:_modelType,game:_game,rememberDialogue:false,validateArabic:validateArabic,clock:now);
+
+    private void RememberIfValid(string source,string result)
+    {
+        if(rememberDialogue&&(!validateArabic||ArabicOutputQuality.Accepts(source,result)))Shown(source);
     }
 
     /// <summary>Son gösterilen satırlar, eskiden yeniye; DeepL'e bağlam olarak gider.</summary>
     private string? Context()
     {
         lock (_recent){
-            var prefix=string.IsNullOrWhiteSpace(_game)?null:DialogueContext.ForGame(_game);
+            var prefix=string.IsNullOrWhiteSpace(_game)?null:rememberDialogue?DialogueContext.ForGame(_game):"On-screen game menus and phone messages. Game: "+_game;
             return prefix==null?(_recent.Count==0?null:string.Join("\n",_recent)):prefix+(_recent.Count==0?"":"\nPrevious dialogue:\n"+string.Join("\n",_recent));
         }
     }
@@ -188,19 +203,24 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private static void ThrowIfFailed(HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode) return;
-        throw new DeepLException(response.StatusCode switch
+        var state=response.StatusCode switch
         {
             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => OnlineKeyState.Invalid,
             (HttpStatusCode)456 or HttpStatusCode.TooManyRequests => OnlineKeyState.QuotaExceeded,
             HttpStatusCode.BadRequest=>OnlineKeyState.ModelRejected,
             _ => OnlineKeyState.Unreachable,
-        });
+        };
+        var hint=response.Headers.RetryAfter;
+        var delay=hint?.Delta ?? (hint?.Date is {} date?date-DateTimeOffset.UtcNow:(TimeSpan?)null);
+        if(delay is not null)delay=TimeSpan.FromSeconds(Math.Clamp(delay.Value.TotalSeconds,1,120));
+        throw new DeepLException(state,delay ?? (response.StatusCode==HttpStatusCode.TooManyRequests?TimeSpan.FromSeconds(3):state==OnlineKeyState.Unreachable?TimeSpan.FromSeconds(2):RetryAfter));
     }
 }
 
-internal sealed class DeepLException(OnlineKeyState state) : Exception($"DeepL: {state}")
+internal sealed class DeepLException(OnlineKeyState state,TimeSpan? retryDelay=null) : Exception($"DeepL: {state}")
 {
     public OnlineKeyState State { get; } = state;
+    public TimeSpan RetryDelay {get;}=retryDelay??TimeSpan.FromSeconds(2);
 }
 
 internal sealed record TranslateRequest(

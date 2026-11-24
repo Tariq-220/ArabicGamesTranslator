@@ -7,7 +7,19 @@ namespace GameTranslator.Core;
 public static partial class ArabicOutputQuality
 {
     private static readonly HashSet<string> Acronyms=new(["FIB","IAA","FPS","XP","PSN","DLC","HUD","GTA","TV","USB","HDMI"],StringComparer.Ordinal);
-    public static string DialogueInput(string text) => Whitespace().Replace(text, " ").Trim();
+    public static string DialogueInput(string text)
+    {
+        var result=new System.Text.StringBuilder();
+        foreach(var row in text.Replace("\r\n","\n").Split('\n'))
+        {
+            var line=Whitespace().Replace(row," ").Trim();if(line.Length==0)continue;
+            if(result.Length>0)result.Append(SpeakerLabel().IsMatch(line)?'\n':' ');
+            result.Append(line);
+        }
+        return result.ToString();
+    }
+    [GeneratedRegex(@"^(?:[-–—]\s*)?[A-Z][A-Za-z'’.-]*(?: [A-Z][A-Za-z'’.-]*){0,2}:\s*")]
+    private static partial Regex SpeakerLabel();
 
     public static bool Accepts(string source, string translated)
     {

@@ -5,18 +5,18 @@ namespace GameTranslator.Core;
 /// independent region readers cannot flood a CPU model or collide with its inference lock.</summary>
 public sealed class TranslationWorkQueue : IDisposable
 {
-    private sealed record Request(string Text,CancellationToken Token,TaskCompletionSource<string> Result,TranslationProbe? Probe);
+    private sealed record Request(string Text,CancellationToken Token,TaskCompletionSource<string> Result,TranslationProbe? Probe,bool Dialogue);
     private readonly Queue<Request> high=new(),low=new();
     private readonly object gate=new();
     private readonly SemaphoreSlim available=new(0);
     private readonly CancellationTokenSource lifetime=new();
-    private readonly ITextTranslator provider;
+    private readonly ITextTranslator provider,areaProvider;
     private bool disposed;
     public ITextTranslator Dialogue {get;}
     public ITextTranslator Areas {get;}
     private readonly Task worker;
     public TranslationWorkQueue(ITextTranslator provider)
-    {this.provider=provider;Dialogue=new Lane(this,true);Areas=new Lane(this,false);worker=Task.Run(Work);}
+    {this.provider=provider;areaProvider=provider.ForIndependentArea();Dialogue=new Lane(this,true);Areas=new Lane(this,false);worker=Task.Run(Work);}
     private Task<string> Submit(string text,bool foreground,CancellationToken token)
     {
         lock(gate)
@@ -26,7 +26,7 @@ public sealed class TranslationWorkQueue : IDisposable
             // Entries are already bounded by the per-region/latest candidate policy; enforce a hard bound too.
             if(queue.Count>=(foreground?3:8))return Task.FromException<string>(new TranslatorException(TranslatorStatus.EngineFailed));
             var done=new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-            queue.Enqueue(new(text,token,done,TranslationProbe.Current));available.Release();return done.Task.WaitAsync(token);
+            queue.Enqueue(new(text,token,done,TranslationProbe.Current,foreground));available.Release();return done.Task.WaitAsync(token);
         }
     }
     private async Task Work()
@@ -41,7 +41,7 @@ public sealed class TranslationWorkQueue : IDisposable
                 if(request.Token.IsCancellationRequested){request.Result.TrySetCanceled(request.Token);continue;}
                 using var cancel=CancellationTokenSource.CreateLinkedTokenSource(request.Token,lifetime.Token);
                 TranslationProbe.Current=request.Probe;
-                try{request.Result.TrySetResult(await provider.TranslateAsync(request.Text,cancel.Token).ConfigureAwait(false));}
+                try{request.Result.TrySetResult(await (request.Dialogue?provider:areaProvider).TranslateAsync(request.Text,cancel.Token).ConfigureAwait(false));}
                 catch(OperationCanceledException){request.Result.TrySetCanceled(cancel.Token);}
                 catch(Exception error){request.Result.TrySetException(error);}
                 finally {TranslationProbe.Current=null;}
