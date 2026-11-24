@@ -1,5 +1,7 @@
 name: Rebuild validation (no installers)
 on:
+  push:
+    branches: [rebuild/v024-vi]
   workflow_dispatch:
 permissions:
   contents: read
