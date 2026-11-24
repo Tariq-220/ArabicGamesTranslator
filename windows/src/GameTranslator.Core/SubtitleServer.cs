@@ -115,6 +115,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     private int activeRequests;
     private Timer? pingTimer;
     private SubtitleStyle? lastStyle;
+    private readonly Dictionary<string,(AreaCaption Caption,long Until)> latestAreas=new(StringComparer.Ordinal);
     /// <summary>GET ile verilen dosyalar: dublaj sesleri ve seslendirme modelinin ses örnekleri.</summary>
     private readonly Dictionary<string, (byte[] Data, string Type)> files = new(StringComparer.Ordinal);
     private readonly Queue<string> speechPaths = new();
@@ -236,7 +237,14 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
 
     /// <summary>TV'deki "ekranı çevir" çevirilerini kaldırır (altyazıya dokunmaz).</summary>
     /// <summary>Independent caption channel; never clears/replaces the dialogue channel.</summary>
-    public void SendArea(AreaCaption caption) => Broadcast(Frame("area", new SortedDictionary<string,object> { ["id"]=caption.Id, ["revision"]=caption.Revision, ["text"]=caption.Text, ["clear"]=caption.Clear, ["duration"]=caption.DurationMs, ["fontSize"]=caption.FontSize, ["background"]=caption.Background, ["output"]=new { left=caption.Output.Left, top=caption.Output.Top, right=caption.Output.Right, bottom=caption.Output.Bottom } }), subtitle: true);
+    private static string AreaFrame(AreaCaption caption) => Frame("area", new SortedDictionary<string,object> { ["id"]=caption.Id, ["revision"]=caption.Revision, ["text"]=caption.Text, ["clear"]=caption.Clear, ["duration"]=caption.DurationMs, ["fontSize"]=caption.FontSize, ["background"]=caption.Background, ["output"]=new { left=caption.Output.Left, top=caption.Output.Top, right=caption.Output.Right, bottom=caption.Output.Bottom } });
+
+    public void SendArea(AreaCaption caption)
+    {
+        lock(gate){if(caption.Clear)latestAreas.Remove(caption.Id);else latestAreas[caption.Id]=(caption,Environment.TickCount64+caption.DurationMs);}
+        Broadcast(AreaFrame(caption),subtitle:true);
+    }
+    public void ClearAreas(){lock(gate)latestAreas.Clear();Broadcast(Frame("areas-clear",new SortedDictionary<string,object>()),subtitle:true);}
 
     public void ClearScreen() => Broadcast(Frame("screen-clear", new SortedDictionary<string, object>()), subtitle: true);
 
@@ -404,6 +412,11 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
         lock (gate)
         {
             if (lastStyle is { } style) head.Append(StyleFrame(style));
+            foreach(var item in latestAreas.Values)
+            {
+                var remaining=item.Until-Environment.TickCount64;
+                if(remaining>0)head.Append(AreaFrame(item.Caption with{DurationMs=(int)remaining}));
+            }
             clients.Add(client);
             count = TvCount();
         }

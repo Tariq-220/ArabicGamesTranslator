@@ -104,7 +104,7 @@ def make_handler(engine, token):
                     raise ValueError()
             except (ValueError, TypeError, KeyError, TimeoutError):
                 self.reply(400, {'error': 'request'}); return
-            if not gate.acquire(blocking=False):
+            if not gate.acquire(timeout=5):
                 self.reply(503, {'error': 'busy'}); return
             try:
                 arabic = engine.translate(rows[0])

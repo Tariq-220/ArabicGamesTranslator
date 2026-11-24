@@ -31,17 +31,19 @@ public sealed class TranslationCache
     private readonly object _gate = new();
     private readonly Dictionary<string, (string Value, long Used)> _entries = new(StringComparer.Ordinal);
     private long _tick;
+    private readonly string? targetLanguage;
     private bool _loaded;
     /// <summary>Dosyadaki satır sayısı (yinelenenler ve atılanlar dahil).</summary>
     private int _fileLines;
 
     /// <param name="file">null ise önbellek yalnız bellekte tutulur (testler, geçici çevirmenler).</param>
     /// <param name="engine">Motor adı (<see cref="Shared"/> verir); altyazı günlüğünde çevirinin hangi motordan geldiği görünür.</param>
-    public TranslationCache(string? file = null, int limit = DefaultLimit, string? engine = null)
+    public TranslationCache(string? file = null, int limit = DefaultLimit, string? engine = null, string? targetLanguage = null)
     {
         _file = file;
         _limit = Math.Max(1, limit);
         Engine = engine;
+        this.targetLanguage=targetLanguage;
     }
 
     /// <summary>Motor adı (<see cref="Shared"/> ile açılanlarda).</summary>
@@ -53,7 +55,7 @@ public sealed class TranslationCache
 
     /// <summary>Aynı dosya için hep aynı önbellek döner; çevirmen her oturumda yeniden kurulsa da dosya bir kez okunur.</summary>
     public static TranslationCache Shared(string directory, string engine, string source, string target) =>
-        Opened.GetOrAdd(FileFor(directory, engine, source, target), file => new TranslationCache(file, engine: engine));
+        Opened.GetOrAdd(FileFor(directory, engine, source, target), file => new TranslationCache(file, engine: engine,targetLanguage:target));
 
     public int Count
     {
@@ -65,7 +67,7 @@ public sealed class TranslationCache
         lock (_gate)
         {
             LoadIfNeeded();
-            if (_entries.TryGetValue(key, out var entry))
+            if (_entries.TryGetValue(key, out var entry) && (targetLanguage!="ar" || ArabicOutputQuality.Accepts(key,entry.Value)))
             {
                 _entries[key] = (entry.Value, ++_tick);
                 value = entry.Value;
@@ -80,6 +82,7 @@ public sealed class TranslationCache
     public void Store(string key, string value)
     {
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value)) return;
+        if(targetLanguage=="ar"&&!ArabicOutputQuality.Accepts(key,value))return;
         lock (_gate)
         {
             LoadIfNeeded();

@@ -56,7 +56,7 @@ public sealed class ReadingAreaSession : IDisposable
                 Math.Max(1,(int)((source.Right-source.Left)*frame.Width)),Math.Max(1,(int)((source.Bottom-source.Top)*frame.Height)));
             var reading=await Task.Run(()=>s.Reader.ReadLines(crop,deep:false),lifetime.Token).ConfigureAwait(false);
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
-            Observe(s,reading.Text.Trim());
+            Observe(s,s.Area.Kind==ReadingAreaKind.Phone?string.Join("\n",RegionTranslation.Paragraphs(reading)):reading.Text.Trim());
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke("ocr",error.GetType().Name);}

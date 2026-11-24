@@ -20,6 +20,6 @@ jobs:
       - name: Compile desktop projects (no publish or installers)
         run: dotnet build windows/src/GameTranslator.App/GameTranslator.App.csproj -c Release
       - name: Dialogue and independent region regression tests
-        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests"
+        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests"
       - name: Translation quality validation
         run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ModelCompatibilityTests"

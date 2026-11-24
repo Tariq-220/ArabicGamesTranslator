@@ -250,6 +250,7 @@ public sealed class XboxTestWindow : Window
                 logState.Text=comparison.Error ?? (queued?"السجل مفعّل — يحفظ السطور المعروضة وأوقاتها محليًا. لا يشمل زمن البث والتلفزيون.":"ازدحم السجل؛ لم يُحفظ هذا السطر.");
             }
         };
+        controller.AreasCleared+=AreaOverlayWindow.ClearAll;
         controller.AreaCaptionShown+=AreaOverlayWindow.Apply;
         controller.LiveSubtitleShown += overlay;
         controller.SubtitlesCleared += DesktopSubtitleOverlay.Clear;
@@ -285,6 +286,7 @@ public sealed class XboxTestWindow : Window
         {
             xboxPlayer?.Close();
             updateCancel.Cancel();
+            controller.AreasCleared-=AreaOverlayWindow.ClearAll;
             controller.AreaCaptionShown-=AreaOverlayWindow.Apply;AreaOverlayWindow.ClearAll();
             controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
             controller.PropertyChanged -= Changed; DesktopSubtitleOverlay.Clear(); controller.Dispose(); comparison.DisposeAsync().AsTask().GetAwaiter().GetResult();
@@ -464,6 +466,7 @@ public sealed class XboxTestWindow : Window
     }
     private void Changed(object? sender, PropertyChangedEventArgs e)
     {
+        if(e.PropertyName==nameof(AppController.LastFrame))return;
         if(e.PropertyName==nameof(AppController.IsRunning)) {
             if(controller.IsRunning)activeUpdateDownload?.Cancel();
             else if(readyInstaller==null&&controller.AutoUpdateEnabled)_=CheckForUpdate();

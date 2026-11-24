@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Text.RegularExpressions;
-namespace GameTranslator.Translation;
+namespace GameTranslator.Core;
 
 /// <summary>Validate provider output before it can enter display or translation memory.
 /// A failed translation is an error, never an English caption or an invented replacement.</summary>

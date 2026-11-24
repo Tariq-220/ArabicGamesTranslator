@@ -187,6 +187,7 @@ public final class MainActivity extends Activity {
      while(!destroyed&&generation==session&&(line=lines.readLine())!=null){
       if(line.startsWith("event: "))event=line.substring(7);else if(line.startsWith("data: "))data=line.substring(6);else if(line.isEmpty()){
        if("subtitle".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->applyCaption(json,"بث لحظي"));}
+       else if("areas-clear".equals(event)){post(generation,()->areaLayer.clearAll());}
        else if("area".equals(event)){JSONObject area=new JSONObject(data);post(generation,()->areaLayer.apply(area));}
        else if("style".equals(event)){JSONObject style=new JSONObject(data);post(generation,()->{sourcePlacement="cover".equals(style.optString("placement"));captionPositionKey="";});}
        else if("settings".equals(event)){post(generation,this::showPanel);}

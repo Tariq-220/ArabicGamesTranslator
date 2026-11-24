@@ -841,7 +841,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if(isRunning)return;
         StopSourcePreview();
         var preview=services.MakeStream(console,accountId,settings);
-        preview.FrameReceived+=frame=>post(()=>LastFrame=frame);
+        preview.FrameReceived+=PublishPreview;
         previewSession=preview;preview.Start();
     }
     public void StopSourcePreview(){previewSession?.Stop();previewSession?.Dispose();previewSession=null;}
@@ -894,6 +894,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public void Stop()
     {
         areaSession?.Dispose();areaSession=null;
+        translationQueue?.Dispose();translationQueue=null;ClearAreas();
         session?.Stop();
         session?.Dispose();
         session = null;
@@ -998,6 +999,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<string,string>? TranslationRejected;
     public event Action<string,string>? LineDiscarded;
     private ReadingAreaSession? areaSession;
+    private TranslationWorkQueue? translationQueue;
+    public event Action? AreasCleared;
+    private void ClearAreas(){server.ClearAreas();post(()=>AreasCleared?.Invoke());}
     public CropRegion DialogueOutput
     {
         get=>store.Load<CropRegion>("dialogue-output-v1")??new(.65,.83,.10,.90);
@@ -1019,11 +1023,12 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private void MakeAreaSession()
     {
         areaSession?.Dispose();areaSession=null;
+        ClearAreas();
         var enabled=ReadingAreas.Where(a=>a.Enabled).ToList();
         if(enabled.Count==0)return;
         var current=new ReadingAreaSession(enabled,()=>services.MakeReader(settings.SourceLanguage) ?? throw new InvalidOperationException("OCR unavailable"),
-            new ProfileTranslator(MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false));
-        current.Caption+=caption=>{server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
+            new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false));
+        current.Caption+=caption=>{if(!ReferenceEquals(areaSession,current))return;server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
         areaSession=current;
     }
 
@@ -1037,7 +1042,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         activeReader = reader;
         OcrMissing = reader is null || !services.HasOcrLanguage(settings.SourceLanguage);
         if (reader is null) return;
-        var built = new SubtitlePipeline(reader, new ProfileTranslator(MakeTranslator(),DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
+        translationQueue?.Dispose();translationQueue=new TranslationWorkQueue(MakeTranslator());
+        var built = new SubtitlePipeline(reader, new ProfileTranslator(translationQueue.Dialogue,DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode);
@@ -1067,6 +1073,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         built.TranslationResult += error => post(() => TranslatorStatus = error ?? TranslatorStatus.Ready);
         built.SpeechReady += lines => post(() => Speak(lines));
         pipeline = built;
+        if(isRunning)MakeAreaSession();
     }
 
     public ITextTranslator? SessionTranslator { get; set; }
@@ -1214,12 +1221,20 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         }
     }
 
+    private Frame? pendingPreview;
+    private int previewPosted;
+    private void PublishPreview(Frame frame)
+    {
+        Volatile.Write(ref pendingPreview,frame);
+        if(Interlocked.Exchange(ref previewPosted,1)!=0)return;
+        post(()=>{LastFrame=Volatile.Read(ref pendingPreview);Volatile.Write(ref previewPosted,0);});
+    }
     public void FeedFrame(Frame frame) => HandleFrame(frame);
     public void ClearLastFrame() => post(() => LastFrame = null);
 
     private async void HandleFrame(Frame frame)
     {
-        post(() => LastFrame = frame);
+        PublishPreview(frame);
         var areas=areaSession;
         if(areas is not null)_=areas.ProcessAsync(frame);
         // Duraklatıldıysa kare yalnız ek bölgeler ve serbest alan için saklanır; altyazı okunmaz.

@@ -701,12 +701,12 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             return;
         }
 
+        var finished = now();
         // A single caption must remain readable. OCR continues while presentation waits;
         // do not flush several completed requests as a burst of one-frame captions.
         int presentationWait;
         lock(gate)presentationWait=(int)Math.Max(0,MinimumDisplayMs-(now()-lastPresentedAt));
         if(presentationWait>0)await Task.Delay(presentationWait,token).ConfigureAwait(false);
-        var finished = now();
         var result = $"{probe.Outcome()} {now() - started} ms";
         lock (gate)
         {

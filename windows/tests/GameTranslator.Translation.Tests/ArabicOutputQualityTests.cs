@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-using GameTranslator.Translation;
+using GameTranslator.Core;
 namespace GameTranslator.Translation.Tests;
 public class ArabicOutputQualityTests
 {
