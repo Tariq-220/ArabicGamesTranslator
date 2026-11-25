@@ -17,7 +17,7 @@ public static class CaptionVisual
     {
         var a=(appearance??new()).Validate();var split=CaptionAppearance.SplitSpeaker(text);
         var label=new TextBlock{FlowDirection=FlowDirection.RightToLeft,FontFamily=Font(a.Font),FontSize=size,FontWeight=bold?FontWeights.Bold:FontWeights.Medium,
-            TextWrapping=TextWrapping.Wrap,TextAlignment=a.Align switch{"left"=>TextAlignment.Left,"right"=>TextAlignment.Right,_=>TextAlignment.Center},Foreground=Brushes.White,
+            TextWrapping=TextWrapping.Wrap,TextAlignment=a.Align switch{"left"=>TextAlignment.Right,"right"=>TextAlignment.Left,_=>TextAlignment.Center},Foreground=Brushes.White,
             LineHeight=size*1.42,LineStackingStrategy=LineStackingStrategy.BlockLineHeight};
         if(split.Name.Length>0)label.Inlines.Add(new Run(split.Name+" "){Foreground=Brush(CaptionAppearance.SpeakerAccent(text,a))});
         label.Inlines.Add(new Run(split.Body));
@@ -48,7 +48,7 @@ public static class CaptionVisual
             double w=Math.Max(8,(box.Right-box.Left)*panel.Width),h=Math.Max(8,(box.Bottom-box.Top)*panel.Height);
             double max=area.Appearance?.MatchSize!=false?Math.Max(8,cell.LineHeight*panel.Height*.95):area.FontSize;
             var label=new TextBlock{Width=w,HorizontalAlignment=HorizontalAlignment.Stretch,Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?FlowDirection.RightToLeft:FlowDirection.LeftToRight,TextWrapping=TextWrapping.Wrap,
-                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?TextAlignment.Right:TextAlignment.Left,Foreground=Brush(cell.Foreground),FontSize=Math.Min(max,area.FontSize),Padding=new Thickness(3,0,3,0)};
+                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:TextAlignment.Left,Foreground=Brush(cell.Foreground),FontSize=Math.Min(max,area.FontSize),Padding=new Thickness(3,0,3,0)};
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
             var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};

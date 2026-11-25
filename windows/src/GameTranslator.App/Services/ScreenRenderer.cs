@@ -33,7 +33,7 @@ public static class ScreenRenderer
             for(int variant=0;variant<10;variant++){
                 int selected=variant%5;
                 var controller=Demo(OnboardingStep.Done);
-                controller.PrepareRebuildAreas();
+                controller.ReadingRecoveryApplied=true;controller.PrepareRebuildAreas();
                 controller.Settings=controller.Settings with{Style=controller.Settings.Style with{FontSize=22,Background=40,BottomPercent=11}};
                 var window=new XboxTestWindow(controller,preview:true){Width=variant<5?960:700,Height=variant<5?850:700,Left=-10000,Top=-10000,ShowActivated=false};
                 var grid=(System.Windows.Controls.Grid)window.Content;

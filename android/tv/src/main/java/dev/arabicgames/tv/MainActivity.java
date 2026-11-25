@@ -92,11 +92,13 @@ public final class MainActivity extends Activity {
    settings.addView(view);
   }
   connectionPanel.setVisibility(View.GONE);
-  button(panel,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);
-  button(panel,"إصلاح الاتصال",this::repairConnection);
+  LinearLayout connectionActions=new LinearLayout(this);connectionActions.setOrientation(LinearLayout.HORIZONTAL);connectionActions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+  Button discover=button(connectionActions,"اكتشاف الجوال أو الكمبيوتر",this::discoverDesktop);discover.setTag("discover-primary");discover.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));
+  button(connectionActions,"إصلاح الاتصال",this::repairConnection).setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));panel.addView(connectionActions);
   button(settings,"عنوان ورمز يدوي — بديل",()->connectionPanel.setVisibility(connectionPanel.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
-  button(panel,"عرض اللعبة عبر HDMI",()->{if(tune())hidePanel();});
-  button(panel,"إصلاح ظهور الترجمة",this::repairDisplay);
+  LinearLayout displayActions=new LinearLayout(this);displayActions.setOrientation(LinearLayout.HORIZONTAL);displayActions.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+  button(displayActions,"عرض اللعبة عبر HDMI",()->{if(tune())hidePanel();}).setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));
+  button(displayActions,"إصلاح ظهور الترجمة",this::repairDisplay).setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));panel.addView(displayActions);
   button(panel,"الإعدادات: الربط والخط والصوت",()->settings.setVisibility(settings.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
   button(settings,"التحديثات — فحص وتنزيل تلقائي",()->startActivity(new android.content.Intent(this,dev.arabicgames.update.UpdateActivity.class)));
   button(settings,"اختبار الحروف العربية",()->testLocal("اختبار العربية — الحروف متصلة فوق اللعبة"));panel.addView(settings);
@@ -267,7 +269,7 @@ public final class MainActivity extends Activity {
   if(LanEndpoint.valid(host.getText().toString().trim())&&(desktop.isChecked()||Pairing.validCode(code.getText().toString().trim())))connect();else discoverDesktop();
  }
  private void hidePanel(){panelWindow.setVisibility(View.GONE);menuHandle.setVisibility(View.GONE);View root=(View)panelWindow.getParent();root.setFocusableInTouchMode(true);root.setDefaultFocusHighlightEnabled(false);root.requestFocus();}
- private void showPanel(){panelWindow.setVisibility(View.VISIBLE);panelWindow.bringToFront();if(menuHandle!=null)menuHandle.setVisibility(View.GONE);panelWindow.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);for(int n=0;n<panel.getChildCount();n++){View v=panel.getChildAt(n);if(v instanceof Button&&v.getVisibility()==View.VISIBLE){v.requestFocus();break;}}}
+ private void showPanel(){panelWindow.setVisibility(View.VISIBLE);panelWindow.bringToFront();if(menuHandle!=null)menuHandle.setVisibility(View.GONE);panelWindow.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);View primary=panel.findViewWithTag("discover-primary");if(primary!=null&&primary.getVisibility()==View.VISIBLE){primary.requestFocus();return;}for(int n=0;n<panel.getChildCount();n++){View v=panel.getChildAt(n);if(v instanceof Button&&v.getVisibility()==View.VISIBLE){v.requestFocus();break;}}}
  @Override public boolean dispatchKeyEvent(KeyEvent event){
   int key=event.getKeyCode();if(key==swallowedKey){if(event.getAction()==KeyEvent.ACTION_UP)swallowedKey=-1;return true;}
   boolean hidden=panelWindow!=null&&panelWindow.getVisibility()!=View.VISIBLE;

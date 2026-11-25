@@ -23,7 +23,7 @@ public sealed record CaptionAppearance(string Font="noto", string Backdrop="game
         var a=appearance??new();if(!a.SpeakerColors)return "#FFFFFF";
         if(IsColor(a.SpeakerColor))return a.SpeakerColor;
         var name=text.Split(':','：')[0].Trim();
-        return name switch { "جيسون" or "جايسون" or "Jason"=>"#F2D87A", "لوسيا" or "لوسيا كامينوس" or "Lucia"=>"#F39ABA", _=>"#70DDE7" };
+        return name switch { "جيسون" or "جايسون" or "Jason"=>"#F2D87A", "لوسيا" or "لوسيا كامينوس" or "Lucia" or "السائح" or "Tourist"=>"#F39ABA", _=>"#70DDE7" };
     }
     public static (string Name,string Body) SplitSpeaker(string text)
     {
