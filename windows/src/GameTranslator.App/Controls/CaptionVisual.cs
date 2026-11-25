@@ -35,7 +35,9 @@ public static class CaptionVisual
         border.CornerRadius=new CornerRadius(0);border.BorderThickness=new Thickness(Math.Max(1.5,size/16));
         var gradient=new LinearGradientBrush{StartPoint=new Point(0,.5),EndPoint=new Point(1,.5)};
         foreach(var (color,offset) in new[]{("#FF2D95",0d),("#FF7A45",.30),("#FFC94A",.50),("#B45CFF",.72),("#2FD6FF",1d)})gradient.GradientStops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(color),offset));
-        border.BorderBrush=gradient;if(a.Backdrop=="none")border.Background=new SolidColorBrush(Color.FromArgb(128,10,6,20));
+        gradient.Opacity=a.AccentOpacity/100d;
+        foreach(var stop in gradient.GradientStops){var c=stop.Color;byte gray=(byte)((c.R+c.G+c.B)/3);double k=a.AccentStrength/100d;stop.Color=Color.FromRgb((byte)(gray+(c.R-gray)*k),(byte)(gray+(c.G-gray)*k),(byte)(gray+(c.B-gray)*k));}
+        border.BorderBrush=gradient;if(a.Backdrop=="none")border.Background=new SolidColorBrush(Color.FromArgb((byte)(Math.Clamp(opacity,0,100)*255/100),10,6,20));
     }
     public static FrameworkElement Panel(PanelLayout panel,ReadingArea area)
     {
@@ -48,7 +50,7 @@ public static class CaptionVisual
             double w=Math.Max(8,(box.Right-box.Left)*panel.Width),h=Math.Max(8,(box.Bottom-box.Top)*panel.Height);
             double max=area.Appearance?.MatchSize!=false?Math.Max(8,cell.LineHeight*panel.Height*.95):area.FontSize;
             var label=new TextBlock{Width=w,HorizontalAlignment=HorizontalAlignment.Stretch,Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?FlowDirection.RightToLeft:FlowDirection.LeftToRight,TextWrapping=TextWrapping.Wrap,
-                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Right:TextAlignment.Left,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone?Brush(cell.Foreground):Brushes.White,FontSize=Math.Min(max,area.FontSize),Padding=new Thickness(3,0,3,0)};
+                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Right:TextAlignment.Left,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize,Padding=new Thickness(3,0,3,0)};
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
             var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};

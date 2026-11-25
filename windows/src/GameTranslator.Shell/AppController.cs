@@ -1026,7 +1026,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public IReadOnlyList<ReadingArea> ReadingAreas
     {
-        get => store.Load<List<ReadingArea>>("reading-areas-v1") ?? [];
+        get => (store.Load<List<ReadingArea>>("reading-areas-v1") ?? []).Select(a=>a.Kind==ReadingAreaKind.Phone&&a.Source==new CropRegion(.12,.95,.40,.97)?a with{Source=new(.08,.98,.03,.97)}:a).ToList();
         set { store.Save("reading-areas-v1", value.Take(8).Select(a=>a.Validate()).ToList()); if(isRunning)MakeAreaSession(); Changed(nameof(ReadingAreas)); }
     }
     public event Action<AreaCaption>? AreaCaptionShown;

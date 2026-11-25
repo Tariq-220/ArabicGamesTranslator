@@ -32,7 +32,7 @@ public sealed record ReadingArea(string Id, string Name, ReadingAreaKind Kind, C
         return new(top,Math.Clamp(N(r.Bottom,.97),top+.03,1),left,Math.Clamp(N(r.Right,.9),left+.03,1));
     }
     public static ReadingArea Phone() => new(Guid.NewGuid().ToString("N"),"رسائل الجوال",ReadingAreaKind.Phone,
-        new(.12,.95,.40,.97),new(.12,.95,.08,.39),DurationMs:8000);
+        new(.08,.98,.03,.97),new(.12,.95,.08,.39),DurationMs:8000);
     public static ReadingArea Instructions() => new(Guid.NewGuid().ToString("N"),"هدف المهمة",ReadingAreaKind.Instructions,
         new(.935,.995,.10,.90),new(.84,.92,.10,.90),DurationMs:5000,Appearance:new(Font:"tajawal",Backdrop:"none",Align:"center",Accent:true));
     public static ReadingArea Notification()=>new(Guid.NewGuid().ToString("N"),"تنبيه / رسالة واردة",ReadingAreaKind.Notification,new(.65,.99,.68,.99),new(.40,.73,.68,.99),DurationMs:6500);

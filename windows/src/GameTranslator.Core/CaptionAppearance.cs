@@ -6,14 +6,14 @@ namespace GameTranslator.Core;
 /// <summary>Portable rendering settings. Same identifiers are understood by desktop and TV.</summary>
 public sealed record CaptionAppearance(string Font="noto", string Backdrop="game", string Align="center",
     string Vertical="bottom", string Position="custom", bool MatchSize=true, bool SpeakerColors=true,
-    string SpeakerColor="auto", bool Outline=true, int FadeMs=100, bool Accent=false, bool CoverMinimum=true, bool CoverEarly=false, bool StackUp=false, bool Ride=true, bool ReviewedOnly=false, bool CenterOnly=false)
+    string SpeakerColor="auto", bool Outline=true, int FadeMs=100, bool Accent=false, bool CoverMinimum=true, bool CoverEarly=false, bool StackUp=false, bool Ride=true, bool ReviewedOnly=false, bool CenterOnly=false, int AccentOpacity=100, int AccentStrength=100)
 {
     public CaptionAppearance Validate()=>this with {
         Font=Fonts.Contains(Font)?Font:"noto", Backdrop=Backdrops.Contains(Backdrop)?Backdrop:"game",
         Align=Align is "left" or "right" or "center"?Align:"center",
         Vertical=Vertical is "top" or "center" or "bottom"?Vertical:"bottom",
         Position=Positions.Contains(Position)?Position:"custom", SpeakerColor=SpeakerColor=="auto"||IsColor(SpeakerColor)?SpeakerColor:"auto",
-        FadeMs=Math.Clamp(FadeMs,0,300) };
+        AccentOpacity=Math.Clamp(AccentOpacity,0,100), AccentStrength=Math.Clamp(AccentStrength,0,100), FadeMs=Math.Clamp(FadeMs,0,300) };
     public static readonly string[] Fonts=["noto","tajawal","cairo","changa","lalezar"];
     public static readonly string[] Backdrops=["none","game","rounded","rectangle"];
     public static readonly string[] Positions=["custom","above","cover","below"];

@@ -36,8 +36,10 @@ final class CaptionVisual {
   String back=a==null?"game":a.optString("backdrop","game");
   if("game".equals(back)){inner.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);inner.setColors(new int[]{(Math.max(0,Math.min(100,opacity))*255/100<<24)|0x030306,(Math.max(0,Math.min(100,opacity))*210/100<<24)|0x1a1a20});}
   if(a==null||!a.optBoolean("accent",false))return inner;
-  if("none".equals(back))inner.setColor(0x800a0614);
+  if("none".equals(back))inner.setColor((Math.max(0,Math.min(100,opacity))*255/100<<24)|0x0a0614);
   GradientDrawable outer=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xffff2d95,0xffff7a45,0xffffc94a,0xffb45cff,0xff2fd6ff});
+  int alpha=Math.max(0,Math.min(100,a.optInt("accentOpacity",100)))*255/100;float strength=Math.max(0,Math.min(100,a.optInt("accentStrength",100)))/100f;
+  int[] colors={0xffff2d95,0xffff7a45,0xffffc94a,0xffb45cff,0xff2fd6ff};for(int i=0;i<colors.length;i++){int c=colors[i],g=(Color.red(c)+Color.green(c)+Color.blue(c))/3;colors[i]=Color.argb(alpha,(int)(g+(Color.red(c)-g)*strength),(int)(g+(Color.green(c)-g)*strength),(int)(g+(Color.blue(c)-g)*strength));}outer.setColors(colors);
   android.graphics.drawable.LayerDrawable result=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{outer,inner});int inset=Math.max(2,Math.round(size/16));result.setLayerInset(1,inset,inset,inset,inset);return result;
  }
  static CharSequence speaker(String text,JSONObject a){

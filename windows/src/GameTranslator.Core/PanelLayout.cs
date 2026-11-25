@@ -40,6 +40,7 @@ public static class SpatialText
             var medianH=g.Select(l=>l.Box!.Value.Bottom-l.Box.Value.Top).Order().ElementAt(g.Count/2);
             // Grow only into the surrounding margin, never into the neighbouring message.
             var pad=Math.Min(.012,medianH*.22);var box=new TextBox(Math.Max(0,b.Left-pad),Math.Max(0,b.Top-pad),Math.Min(1,b.Right+pad),Math.Min(1,b.Bottom+pad));
+            if(phoneLike)box=BubbleBounds(frame,box,color);
             var background=Hex(color);var foreground=color.Sum(x=>(int)x)>390&&!blue?"#20232A":"#FFFFFF";
             var title=phoneLike&&b.Top<.12&&g.Count==1;
             cells.Add(new(text,"",box,background,foreground,medianH,phoneLike&&!title,title));
@@ -61,7 +62,7 @@ public static class SpatialText
         if(frame.Width<90||frame.Height<(phone?150:60))return null;
         const int step=6;int w=frame.Width/step,h=frame.Height/step;var light=new bool[w*h];
         for(int y=0;y<h;y++)for(int x=0;x<w;x++){
-            var c=Pixel(frame,x*step+step/2,y*step+step/2);var lo=c.Min();var hi=c.Max();light[y*w+x]=lo>125&&hi-lo<65;
+            int votes=0;foreach(var (dx,dy) in new[]{(1,1),(4,1),(1,4),(4,4),(2,2)}){var c=Pixel(frame,x*step+dx,y*step+dy);if(c.Min()>=155&&c.Max()-c.Min()<=35)votes++;}light[y*w+x]=votes>=3;
         }
         var seen=new bool[light.Length];(int L,int T,int R,int B,int Count)? best=null;
         for(int start=0;start<light.Length;start++){
@@ -72,10 +73,23 @@ public static class SpatialText
                 if(x>0)Add(i-1);if(x+1<w)Add(i+1);if(y>0)Add(i-w);if(y+1<h)Add(i+w);
             }
             var pw=(r-l+1)*step;var ph=(b-t+1)*step;
+            // A notification is a compact, bounded card, not the light road reaching the ROI edge.
+            if(!phone&&(pw>frame.Width*.95||ph>frame.Height*.65||pw<ph*1.5||n<(r-l+1)*(b-t+1)*.82))continue;
             if(phone?(pw<frame.Width*.14||ph<frame.Height*.38||ph<pw*1.1||ph>pw*4.5||n<((r-l+1)*(b-t+1))*.38):(pw<frame.Width*.4||ph<frame.Height*.14||ph>pw*.85||n<((r-l+1)*(b-t+1))*.65))continue;
             if(best is null||n>best.Value.Count)best=(l,t,r,b,n);
         }
         return best is {} a?new((double)a.T*step/frame.Height,(double)(a.B+1)*step/frame.Height,(double)a.L*step/frame.Width,(double)(a.R+1)*step/frame.Width):null;
+    }
+    // Recover the padding around each message instead of using only the OCR ink box.
+    private static TextBox BubbleBounds(Frame frame,TextBox text,byte[] color)
+    {
+        int l=(int)(text.Left*frame.Width),r=Math.Min(frame.Width-1,(int)(text.Right*frame.Width)),t=(int)(text.Top*frame.Height),b=Math.Min(frame.Height-1,(int)(text.Bottom*frame.Height));
+        int maxX=Math.Max(4,(int)(frame.Width*.12)),maxY=Math.Max(3,(int)((b-t)*.45));
+        bool Column(int x){int ok=0,total=0;for(int y=t;y<=b;y+=Math.Max(1,(b-t)/12)){total++;if(ColorDistance(Pixel(frame,x,y),color)<24)ok++;}return ok>=total*.85;}
+        bool Row(int y){int ok=0,total=0;for(int x=l;x<=r;x+=Math.Max(1,(r-l)/16)){total++;if(ColorDistance(Pixel(frame,x,y),color)<24)ok++;}return ok>=total*.9;}
+        int origin=l;while(l>0&&origin-l<maxX&&Column(l-1))l--;origin=r;while(r+1<frame.Width&&r-origin<maxX&&Column(r+1))r++;
+        origin=t;while(t>0&&origin-t<maxY&&Row(t-1))t--;origin=b;while(b+1<frame.Height&&b-origin<maxY&&Row(b+1))b++;
+        return new((double)l/frame.Width,(double)t/frame.Height,(double)(r+1)/frame.Width,(double)(b+1)/frame.Height);
     }
     private static byte[] Pixel(Frame f,int x,int y){var i=Math.Clamp(y,0,f.Height-1)*f.Stride+Math.Clamp(x,0,f.Width-1)*4;return [f.Pixels[i+2],f.Pixels[i+1],f.Pixels[i]];}
     private static byte[] Sample(Frame f,TextBox b)
