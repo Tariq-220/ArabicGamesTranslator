@@ -165,10 +165,17 @@ public sealed class ReadingAreaSession : IDisposable
             // or a rejected English cell must not hide the rest of the phone conversation.
             PublishCached(s,generation,false,source);
             int batchSize=Math.Clamp(translator.PreferredBatchSize,1,4);
-            foreach(var batch in missing.Chunk(batchSize))
+            foreach(var pendingBatch in missing.Chunk(batchSize))
             {
                 lifetime.Token.ThrowIfCancellationRequested();
-                lock(gate)if(disposed||s.Generation!=generation)return;
+                string[] batch;
+                lock(gate){
+                    if(disposed||s.Generation!=generation)return;
+                    // Do not spend the provider on messages which were scrolled out while an earlier item ran.
+                    var wanted=s.Panel is {Cells.Count:>0}?s.Panel.Cells.Select(c=>Key(c.Source)).ToHashSet(StringComparer.Ordinal):new HashSet<string>([Key(s.Candidate)],StringComparer.Ordinal);
+                    batch=pendingBatch.Where(t=>wanted.Contains(Key(t))).ToArray();
+                }
+                if(batch.Length==0)continue;
                 IReadOnlyList<string> values;
                 if(s.Area.Appearance?.ReviewedOnly==true)values=batch.Select(t=>reviewed?.Invoke(t)??"").ToArray();
                 else values=await translator.TranslateManyAsync(batch,lifetime.Token).ConfigureAwait(false);

@@ -59,8 +59,8 @@ public class DeepLTranslatorTests
         var json = JsonDocument.Parse(firstBody).RootElement;
         Assert.Equal("We move on.", json.GetProperty("text")[0].GetString());
         Assert.Equal("AR", json.GetProperty("target_lang").GetString());
-        Assert.False(json.TryGetProperty("context", out _));
-        Assert.Equal("KRATOS: We move on.", JsonDocument.Parse(deepL.Requests[1].Body).RootElement.GetProperty("context").GetString());
+        Assert.Equal(ArabicRegister.Instruction,json.GetProperty("context").GetString()!.Trim());
+        Assert.Equal("KRATOS: We move on.\n"+ArabicRegister.Instruction, JsonDocument.Parse(deepL.Requests[1].Body).RootElement.GetProperty("context").GetString());
     }
 
     [Fact]
