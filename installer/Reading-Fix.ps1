@@ -1,6 +1,6 @@
 ﻿param([string]$BasePath,[string]$InstallRoot=(Join-Path $env:LOCALAPPDATA 'ArabicGamesLauncher'),[switch]$TestMode)
 $ErrorActionPreference='Stop'
-$allowed=@('GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','GameTranslator.TvInstall.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json','local-engine/server.py','local-engine/Start-Local.cmd','local-engine/requirements.txt','local-engine/hymt_engine.py','Assets/Fonts/NotoSansArabic-OFL.txt')
+$allowed=@('GameTranslator.exe','GameTranslator.dll','GameTranslator.Core.dll','GameTranslator.Shell.dll','GameTranslator.Translation.dll','GameTranslator.RemotePlay.dll','GameTranslator.TvInstall.dll','gametranslator_native.dll','Native-LICENSES.txt','GameTranslator.deps.json','GameTranslator.runtimeconfig.json','local-engine/server.py','local-engine/Start-Local.cmd','local-engine/requirements.txt','local-engine/hymt_engine.py','Assets/Fonts/NotoSansArabic-OFL.txt','Assets/Fonts/Tajawal-OFL.txt','Assets/Fonts/Cairo-OFL.txt','Assets/Fonts/Changa-OFL.txt','Assets/Fonts/Lalezar-OFL.txt')
 try {
     $manifest=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'patch.json') -Raw | ConvertFrom-Json
     if($manifest.version -notmatch '^\d+\.\d+\.\d+$' -or @($manifest.files).Count -ne $allowed.Count){throw 'Invalid repair manifest.'}

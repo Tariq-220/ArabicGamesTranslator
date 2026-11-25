@@ -8,7 +8,7 @@ if __name__=='__main__':
  version=json.loads((root/'release/version.json').read_text())['version'];files=[]
  for name in NAMES:
   src=Path(a.publish)/name;assert src.is_file(),name;shutil.copyfile(src,out/'files'/name);files.append({'path':name,'sha256':hashlib.sha256(src.read_bytes()).hexdigest()})
- for relative in ['local-engine/server.py','local-engine/Start-Local.cmd','local-engine/requirements.txt','local-engine/hymt_engine.py','windows/src/GameTranslator.App/Assets/Fonts/NotoSansArabic-OFL.txt']:
+ for relative in ['local-engine/server.py','local-engine/Start-Local.cmd','local-engine/requirements.txt','local-engine/hymt_engine.py','windows/src/GameTranslator.App/Assets/Fonts/NotoSansArabic-OFL.txt','windows/src/GameTranslator.App/Assets/Fonts/Tajawal-OFL.txt','windows/src/GameTranslator.App/Assets/Fonts/Cairo-OFL.txt','windows/src/GameTranslator.App/Assets/Fonts/Changa-OFL.txt','windows/src/GameTranslator.App/Assets/Fonts/Lalezar-OFL.txt']:
   src=root/relative;assert src.is_file(),relative
   relative=relative.replace('windows/src/GameTranslator.App/','')
   dst=out/'files'/relative;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,dst)

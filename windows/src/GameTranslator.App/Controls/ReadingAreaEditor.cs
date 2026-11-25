@@ -37,6 +37,7 @@ public sealed class ReadingAreaEditor : UserControl
         var root=new Grid();root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});root.RowDefinitions.Add(new RowDefinition());
         var top=new WrapPanel();top.Children.Add(Action("+ منطقة قراءة",()=>Add(ReadingArea.Menu())));top.Children.Add(Action("+ جوال اللعبة",()=>Add(ReadingArea.Phone())));top.Children.Add(Action("+ هدف / تنبيه",()=>Add(ReadingArea.Instructions())));top.Children.Add(Action("استيراد تخطيط",Import));top.Children.Add(Action("تصدير ومشاركة",Export));demo.IsChecked=true;top.Children.Add(demo);Grid.SetRow(top,0);root.Children.Add(top);
         var body=new Grid();body.ColumnDefinitions.Add(new ColumnDefinition());body.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(290)});Grid.SetRow(body,1);root.Children.Add(body);
+        body.SizeChanged+=(_,_)=>body.ColumnDefinitions[1].Width=new GridLength(Math.Clamp(body.ActualWidth*.42,200,290));
         var picture=new DockPanel{Margin=new Thickness(6)};
         var legend=new TextBlock{Text="أصفر: القراءة · أزرق: ظهور الترجمة · اسحب المربع أو أي زاوية/حافة · النسب لا تتغير بتغيير حجم النافذة",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4)};DockPanel.SetDock(legend,Dock.Top);picture.Children.Add(legend);
         sample.Text="جيسون: افتح الباب، لوسيا. سنعود إلى المنزل.";DockPanel.SetDock(sample,Dock.Bottom);picture.Children.Add(sample);picture.Children.Add(new Viewbox{Stretch=Stretch.Uniform,Child=canvas});body.Children.Add(picture);
