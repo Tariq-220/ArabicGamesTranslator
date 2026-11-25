@@ -103,7 +103,7 @@ public final class MainActivity extends Activity {
   panel.removeView(keys);panel.addView(keys);
   menuHandle=new Button(this);menuHandle.setText("إعدادات الترجمة ⋮");menuHandle.setTextSize(12);menuHandle.setTag("menu-handle");menuHandle.setOnClickListener(v->showPanel());menuHandle.setVisibility(View.GONE);
   FrameLayout.LayoutParams handle=new FrameLayout.LayoutParams(dp(170),dp(44),Gravity.TOP|Gravity.RIGHT);handle.setMargins(dp(12),dp(12),dp(12),dp(12));root.addView(menuHandle,handle);
-  setContentView(root);root.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->layoutCaption());showPanel();dev.arabicgames.update.UpdateActivity.onLaunch(this,"TV");
+  setContentView(root);root.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{if(r-l!=or-ol||b-t!=ob-ot)layoutCaption();});showPanel();dev.arabicgames.update.UpdateActivity.onLaunch(this,"TV");
   if(Build.VERSION.SDK_INT>=33){backCallback=()->{if(panelWindow.getVisibility()==View.VISIBLE)hidePanel();else showPanel();};getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,backCallback);}
   if(!host.getText().toString().isEmpty()&&(desktop.isChecked()||Pairing.validCode(code.getText().toString())))connect();
   if(host.getText().toString().isEmpty())discoverDesktop();
@@ -224,17 +224,16 @@ public final class MainActivity extends Activity {
   View parent=(View)subtitle.getParent();if(parent==null)return;int w=parent.getWidth(),h=parent.getHeight();if(w<1||h<1)return;
   JSONObject box=currentCaptionBox;double l=box==null?.1:box.optDouble("left",.1),t=box==null?.78:box.optDouble("top",.78),r=box==null?.9:box.optDouble("right",.9),b=box==null?.92:box.optDouble("bottom",.92);
   if(!Double.isFinite(l)||!Double.isFinite(t)||!Double.isFinite(r)||!Double.isFinite(b)||l<0||t<0||r>1||b>1||r<=l||b<=t)return;
-  int available=Math.max(dp(60),(int)((r-l)*w));subtitle.setMinWidth(0);subtitle.setMinHeight(0);subtitle.setMaxWidth(available);subtitle.setMaxHeight((int)(h*.4));
+  int available=Math.max(dp(60),(int)((r-l)*w));String desiredPosition=appearance.optString("position","custom");boolean minimum="cover".equals(desiredPosition)&&appearance.optBoolean("coverMinimum",true);
+  int minWidth=minimum?available:0,minHeight=minimum?(int)((b-t)*h):0;if(subtitle.getMinWidth()!=minWidth)subtitle.setMinWidth(minWidth);if(subtitle.getMinHeight()!=minHeight)subtitle.setMinHeight(minHeight);subtitle.setMaxWidth(available);subtitle.setMaxHeight((int)(h*.4));
   subtitle.measure(View.MeasureSpec.makeMeasureSpec(available,View.MeasureSpec.AT_MOST),View.MeasureSpec.makeMeasureSpec((int)(h*.4),View.MeasureSpec.AT_MOST));
-  String desiredPosition=appearance.optString("position","custom");
-  if("cover".equals(desiredPosition)&&appearance.optBoolean("coverMinimum",true)){subtitle.setMinWidth(available);subtitle.setMinHeight((int)((b-t)*h));subtitle.measure(View.MeasureSpec.makeMeasureSpec(available,View.MeasureSpec.AT_MOST),View.MeasureSpec.makeMeasureSpec((int)(h*.4),View.MeasureSpec.AT_MOST));}else{subtitle.setMinWidth(0);subtitle.setMinHeight(0);}
   int sw=subtitle.getMeasuredWidth(),sh=subtitle.getMeasuredHeight();String horizontal=appearance.optString("align","center"),vertical=appearance.optString("vertical","bottom");
   float x=(float)(l*w)+("left".equals(horizontal)?0:"right".equals(horizontal)?available-sw:(available-sw)/2f);
   String position=appearance.optString("position",customCaption?"custom":sourcePlacement?"cover":"custom");float y;
   if("above".equals(position))y=(float)(t*h)-sh-dp(4);else if("below".equals(position))y=(float)(b*h)+dp(4);else if("cover".equals(position))y=(float)((t+b)*h/2)-sh/2f;
   else y=(float)(t*h)+("top".equals(vertical)?0:"center".equals(vertical)?(float)((b-t)*h-sh)/2:(float)((b-t)*h)-sh);
   if(getPreferences(0).getBoolean("localCaptionPosition",false))y=h-sh-h*getPreferences(0).getInt("subtitleBottom",7)/100f;
-  FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.LEFT);p.leftMargin=Math.round(Math.max(0,Math.min(w-sw,x)));p.topMargin=Math.round(Math.max(0,Math.min(h-sh,y)));subtitle.setLayoutParams(p);
+  FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.LEFT);p.leftMargin=Math.round(Math.max(0,Math.min(w-sw,x)));p.topMargin=Math.round(Math.max(0,Math.min(h-sh,y)));FrameLayout.LayoutParams old=(FrameLayout.LayoutParams)subtitle.getLayoutParams();if(old.width!=p.width||old.height!=p.height||old.leftMargin!=p.leftMargin||old.topMargin!=p.topMargin||old.gravity!=p.gravity)subtitle.setLayoutParams(p);
  }
  private void clearCover(){if(earlyCover!=null){((android.view.ViewGroup)earlyCover.getParent()).removeView(earlyCover);earlyCover=null;}}
  private void showCover(JSONObject b){if(b==null)return;clearCover();FrameLayout root=(FrameLayout)subtitle.getParent();double l=b.optDouble("left",-1),t=b.optDouble("top",-1),r=b.optDouble("right",-1),bottom=b.optDouble("bottom",-1);if(l<0||t<0||r>1||bottom>1||r<=l||bottom<=t)return;View mask=new View(this);mask.setBackgroundColor(Color.BLACK);FrameLayout.LayoutParams p=new FrameLayout.LayoutParams((int)((r-l)*root.getWidth()),(int)((bottom-t)*root.getHeight()),Gravity.TOP|Gravity.LEFT);p.leftMargin=(int)(l*root.getWidth());p.topMargin=(int)(t*root.getHeight());root.addView(mask,p);earlyCover=mask;panelWindow.bringToFront();ui.postDelayed(()->{if(earlyCover==mask)clearCover();},5000);}
