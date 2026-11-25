@@ -67,10 +67,10 @@ public sealed class TranslationCache
         lock (_gate)
         {
             LoadIfNeeded();
-            if (_entries.TryGetValue(key, out var entry) && (targetLanguage!="ar" || ArabicOutputQuality.Accepts(key,entry.Value)))
+            if (_entries.TryGetValue(key, out var entry) && (targetLanguage!="ar" || ArabicOutputQuality.Accepts(key,entry.Value)&&!ArabicRegister.NeedsRephrase(key,entry.Value)))
             {
                 _entries[key] = (entry.Value, ++_tick);
-                value = entry.Value;
+                value = targetLanguage=="ar"?ArabicRegister.Normalize(entry.Value):entry.Value;
                 TranslationProbe.Current?.NoteHit();
                 return true;
             }
@@ -82,7 +82,7 @@ public sealed class TranslationCache
     public void Store(string key, string value)
     {
         if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value)) return;
-        if(targetLanguage=="ar"&&!ArabicOutputQuality.Accepts(key,value))return;
+        if(targetLanguage=="ar"){value=ArabicRegister.Normalize(value);if(!ArabicOutputQuality.Accepts(key,value)||ArabicRegister.NeedsRephrase(key,value))return;}
         lock (_gate)
         {
             LoadIfNeeded();

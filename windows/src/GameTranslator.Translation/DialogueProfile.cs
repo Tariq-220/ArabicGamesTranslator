@@ -67,15 +67,16 @@ public static class DialogueProfile {
 public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<string,string>? rejected=null,bool validateArabic=true,bool joinLines=true):ITextTranslator {
  private string rejectedSource="";private DateTimeOffset retryAfter;
  public async Task<string> TranslateAsync(string text,CancellationToken token=default){
-  if(validateArabic&&text==rejectedSource&&DateTimeOffset.UtcNow<retryAfter)throw new TranslatorException(TranslatorStatus.EngineFailed);
-  var result=CommunityCorrections.Improve(game,text,DialogueProfile.Arabic(text,await inner.TranslateAsync(joinLines?ArabicOutputQuality.DialogueInput(text):text,token),game));
-  if(validateArabic)result=ArabicGameNames.Localize(text,result);
-  if(validateArabic&&!ArabicOutputQuality.Accepts(text,result)){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
+  if(validateArabic&&text==rejectedSource&&DateTimeOffset.UtcNow<retryAfter)throw new TranslatorException(TranslatorStatus.OutputRejected);
+  var original=DialogueProfile.Arabic(text,await inner.TranslateAsync(joinLines?ArabicOutputQuality.DialogueInput(text):text,token),game);
+  var result=CommunityCorrections.Improve(game,text,original);if(validateArabic&&ArabicRegister.NeedsRephrase(text,result)&&!ArabicRegister.NeedsRephrase(text,original))result=original;
+  if(validateArabic)result=ArabicRegister.Normalize(ArabicGameNames.Localize(text,result));
+  if(validateArabic&&(!ArabicOutputQuality.Accepts(text,result)||ArabicRegister.NeedsRephrase(text,result))){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.OutputRejected);}
   return result;
  }
  public async Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> texts,CancellationToken token=default){
-  var results=await inner.TranslateManyAsync(texts,token).ConfigureAwait(false);if(results.Count!=texts.Count)throw new TranslatorException(TranslatorStatus.EngineFailed);
-  return texts.Select((source,i)=>{var result=CommunityCorrections.Improve(game,source,DialogueProfile.Arabic(source,results[i],game));if(validateArabic)result=ArabicGameNames.Localize(source,result);if(validateArabic&&!ArabicOutputQuality.Accepts(source,result)){rejected?.Invoke(source,result);return "";}return result;}).ToArray();
+  var results=await inner.TranslateManyAsync(texts,token).ConfigureAwait(false);if(results.Count!=texts.Count)throw new TranslatorException(TranslatorStatus.OutputRejected);
+  return texts.Select((source,i)=>{var original=DialogueProfile.Arabic(source,results[i],game);var result=CommunityCorrections.Improve(game,source,original);if(validateArabic&&ArabicRegister.NeedsRephrase(source,result)&&!ArabicRegister.NeedsRephrase(source,original))result=original;if(validateArabic)result=ArabicRegister.Normalize(ArabicGameNames.Localize(source,result));if(validateArabic&&(!ArabicOutputQuality.Accepts(source,result)||ArabicRegister.NeedsRephrase(source,result))){rejected?.Invoke(source,result);return "";}return result;}).ToArray();
  }
  public int PreferredBatchSize=>inner.PreferredBatchSize;
  public bool Prefetches=>inner.Prefetches;

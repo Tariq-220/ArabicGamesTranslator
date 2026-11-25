@@ -23,6 +23,12 @@ public class AreaCaptionLayerTest {
  @Test public void FloatingPhoneKeepsBubblesWithoutPaintingAWhitePanel()throws Exception{
   AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.layout(0,0,1920,1080);JSONObject data=caption("phone",1,"رد عربي");data.put("appearance",new JSONObject("{\"phoneStyle\":\"floating\"}"));data.put("panel",new JSONObject("{\"kind\":\"phone\",\"width\":300,\"height\":600,\"cells\":[{\"text\":\"رد عربي\",\"background\":\"#2858E8\",\"foreground\":\"#FFFFFF\",\"bubble\":true,\"box\":{\"left\":0.3,\"top\":0.6,\"right\":0.9,\"bottom\":0.8}}]}"));layer.apply(data);android.widget.FrameLayout outer=(android.widget.FrameLayout)layer.getChildAt(0);android.widget.FrameLayout canvas=(android.widget.FrameLayout)outer.getChildAt(0);assertNull(canvas.getBackground());assertEquals(1,canvas.getChildCount());assertEquals("رد عربي",((TextView)canvas.getChildAt(0)).getText().toString());assertEquals(android.view.Gravity.CENTER_VERTICAL,((TextView)canvas.getChildAt(0)).getGravity()&android.view.Gravity.VERTICAL_GRAVITY_MASK);
  }
+ @Test public void UpdatingVisiblePhoneDoesNotRestartFadeFromZero()throws Exception{
+  AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.layout(0,0,1920,1080);
+  JSONObject first=caption("phone",1,"رسالة أولى");first.put("appearance",new JSONObject("{\"fadeMs\":100}"));layer.apply(first);layer.getChildAt(0).setAlpha(1);
+  JSONObject second=caption("phone",2,"رسالتان مترجمتان");second.put("appearance",new JSONObject("{\"fadeMs\":100}"));layer.apply(second);
+  assertEquals(View.VISIBLE,layer.getChildAt(0).getVisibility());assertEquals(1f,layer.getChildAt(0).getAlpha(),.001f);
+ }
  private JSONObject caption(String id,int revision,String text)throws Exception{return new JSONObject("{\"id\":\""+id+"\",\"revision\":"+revision+",\"text\":\""+text+"\",\"duration\":2000,\"output\":{\"left\":0.1,\"top\":0.2,\"right\":0.5,\"bottom\":0.6}}");}
  @Test public void IndependentAreasRejectLateRevisionAndExpireSeparately()throws Exception{
   AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.layout(0,0,1920,1080);

@@ -49,7 +49,7 @@ public final class AreaCaptionLayer extends FrameLayout {
   int width=Math.max(1,getWidth()),height=Math.max(1,getHeight());
   FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(Math.max(40,(int)((right-left)*width)),Math.max(30,(int)((bottom-top)*height)),Gravity.TOP|Gravity.LEFT);p.leftMargin=(int)(left*width);p.topMargin=(int)(top*height);view.setLayoutParams(p);
   
-  view.setVisibility(View.VISIBLE);boolean changed=!text.equals(texts.put(id,text));int fade=appearance==null?0:Math.max(0,Math.min(300,appearance.optInt("fadeMs",100)));if(changed&&fade>0){view.setAlpha(0);view.animate().alpha(1).setDuration(fade).start();}final View caption=view;
+  view.setVisibility(View.VISIBLE);boolean changed=!text.equals(texts.put(id,text));int fade=appearance==null?0:Math.max(0,Math.min(300,appearance.optInt("fadeMs",100)));if(changed&&fade>0&&(oldView==null||oldView.getVisibility()!=View.VISIBLE)){view.setAlpha(0);view.animate().alpha(1).setDuration(fade).start();}final View caption=view;
   Runnable hide=()->{if(revisions.getOrDefault(id,-1L)==revision)caption.setVisibility(View.INVISIBLE);expiry.remove(id);};expiry.put(id,hide);handler.postDelayed(hide,Math.max(1200,Math.min(30000,data.optInt("duration",3500))));
  }
 

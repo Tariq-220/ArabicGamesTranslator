@@ -18,6 +18,7 @@ public sealed class XboxPlayerWindow : Window
     private readonly WebView2 browser=new();
     private readonly TextBlock message=new(){Text="جارٍ فتح Xbox الرسمي…",Margin=new Thickness(12)};
     private bool closing;
+    public bool RecordingPaused{get;private set;}
     private IntPtr playerHandle;
     public XboxPlayerWindow()
     {
@@ -29,6 +30,8 @@ public sealed class XboxPlayerWindow : Window
         StateChanged+=(_,_)=>{if(!closing&&WindowState==WindowState.Minimized)WindowState=WindowState.Normal;};
         Closed+=(_,_)=>{closing=true;WindowCaptureService.UnregisterInternalPlayer(playerHandle);browser.Dispose();};
     }
+    public async Task PauseForRecordingAsync(){if(closing||browser.CoreWebView2 is not {} web)return;RecordingPaused=true;try{await web.ExecuteScriptAsync("document.querySelectorAll('video').forEach(v=>{v.pause();if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());});");}catch{}web.Navigate("about:blank");message.Text="تم تحرير جلسة Remote Play للتجربة. سجّل من Xbox، ثم افتح البث من المترجم لاستئنافه. تسجيل Microsoft محفوظ.";message.Visibility=Visibility.Visible;}
+    public void ResumeAfterRecording(){if(!RecordingPaused||closing)return;RecordingPaused=false;message.Visibility=Visibility.Collapsed;browser.CoreWebView2?.Navigate("https://play.xbox.com/remoteplay");}
     private async Task Open()
     {
         var profile=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"ArabicGames","XboxWeb");
@@ -38,7 +41,7 @@ public sealed class XboxPlayerWindow : Window
         var web=browser.CoreWebView2;
         web.Settings.AreDevToolsEnabled=false;web.Settings.AreHostObjectsAllowed=false;web.Settings.IsWebMessageEnabled=false;
         web.NavigationStarting+=(_,e)=>{
-            if(XboxNavigation.Allowed(e.Uri))return;e.Cancel=true;
+            if(RecordingPaused&&e.Uri=="about:blank"||XboxNavigation.Allowed(e.Uri))return;e.Cancel=true;
             if(Uri.TryCreate(e.Uri,UriKind.Absolute,out var url)&&url.Scheme=="https")
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url.AbsoluteUri){UseShellExecute=true});
         };

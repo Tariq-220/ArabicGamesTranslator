@@ -109,7 +109,9 @@ public sealed class WindowsOcrReader : ITextReader
             }
             // Bölünmeyen satırın metni Windows'un verdiği gibi kalır (boşluksuz yazılan dillerde sözcükler birleşik).
             var text = start == 0 && end ? line.Text : string.Join(' ', part.Select(word => word.Text));
-            yield return new TextLine(text.Trim(), box);
+            // A tilted phone line has a tall union box. Individual word height tracks the actual font.
+            var glyphHeight=part.Select(w=>w.BoundingRect.Height).Order().ElementAt(part.Count/2)/height;
+            yield return new TextLine(text.Trim(), box,LineHeight:glyphHeight);
             start = index;
         }
     }

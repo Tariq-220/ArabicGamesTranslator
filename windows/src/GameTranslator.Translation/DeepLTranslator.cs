@@ -52,7 +52,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         _key = key.Trim();
         _fallback = fallback;
         _http = http ?? SharedClient.Value;
-        _cache = cache ?? new TranslationCache();
+        _cache = cache ?? new TranslationCache(targetLanguage:validateArabic?"ar":null);
     }
 
     /// <summary>Son DeepL hatası; çeviri düzgün gidiyorsa null.</summary>
@@ -76,7 +76,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         ArgumentNullException.ThrowIfNull(text);
         cancellationToken.ThrowIfCancellationRequested();
         // Bağlam, bu satırdan önce gösterilenlerdir; satırın kendisi bağlama girmez.
-        var context = Context();
+        var context = Context()+"\n"+ArabicRegister.Instruction;
         var hint=CommunityCorrections.Hints(_game??"",text);if(hint.Length>0)context=string.Join("\n",new[]{context,hint}.Where(s=>!string.IsNullOrWhiteSpace(s)));
         if (_game is {Length:>0})context=string.Join("\n",new[]{context,(rememberDialogue?"Current complete dialogue: ":"Current screen text: ")+text}.Where(s=>!string.IsNullOrEmpty(s)));
         if (_cache.TryGet(text, out var cached)){RememberIfValid(text,cached);return cached;}
@@ -131,7 +131,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         if(missing.Count==0)return result;
         if(now()<_pausedUntil){foreach(var i in missing)result[i]=await FallbackAsync(texts[i],cancellationToken).ConfigureAwait(false);return result;}
         try{
-            var sources=missing.Select(i=>texts[i]).ToList();var context=Context()+"\nIndependent screen items (retain each item separately):\n"+string.Join("\n",sources);
+            var sources=missing.Select(i=>texts[i]).ToList();var context=Context()+"\n"+ArabicRegister.Instruction+"\nIndependent screen items (retain each item separately):\n"+string.Join("\n",sources);
             var translated=await RequestAsync(sources,context,cancellationToken).ConfigureAwait(false);Report(null);
             for(int n=0;n<missing.Count;n++){int i=missing[n];var value=validateArabic?ArabicGameNames.Localize(texts[i],translated[n]):translated[n];
                 result[i]=value;if(!validateArabic||ArabicOutputQuality.Accepts(texts[i],value))_cache.Store(texts[i],value);}
@@ -147,7 +147,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
 
     private void RememberIfValid(string source,string result)
     {
-        if(rememberDialogue&&(!validateArabic||ArabicOutputQuality.Accepts(source,result)))Shown(source);
+        if(rememberDialogue&&(!validateArabic||ArabicOutputQuality.Accepts(source,result)&&!ArabicRegister.NeedsRephrase(source,result)))Shown(source);
     }
 
     /// <summary>Son gösterilen satırlar, eskiden yeniye; DeepL'e bağlam olarak gider.</summary>

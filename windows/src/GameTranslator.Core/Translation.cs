@@ -46,6 +46,8 @@ public enum TranslatorStatus
     KeyRejected,
     QuotaExceeded,
     ModelRejected,
+    OutputRejected,
+    ServiceBusy,
 }
 
 /// <summary>Kullanıcının düzeltebileceği çeviri hatası (model eksik, dil desteklenmiyor, motor açılamadı).</summary>

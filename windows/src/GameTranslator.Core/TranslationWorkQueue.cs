@@ -24,14 +24,14 @@ public sealed class TranslationWorkQueue : IDisposable
             if(disposed)return Task.FromCanceled<string>(new CancellationToken(true));
             var queue=foreground?high:low;
             // Entries are already bounded by the per-region/latest candidate policy; enforce a hard bound too.
-            if(queue.Count>=(foreground?3:8))return Task.FromException<string>(new TranslatorException(TranslatorStatus.EngineFailed));
+            if(queue.Count>=(foreground?3:8))return Task.FromException<string>(new TranslatorException(TranslatorStatus.ServiceBusy));
             var done=new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             queue.Enqueue(new(text,token,done,TranslationProbe.Current,foreground));available.Release();return done.Task.WaitAsync(token);
         }
     }
     private Task<IReadOnlyList<string>> SubmitMany(IReadOnlyList<string> texts,bool foreground,CancellationToken token){
         lock(gate){if(disposed)return Task.FromCanceled<IReadOnlyList<string>>(new CancellationToken(true));var queue=foreground?high:low;
-            if(queue.Count>=(foreground?3:8))return Task.FromException<IReadOnlyList<string>>(new TranslatorException(TranslatorStatus.EngineFailed));
+            if(queue.Count>=(foreground?3:8))return Task.FromException<IReadOnlyList<string>>(new TranslatorException(TranslatorStatus.ServiceBusy));
             var done=new TaskCompletionSource<IReadOnlyList<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
             queue.Enqueue(new("",token,new(TaskCreationOptions.RunContinuationsAsynchronously),TranslationProbe.Current,foreground,texts.ToArray(),done));available.Release();return done.Task.WaitAsync(token);
         }

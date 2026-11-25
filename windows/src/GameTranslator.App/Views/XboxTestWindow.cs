@@ -88,7 +88,7 @@ public sealed class XboxTestWindow : Window
         var automaticUpdates=new CheckBox{Content="فحص وتنزيل التحديث تلقائيًا خارج اللعب",IsChecked=controller.AutoUpdateEnabled,Margin=new Thickness(4),MinHeight=40};automaticUpdates.Checked+=(_,_)=>controller.AutoUpdateEnabled=true;automaticUpdates.Unchecked+=(_,_)=>controller.AutoUpdateEnabled=false;root.Children.Add(automaticUpdates);
         if(!preview)Loaded+=async(_,_)=>{_=CommunityCorrections.RefreshAsync();if(controller.AutoUpdateEnabled)await CheckForUpdate();};
         root.Children.Add(Label("1 · مصدر اللعبة — Xbox أو PS5"));
-        var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح البث داخل التطبيق",OpenXboxPlayer));
+        var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح البث داخل التطبيق",OpenXboxPlayer));consoleActions.Children.Add(Button("تجربة تسجيل Xbox · تحرير البث",async()=>await PauseXboxForRecording()));
         consoleActions.Children.Add(Button("اختيار نافذة بث خارجية",()=>{resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();}));
         consoleActions.Children.Add(Button("PS5 — اقتران مباشر",ConfigurePlayStation));root.Children.Add(consoleActions);
         var consoleDetails=new StackPanel();consoleDetails.Children.Add(consoleHelp);UpdateConsoleHelp();
@@ -188,7 +188,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Remove(latest);root.Children.Remove(dialogueOnly);
         var quickReading=new StackPanel();quickReading.Children.Add(Label("قراءة الحوار والسرعة",17));
         var quickRow=new WrapPanel();quickRow.Children.Add(latest);quickReading.Children.Add(quickRow);quickReading.Children.Add(dialogueOnly);
-        var faster=new CheckBox{Content="أسرع · انتظار أقل لاستقرار وعرض النص (قد يزيد تبدّل السطر)",IsChecked=controller.FasterPresentation,Foreground=Brushes.White,MinHeight=40};faster.Checked+=(_,_)=>controller.FasterPresentation=true;faster.Unchecked+=(_,_)=>controller.FasterPresentation=false;quickReading.Children.Add(faster);
+        var faster=new CheckBox{Content="تحسين السرعة · تجريبي (يعيد توقيتك السابق عند إيقافه)",IsChecked=controller.SpeedBoostEnabled,Foreground=Brushes.White,MinHeight=40};faster.Checked+=(_,_)=>controller.SpeedBoostEnabled=true;faster.Unchecked+=(_,_)=>controller.SpeedBoostEnabled=false;quickReading.Children.Add(faster);
         var readingMode=new ComboBox{Tag="reading-mode",MinHeight=48,MinWidth=260,Margin=new Thickness(4)};foreach(var label in new[]{"حوار اللعبة — أسفل الصورة","قوائم وخريطة — كامل الصورة","رسائل هاتف اللعبة — يمين","رسائل هاتف اللعبة — يسار"})readingMode.Items.Add(label);var modes=new[]{"dialogue","menus","phone-right","phone-left"};readingMode.SelectedIndex=Math.Max(0,Array.IndexOf(modes,controller.ReadingContentMode));readingMode.SelectionChanged+=(_,_)=>{controller.Stop();string mode=modes[Math.Max(0,readingMode.SelectedIndex)];controller.ReadingContentMode=mode;var r=mode=="dialogue"?controller.DialogueCaptureRegion:ReadingModes.Region(mode);top.Value=r.Top*100;readLeft.Value=r.Left*100;readRight.Value=r.Right*100;ApplyCrop();status.Text="تم تغيير منطقة القراءة. افتح الحوار أو قائمة الرسائل، ثم اضغط بدء الترجمة. ارجع إلى نمط الحوار عند الانتهاء.";};quickReading.Children.Add(Label("ماذا تريد ترجمته؟",16));quickReading.Children.Add(readingMode);dialogueOnly.Click+=(_,_)=>readingMode.SelectedIndex=0;quickReading.Children.Add(Label("القوائم والرسائل تظهر مترجمة في شريط النص؛ إذا اختلف مكان الهاتف اختر الجهة أو عدّل المنطقة يدويًا.",13));
         root.Children.Insert(root.Children.IndexOf(pick)+1,Card(quickReading));
         root.Children.Insert(root.Children.IndexOf(root.Children.OfType<TextBlock>().First(x=>x.Text.StartsWith("3 ·")))+1,Button("اختبار وصول العربية للشاشة — لا يبدأ ترجمة اللعبة",()=>controller.SendTestSubtitle()));
@@ -262,7 +262,7 @@ public sealed class XboxTestWindow : Window
         Content=shell;UpdateConnectionBar();
         DesktopSubtitleOverlay.IsOverlayEnabled = controller.DesktopOverlayEnabled;
         if(!preview)DesktopSubtitleOverlay.Initialize();
-        Action<string,string> rejected=(english,arabic)=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,arabic,null,controller.Settings.Region,comparisonLatest,"rejected_untranslated",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,"untranslated_output",CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));logState.Text="المحرك أعاد جملة إنجليزية بدل العربية؛ لم نعرضها. سُجلت للتشخيص، وافحص لغة القراءة والمحرك.";};
+        Action<string,string> rejected=(english,arabic)=>{var dialect=ArabicOutputQuality.Accepts(english,arabic)&&ArabicRegister.NeedsRephrase(english,arabic);var reason=dialect?"dialect_output":"untranslated_output";if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,arabic,null,controller.Settings.Region,comparisonLatest,"rejected_output",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,reason,CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));logState.Text=dialect?"أعاد المحرك صياغة عامية؛ تُعاد المحاولة بالفصحى. التفاصيل في السجل.":"أعاد المحرك نصًا ناقصًا أو إنجليزيًا؛ تُعاد المحاولة. التفاصيل في السجل.";};
         Action<string,string> discarded=(english,reason)=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,"",null,controller.Settings.Region,comparisonLatest,"discarded",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,reason,CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));};
         Action<AreaTrace> areaTrace=entry=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,entry.Source,entry.Translation,null,controller.ReadingAreas.FirstOrDefault(a=>a.Id==entry.AreaId)?.Source??new(),comparisonLatest,entry.Stage,ArabicRelease.Version,Error:entry.Error,AreaId:entry.AreaId,AreaName:entry.AreaName,ElapsedMs:entry.ElapsedMs));};
         controller.TranslationRejected+=rejected;controller.LineDiscarded+=discarded;controller.AreaTraceObserved+=areaTrace;Closed+=(_,_)=>{controller.TranslationRejected-=rejected;controller.LineDiscarded-=discarded;controller.AreaTraceObserved-=areaTrace;};
@@ -346,10 +346,12 @@ public sealed class XboxTestWindow : Window
     {
         controller.Stop();controller.PreferPlayStation=false;controller.NativePlayStationEnabled=false;
         if(xboxPlayer is null){xboxPlayer=new XboxPlayerWindow();xboxPlayer.Closed+=(_,_)=>xboxPlayer=null;xboxPlayer.Show();}
-        else {xboxPlayer.WindowState=WindowState.Normal;xboxPlayer.Activate();}
+        else {xboxPlayer.ResumeAfterRecording();xboxPlayer.WindowState=WindowState.Normal;xboxPlayer.Activate();}
         controller.Settings=controller.Settings with {DesktopWindowName="window:"+XboxPlayerWindow.PlayerTitle,VideoSource=VideoSourceType.DesktopScreen};
         resetWindowPreference=false;RefreshWindows();UpdateConsoleHelp();
     }
+
+    private async Task PauseXboxForRecording(){if(xboxPlayer is null){status.Text="إن كان المصدر متصفحًا خارجيًا، أغلق جلسة Remote Play هناك ثم جرّب زر المشاركة. هذا الخيار يحرر البث المدمج فقط.";return;}controller.Stop();controller.StopSourcePreview();controller.ClearLastFrame();await xboxPlayer.PauseForRecordingAsync();status.Text="تحرير Remote Play للتسجيل (تجريبي): جرّب زر المشاركة في Xbox الآن. الترجمة متوقفة لغياب المصدر. للعودة اضغط فتح البث داخل التطبيق ثم ابدأ الترجمة. للتسجيل والترجمة معًا استخدم مصدر كرت التقاط/OBS دون Remote Play.";}
 
     private void InstallReadyUpdate()
     {
@@ -480,11 +482,12 @@ public sealed class XboxTestWindow : Window
             var item=new ComboBoxItem{Content="الشاشة كاملة: "+monitor.Name,Tag="monitor:"+monitor.Index};windows.Items.Add(item);if((string)item.Tag==old)windows.SelectedItem=item;
         }
     }
+    private static string EngineStatus(TranslatorStatus value)=>value switch{TranslatorStatus.OutputRejected=>"الناتج يحتاج إعادة ترجمة",TranslatorStatus.ServiceBusy=>"المحرك مشغول",TranslatorStatus.EngineFailed=>"خطأ في تشغيل المحرك",TranslatorStatus.ServiceUnreachable=>"الخدمة غير متاحة / انتهت المهلة",TranslatorStatus.ModelRejected=>"النموذج الجاري لا يطابق الاختيار",TranslatorStatus.KeyRejected=>"المفتاح أو رمز الربط مرفوض",_=>value.ToString()};
     private void UpdateConnectionBar()
     {
-        var engineState = testingKey ? "جارٍ الاختبار" : !controller.IsRunning ? "متوقف" : controller.TranslatorStatus==TranslatorStatus.Ready ? "يعمل" : controller.TranslatorStatus.ToString();
+        var engineState = testingKey ? "جارٍ الاختبار" : !controller.IsRunning ? "متوقف" : controller.TranslatorStatus==TranslatorStatus.Ready ? "يعمل" : EngineStatus(controller.TranslatorStatus);
         var check=lastEngineCheck.Replace("\n"," · ");if(check.Length>150)check=check[..150]+"…";
-        bool connected=controller.TvClients>0;connectionBar.Background=new SolidColorBrush(testingKey?Color.FromRgb(255,226,154):engineTestPassed&&connected?Color.FromRgb(141,231,182):connected?Color.FromRgb(173,216,255):Color.FromRgb(227,232,242));connectionBar.Foreground=new SolidColorBrush(Color.FromRgb(18,34,48));connectionBar.FontWeight=FontWeights.Bold;connectionBar.Padding=new Thickness(10,6,10,6);
+        bool connected=controller.TvClients>0;connectionBar.Background=new SolidColorBrush(testingKey?Color.FromRgb(255,226,154):engineTestPassed&&connected&&(!controller.IsRunning||controller.TranslatorStatus==TranslatorStatus.Ready)?Color.FromRgb(141,231,182):connected?Color.FromRgb(173,216,255):Color.FromRgb(227,232,242));connectionBar.Foreground=new SolidColorBrush(Color.FromRgb(18,34,48));connectionBar.FontWeight=FontWeights.Bold;connectionBar.Padding=new Thickness(10,6,10,6);
         connectionBar.Text=$"المحرك: {engineState} | الشاشة: {(controller.TvClients>0 ? "متصلة ("+controller.TvClients+")" : "غير متصلة")} | الترجمة: {(controller.IsRunning ? "تعمل" : "متوقفة")}\nآخر اختبار: {check}";connectionBar.ToolTip=lastEngineCheck;
     }
     private void Changed(object? sender, PropertyChangedEventArgs e)
@@ -508,6 +511,8 @@ public sealed class XboxTestWindow : Window
                 TranslatorStatus.QuotaExceeded=>"وصلت إلى حد الطلبات أو انتهت حصة الخدمة. لا تحتاج تنزيل نموذج.",
                 TranslatorStatus.ModelRejected=>"الخدمة رفضت اسم النموذج المختار. جرّب Gemini Flash-Lite.",
                 TranslatorStatus.EngineFailed=>"تعذر تشغيل محرك الترجمة.",
+                TranslatorStatus.OutputRejected=>"المحرك أعاد إنجليزية أو صياغة عامية؛ تُعاد المحاولة دون حذف النموذج. راجع سجل النصوص.",
+                TranslatorStatus.ServiceBusy=>"المحرك مشغول؛ الحوار له أولوية وتُؤجّل رسائل الجوال.",
                 _=>"حالة الترجمة: "+controller.TranslatorStatus }) : "متوقف";
     }
     private static void OpenUrl(string url)=>System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url){UseShellExecute=true});

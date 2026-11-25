@@ -9,9 +9,9 @@ public class ReadingAreaTests_Recovery
         public Task<string> TranslateAsync(string s,CancellationToken t=default)=>Task.FromResult("رسالة.");
         public async Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> rows,CancellationToken t=default){if(Interlocked.Increment(ref Calls)==2){Second.TrySetResult();await Release.Task.WaitAsync(t);}return rows.Select(r=>"هذه رسالة "+r[^1]).ToArray();}
     }
-    [Fact]public async Task FirstPhoneBatchIsVisibleWhileRemainingMessagesAreStillTranslating(){
+    [Fact]public async Task SparsePhoneResultsDoNotPaintAnAlmostEmptyPage(){
         long now=0;var engine=new BatchEngine();using var session=new ReadingAreaSession([ReadingArea.Phone() with{AutoDetect=false,Source=new(0,1,0,1)}],()=>new Reader(),engine,()=>now);
-        var first=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);session.Caption+=c=>first.TrySetResult(c);await session.ProcessAsync(Frame.Blank(300,800));now=500;await session.ProcessAsync(Frame.Blank(300,800));await engine.Second.Task.WaitAsync(TimeSpan.FromSeconds(3));var value=await first.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.Equal(4,value.Panel!.Cells.Count(c=>c.Text.Length>0));Assert.Equal("phone",value.Panel.Kind);engine.Release.TrySetResult();
+        var first=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);session.Caption+=c=>first.TrySetResult(c);await session.ProcessAsync(Frame.Blank(300,800));now=500;await session.ProcessAsync(Frame.Blank(300,800));await engine.Second.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.False(first.Task.IsCompleted);engine.Release.TrySetResult();var value=await first.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.InRange(value.Panel!.Cells.Count(c=>c.Text.Length>0),5,8);Assert.Equal("phone",value.Panel.Kind);
     }
     [Fact]public async Task MapLabelsCannotProduceAWhitePhonePanel(){
         long now=0;var f=Frame.Blank(300,600);Array.Fill(f.Pixels,(byte)230);using var session=new ReadingAreaSession([ReadingArea.Phone() with{Source=new(0,1,0,1)}],()=>new MapReader(),new FakeTranslator(),()=>now);var captions=new List<AreaCaption>();session.Caption+=captions.Add;await session.ProcessAsync(f);now=500;await session.ProcessAsync(f);Assert.Empty(captions);

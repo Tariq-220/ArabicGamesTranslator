@@ -45,7 +45,9 @@ public class DeepLRebuildTests
         var engine=new DeepLTranslator("test:fx",null,new HttpClient(service),cache:cache,game:"GTA6",validateArabic:true);
         await engine.TranslateAsync("First source.");Assert.False(cache.TryGet("First source.",out _));
         await engine.TranslateAsync("Second source.");Assert.DoesNotContain("First source.",Context(service.Bodies[1]));
+        Assert.Contains("Modern Standard Arabic",Context(service.Bodies[1]));
     }
+    [Fact]public void OldDialectCacheIsSkippedWhileSafeLexicalChangesAreReused(){var file=Path.GetTempFileName();try{File.WriteAllText(file,System.Text.Json.JsonSerializer.Serialize(new[]{"What do you want?","وش تبغى؟"})+"\n"+System.Text.Json.JsonSerializer.Serialize(new[]{"You son of a bitch!","يا ابن القحبة!"})+"\n");var cache=new TranslationCache(file,targetLanguage:"ar");Assert.False(cache.TryGet("What do you want?",out _));Assert.True(cache.TryGet("You son of a bitch!",out var normalized));Assert.Equal("يا ابن العاهرة!",normalized);}finally{File.Delete(file);}}
     [Fact]public async Task ValidCacheAvoidsAnotherRequestAfterEngineRecreation()
     {
         var file=Path.Combine(Path.GetTempPath(),Guid.NewGuid()+".jsonl");

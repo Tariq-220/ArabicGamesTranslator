@@ -991,6 +991,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     private ReadingTiming? readingTiming;
     public ReadingTiming Timing {get=>readingTiming??= (store.Load<ReadingTiming>("reading-timing-v1")??new(CaptureFps:FastCaptureEnabled?25:12,SettleMs:FasterPresentation?80:120,MinimumDisplayMs:FasterPresentation?450:700)).Validate();set{readingTiming=value.Validate();store.Save("reading-timing-v1",readingTiming);ApplyTiming();Changed(nameof(Timing));}}
     private void ApplyTiming(){if(pipeline is not null){pipeline.MinimumStableMs=Timing.SettleMs;pipeline.MissingTextMs=Timing.GoneMs;pipeline.MinimumDisplayMs=Timing.MinimumDisplayMs;}areaSession?.SetTiming(Timing);}
+    public bool SpeedBoostEnabled{get=>store.Load<bool>("speed-boost-v1");set{if(value==SpeedBoostEnabled)return;if(value){store.Save("speed-before-v1",Timing);store.Save("speed-boost-v1",true);Timing=Timing with{CaptureFps=Math.Max(20,Timing.CaptureFps),PreviewFps=Math.Min(12,Timing.PreviewFps),SettleMs=Math.Min(40,Timing.SettleMs),AreaReadMs=Math.Min(150,Timing.AreaReadMs??150)};}else{store.Save("speed-boost-v1",false);Timing=store.Load<ReadingTiming>("speed-before-v1")??new();store.Remove("speed-before-v1");}Changed(nameof(SpeedBoostEnabled));}}
     public bool FasterPresentation {get=>store.Load<bool>("FasterPresentation");set{store.Save("FasterPresentation",value);if(pipeline is not null)DialogueReadingPolicy.Configure(pipeline,PreferLatestDialogue,ReadingContentMode,value);Timing=Timing with{SettleMs=value?80:120,MinimumDisplayMs=value?450:700};}}
 
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
@@ -1010,7 +1011,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<string,string>? LineDiscarded;
     private ReadingAreaSession? areaSession;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string,string> areaStatus=new();
-    public string ReadingAreaStatus(string id)=>id=="dialogue"?(isRunning?"الحوار · حالة المحرك: "+TranslatorStatus:"ابدأ الترجمة لتفعيل قراءة الحوار"):areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
+    public string ReadingAreaStatus(string id)=>id=="dialogue"?(isRunning?"الحوار · حالة المحرك: "+(TranslatorStatus==TranslatorStatus.OutputRejected?"ناتج غير صالح بالفصحى":TranslatorStatus==TranslatorStatus.ServiceBusy?"المحرك مشغول":TranslatorStatus.ToString()):"ابدأ الترجمة لتفعيل قراءة الحوار"):areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
     private TranslationWorkQueue? translationQueue;
     public event Action? AreasCleared;
     private void ClearAreas(){server.ClearAreas();post(()=>AreasCleared?.Invoke());}
@@ -1038,6 +1039,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<AreaCaption>? AreaCaptionShown;
     public event Action<AreaTrace>? AreaTraceObserved;
     public bool ArabicPacksEnabled {get=>store.Load<bool?>("arabic-ready-packs")??true;set{store.Save("arabic-ready-packs",value);ArabicGamePackStore.Shared.Enabled=value;}}
+    private static string? ReadyArabic(string game,string source){foreach(var candidate in new[]{CommunityCorrections.Find(game,source),ArabicGamePackStore.Shared.Find(game,source),CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null}){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(!ArabicRegister.NeedsRephrase(source,value)&&ArabicOutputQuality.Accepts(source,value))return value;}return null;}
     private void MakeAreaSession()
     {
         areaSession?.Dispose();areaSession=null;
@@ -1046,7 +1048,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if(enabled.Count==0)return;
         areaStatus.Clear();
         var current=new ReadingAreaSession(enabled,()=>services.MakeReader(settings.SourceLanguage) ?? throw new InvalidOperationException("OCR unavailable"),
-            new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false),reviewedLookup:text=>CommunityCorrections.Find(DialogueGame,text)??ArabicGamePackStore.Shared.Find(DialogueGame,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,DialogueGame):null));
+            new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false),reviewedLookup:text=>ReadyArabic(DialogueGame,text),isDialogue:(text,box)=>pipeline?.IsDialogueFragment(text,box)??false);
         current.Trace+=entry=>{if(ReferenceEquals(areaSession,current))post(()=>AreaTraceObserved?.Invoke(entry));};
         current.Status+=(id,status)=>{if(ReferenceEquals(areaSession,current))areaStatus[id]=status;};
         current.Caption+=caption=>{if(!ReferenceEquals(areaSession,current))return;server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
@@ -1073,7 +1075,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var presentation=settings.Style.Appearance??new();built.ReviewedOnly=presentation.ReviewedOnly;built.StackUp=presentation.StackUp;built.CenterOnly=presentation.CenterOnly;
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>{
-            var reviewed=CommunityCorrections.Find(gameProfile,text)??ArabicGamePackStore.Shared.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
+            var reviewed=ReadyArabic(gameProfile,text);
             return reviewed is not null&&ArabicOutputQuality.Accepts(text,reviewed)?ArabicGameNames.Localize(text,reviewed):null;
         };
 
@@ -1266,12 +1268,12 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         PublishPreview(frame);
         var at=Environment.TickCount64;var previous=Interlocked.Read(ref sampleAt);if(at-previous<1000d/Timing.CaptureFps||Interlocked.CompareExchange(ref sampleAt,at,previous)!=previous)return;
         var areas=areaSession;
-        if(areas is not null)_=areas.ProcessAsync(frame);
+
         // Duraklatıldıysa kare yalnız ek bölgeler ve serbest alan için saklanır; altyazı okunmaz.
-        if (subtitlesPaused) return;
+        if (subtitlesPaused){if(areas is not null)_=areas.ProcessAsync(frame);return;}
         // Önceki kare hâlâ işleniyorsa bu kare atlanır; okuma kareleri biriktirmez.
         var current = pipeline;
-        if (current is null || Interlocked.Exchange(ref processing, 1) == 1) return;
+        if (current is null || Interlocked.Exchange(ref processing, 1) == 1){if(areas is not null)_=areas.ProcessAsync(frame);return;}
         try
         {
             await current.ProcessAsync(frame, settings.Region);
@@ -1283,6 +1285,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         finally
         {
             Volatile.Write(ref processing, 0);
+            if(areas is not null&&ReferenceEquals(areas,areaSession))_=areas.ProcessAsync(frame);
         }
     }
 

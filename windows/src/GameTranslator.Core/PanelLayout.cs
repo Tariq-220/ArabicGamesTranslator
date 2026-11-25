@@ -50,7 +50,7 @@ public static class SpatialText
             var b=g.Select(l=>l.Box!.Value).Aggregate((a,b)=>a.Union(b));
             var color=Sample(frame,b);var blue=color[2]-color[0]>45&&color[2]>110;
             var text=string.Join(' ',g.Select(l=>l.Text.Trim()));
-            var medianH=g.Select(l=>l.Box!.Value.Bottom-l.Box.Value.Top).Order().ElementAt(g.Count/2);
+            var medianH=g.Select(l=>l.LineHeight??l.Box!.Value.Bottom-l.Box.Value.Top).Order().ElementAt(g.Count/2);
             // Grow only into the surrounding margin, never into the neighbouring message.
             var pad=Math.Min(.012,medianH*.22);var box=new TextBox(Math.Max(0,b.Left-pad),Math.Max(0,b.Top-pad),Math.Min(1,b.Right+pad),Math.Min(1,b.Bottom+pad));
             if(phoneLike)box=BubbleBounds(frame,box,color);
@@ -63,26 +63,28 @@ public static class SpatialText
         var image=kind==ReadingAreaKind.Notification&&clean is not null?Png(clean):null;
         return new(frame.Width,frame.Height,kind==ReadingAreaKind.Phone?"phone":kind==ReadingAreaKind.Notification?"notification":plainMenu?"menu":kind==ReadingAreaKind.Menu?"settings":"spatial",image,cells);
     }
-    public static PanelLayout ReflowPhone(PanelLayout panel)
+    public static PanelLayout ReflowPhone(PanelLayout panel,double? manualFont=null)
     {
         if(panel.Kind!="phone"||panel.Cells.Count==0)return panel;
         double width=panel.Width,originalHeight=panel.Height,cursor=0;
         var placed=new List<(PanelCell Cell,double Top,double Height)>();
         foreach(var cell in panel.Cells.OrderBy(c=>c.Box.Top)){
-            var font=Math.Max(width*.042,cell.LineHeight*originalHeight*.9);
+            var font=manualFont??Math.Max(width*.032,cell.LineHeight*originalHeight*.9);
             var chars=Math.Max(8,(cell.Box.Right-cell.Box.Left)*width/(font*.52));
-            var rows=Math.Max(1,Math.Ceiling(cell.Text.Length/chars));
+            // Reserve the English message's space before translation so incremental results do not resize the page.
+            var rows=Math.Max(1,Math.Ceiling(Math.Max(cell.Text.Length,cell.Source.Length*.85)/chars));
             var height=Math.Max((cell.Box.Bottom-cell.Box.Top)*originalHeight,rows*font*1.55+font*.45);
             var top=Math.Max(cell.Box.Top*originalHeight,cursor);placed.Add((cell,top,height));cursor=top+height+font*.38;
         }
         var total=Math.Max(originalHeight,cursor);
-        return panel with{Height=(int)Math.Ceiling(total),Cells=placed.Select(p=>p.Cell with{Box=p.Cell.Box with{Top=p.Top/total,Bottom=(p.Top+p.Height)/total},LineHeight=Math.Max(width*.042,p.Cell.LineHeight*originalHeight*.9)/total}).ToArray()};
+        return panel with{Height=(int)Math.Ceiling(total),Cells=placed.Select(p=>p.Cell with{Box=p.Cell.Box with{Top=p.Top/total,Bottom=(p.Top+p.Height)/total},LineHeight=(manualFont??Math.Max(width*.032,p.Cell.LineHeight*originalHeight*.9))/total}).ToArray()};
     }
     private static string Ink(Frame frame,TextBox b,byte[] background)
     {
-        int light=0,dark=0;
+        int light=0,dark=0;var coloured=new Dictionary<int,int>();
         for(int y=(int)(b.Top*frame.Height);y<Math.Min(frame.Height,(int)Math.Ceiling(b.Bottom*frame.Height));y+=2)
-        for(int x=(int)(b.Left*frame.Width);x<Math.Min(frame.Width,(int)Math.Ceiling(b.Right*frame.Width));x+=2){var c=Pixel(frame,x,y);if(ColorDistance(c,background)<60)continue;if(c.Sum(v=>(int)v)>570)light++;else if(c.Sum(v=>(int)v)<340)dark++;}
+        for(int x=(int)(b.Left*frame.Width);x<Math.Min(frame.Width,(int)Math.Ceiling(b.Right*frame.Width));x+=2){var c=Pixel(frame,x,y);if(ColorDistance(c,background)<60)continue;if(c.Max()-c.Min()>60){int key=(c[0]/16<<8)|(c[1]/16<<4)|(c[2]/16);coloured[key]=coloured.GetValueOrDefault(key)+1;}if(c.Sum(v=>(int)v)>570)light++;else if(c.Sum(v=>(int)v)<340)dark++;}
+        if(coloured.Count>0&&light==0){var mode=coloured.MaxBy(x=>x.Value);if(mode.Value>=Math.Max(2,dark/2))return Hex([(byte)(((mode.Key>>8)&15)*16+8),(byte)(((mode.Key>>4)&15)*16+8),(byte)((mode.Key&15)*16+8)]);}
         return light>dark?"#FFFFFF":light+dark>0?"#20232A":background.Sum(v=>(int)v)>470?"#20232A":"#FFFFFF";
     }
     // Phone screen search is confined to the selected ROI. Scenery outside it cannot become a phone.

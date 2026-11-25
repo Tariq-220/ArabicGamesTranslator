@@ -33,7 +33,7 @@ public readonly record struct TextBox(double Left, double Top, double Right, dou
 /// Yazı tanımanın bulduğu bir satır; kutu okunan alana göredir, bilinmiyorsa null. Güven 0–1'dir; okuyucu vermiyorsa
 /// null (Windows'un yazı tanıması vermez).
 /// </summary>
-public sealed record TextLine(string Text, TextBox? Box = null, double? Confidence = null);
+public sealed record TextLine(string Text, TextBox? Box = null, double? Confidence = null,double? LineHeight=null);
 
 /// <summary>Bir karenin okunan satırları, yukarıdan aşağı (Mac: GameTranslatorCore/Reading.swift).</summary>
 public sealed class Reading
