@@ -1006,7 +1006,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<string,string>? LineDiscarded;
     private ReadingAreaSession? areaSession;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string,string> areaStatus=new();
-    public string ReadingAreaStatus(string id)=>areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
+    public string ReadingAreaStatus(string id)=>id=="dialogue"?(isRunning?"الحوار · حالة المحرك: "+TranslatorStatus:"ابدأ الترجمة لتفعيل قراءة الحوار"):areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
     private TranslationWorkQueue? translationQueue;
     public event Action? AreasCleared;
     private void ClearAreas(){server.ClearAreas();post(()=>AreasCleared?.Invoke());}
