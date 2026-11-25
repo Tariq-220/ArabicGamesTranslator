@@ -69,6 +69,7 @@ public interface ISubtitleSender
     /// <param name="paragraphs">true ise metin satır satır, sola yaslı gösterilir (görev paneli gibi başlık ve maddeli yazılar).</param>
     /// <param name="replaces">Satır az önce gösterilenin uzamış ya da düzelmiş okumasıdır (<see cref="TextMatch.IsRevision"/>); TV onu öncekinin üstüne yığmaz.</param>
     void SendSubtitle(string text, int durationMs = 15000, TextBox? box = null, bool paragraphs = false, bool replaces = false);
+    void SendSubtitleWithLineHeight(string text,int durationMs,TextBox? box,double? lineHeight,bool paragraphs=false,bool replaces=false)=>SendSubtitle(text,durationMs,box,paragraphs,replaces);
     void Clear();
 }
 
@@ -201,7 +202,8 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     }
     public TextBox? DialogueAnchor {get;set;}
     public TextBox? DialogueOutput {get;set;}
-    public void SendSubtitle(string text, int durationMs = 15000, TextBox? box = null, bool paragraphs = false, bool replaces = false)
+    public void SendSubtitle(string text, int durationMs = 15000, TextBox? box = null, bool paragraphs = false, bool replaces = false)=>SendSubtitleWithLineHeight(text,durationMs,box,null,paragraphs,replaces);
+    public void SendSubtitleWithLineHeight(string text,int durationMs,TextBox? box,double? lineHeight,bool paragraphs=false,bool replaces=false)
     {
         if(DialogueOutput is {} output && (lastStyle?.Appearance?.Position??"custom")=="custom"){box=output;}
         if(lastStyle?.Appearance is {Ride:false,Position:"above"}&&DialogueAnchor is {} anchor)box=anchor;
@@ -211,6 +213,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
             ["duration"] = durationMs,
             ["text"] = text,
         };
+        if(lineHeight is >0 and <.2)json["lineHeight"]=lineHeight.Value;
         if(DialogueOutput is not null&&(lastStyle?.Appearance?.Position??"custom")=="custom")json["customPlacement"]=true;
         if (paragraphs) json["paragraphs"] = true;
         if (replaces) json["replace"] = true;

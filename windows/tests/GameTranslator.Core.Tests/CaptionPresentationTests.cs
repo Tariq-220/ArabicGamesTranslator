@@ -34,5 +34,6 @@ public class CaptionPresentationTests
  }
  private sealed class CountReader:ITextReader{public int Calls;public string Read(Frame f){Calls++;return "Hello from home.";}public Reading ReadSpatial(Frame f){Calls++;return new([new("Hello from home.",new(.1,.2,.8,.3))]);}}
  private sealed class CountEngine:ITextTranslator{public int Calls;public Task<string> TranslateAsync(string s,CancellationToken t=default){Calls++;return Task.FromResult("مرحبًا من المنزل.");}}
+ [Fact] public void FontMatchingUsesSourceLineHeightAndRespectsManualMode(){var box=new GameTranslator.Core.TextBox(.1,.88,.9,.92);var line=CaptionSizing.LineHeight("First line\nsecond line",box);Assert.InRange(line!.Value,.0199,.0201);Assert.InRange(CaptionSizing.FontPixels(32,1920,1080,true,line),23,25);Assert.Equal(32,CaptionSizing.FontPixels(32,1920,1080,false,line));}
  private static void Fill(Frame f,int x,int y,int width,int height,byte r,byte g,byte b){for(int yy=y;yy<y+height;yy++)for(int xx=x;xx<x+width;xx++){int i=yy*f.Stride+xx*4;f.Pixels[i]=b;f.Pixels[i+1]=g;f.Pixels[i+2]=r;f.Pixels[i+3]=255;}}
 }

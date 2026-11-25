@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public final class MainActivity extends Activity {
+ private double currentLineHeight=Double.NaN;
  private JSONObject remoteStyle=new JSONObject(),appearance=new JSONObject();private JSONObject currentCaptionBox;private boolean customCaption;
  private boolean sourcePlacement;private String captionPositionKey="";private int videoTicket,videoRetries;private boolean videoAvailable;
  private String tunedInput;private boolean resumed,restoreHdmi;private int resumeTicket;private TvInputManager inputManager;
@@ -219,7 +220,7 @@ public final class MainActivity extends Activity {
  private void positionCustomCaption(JSONObject box){currentCaptionBox=box;customCaption=true;layoutCaption();}
  private void applyCaption(JSONObject json,String route){
   String text=json.optString("text","");long rev=json.optLong("revision",0);if(text.isEmpty()||rev>0&&rev<acceptedRevision)return;if(rev>0&&rev==acceptedRevision&&text.equals(lastArabic))return;
-  acceptedRevision=Math.max(acceptedRevision,rev);manualTestUntil=0;if(!text.equals(lastArabic)){subtitleCount++;lastArabic=text;}if(json.optBoolean("customPlacement",false))positionCustomCaption(json.optJSONObject("box"));else positionCaption(json.optJSONObject("box"));String receipt="آخر ترجمة: "+text+"\nسطور: "+subtitleCount+" · "+route;if(!android.text.TextUtils.equals(received.getText(),receipt))received.setText(receipt);show(text,Math.max(250,Math.min(10000,json.optInt("duration",5000))));
+  acceptedRevision=Math.max(acceptedRevision,rev);manualTestUntil=0;currentLineHeight=json.optDouble("lineHeight",Double.NaN);applySubtitleStyle();if(!text.equals(lastArabic)){subtitleCount++;lastArabic=text;}if(json.optBoolean("customPlacement",false))positionCustomCaption(json.optJSONObject("box"));else positionCaption(json.optJSONObject("box"));String receipt="آخر ترجمة: "+text+"\nسطور: "+subtitleCount+" · "+route;if(!android.text.TextUtils.equals(received.getText(),receipt))received.setText(receipt);show(text,Math.max(250,Math.min(10000,json.optInt("duration",5000))));
  }
  private void positionCaption(JSONObject box){currentCaptionBox=box;customCaption=false;layoutCaption();}
  private void layoutCaption(){
@@ -247,6 +248,7 @@ public final class MainActivity extends Activity {
   boolean local=getPreferences(0).getBoolean("localCaptionStyle",false);
   int opacity=local?getPreferences(0).getInt("subtitleOpacity",70):remoteStyle.optInt("background",72);
   float size=local?getPreferences(0).getInt("subtitleSize",20)*getResources().getDisplayMetrics().scaledDensity:remoteStyle.optInt("fontSize",32)*getResources().getDisplayMetrics().widthPixels/1920f;
+  if(!local&&appearance.optBoolean("matchSize",true)&&Double.isFinite(currentLineHeight)&&currentLineHeight>0&&currentLineHeight<.2){View parent=(View)subtitle.getParent();int height=parent==null?getResources().getDisplayMetrics().heightPixels:parent.getHeight();size=Math.min(size,(float)(currentLineHeight*height*1.1));}
   CaptionVisual.apply(subtitle,appearance,opacity,Math.max(14,Math.min(80,size)));layoutCaption();
  }
  private void subtitleSettings(){

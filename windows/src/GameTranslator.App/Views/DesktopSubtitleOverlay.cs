@@ -24,14 +24,14 @@ public sealed class DesktopSubtitleOverlay : Window
         SourceInitialized+=(_,_)=>ClickThrough(true);timer.Tick+=(_,_)=>{timer.Stop();if(!positioning)Hide();};
         MouseLeftButtonDown+=(_,e)=>{if(!positioning)return;if(e.ClickCount==2){positioning=false;dragged=new(Left,Top);ClickThrough(true);Hide();}else{DragMove();dragged=new(Left,Top);}};
     }
-    public static void Display(string text,int durationMs=4500,SubtitleStyle? style=null,GameTranslator.Core.TextBox? box=null)
+    public static void Display(string text,int durationMs=4500,SubtitleStyle? style=null,GameTranslator.Core.TextBox? box=null,double? lineHeight=null)
     {
         if(!enabled||string.IsNullOrWhiteSpace(text)||Application.Current is not {} app)return;
-        app.Dispatcher.BeginInvoke(()=>{instance??=new();if(!positioning)instance.Render(text,durationMs,style??new(),box);});
+        app.Dispatcher.BeginInvoke(()=>{instance??=new();if(!positioning)instance.Render(text,durationMs,style??new(),box,lineHeight);});
     }
-    private void Render(string text,int duration,SubtitleStyle style,GameTranslator.Core.TextBox? box)
+    private void Render(string text,int duration,SubtitleStyle style,GameTranslator.Core.TextBox? box,double? lineHeight=null)
     {
-        var bounds=CaptionBounds;var a=(style.Appearance??new()).Validate();double size=Math.Clamp(style.FontSize*bounds.Width/1920,14,64);
+        var bounds=CaptionBounds;var a=(style.Appearance??new()).Validate();double size=CaptionSizing.FontPixels(style.FontSize,bounds.Width,bounds.Height,a.MatchSize,lineHeight);
         var b=box??new GameTranslator.Core.TextBox(.1,.74,.9,.9);
         var visual=CaptionVisual.Text(text,a,size,style.Background,style.Bold);visual.MaxWidth=Math.Max(100,(b.Right-b.Left)*bounds.Width);visual.Measure(new Size(visual.MaxWidth,double.PositiveInfinity));
         if(a.Position=="cover"&&a.CoverMinimum){visual.MinWidth=(b.Right-b.Left)*bounds.Width;visual.MinHeight=(b.Bottom-b.Top)*bounds.Height;visual.Measure(new Size(visual.MaxWidth,double.PositiveInfinity));}

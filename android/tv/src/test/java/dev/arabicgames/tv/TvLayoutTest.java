@@ -37,6 +37,16 @@ public class TvLayoutTest {
    assertEquals(View.VISIBLE,caption.getVisibility());assertTrue(caption.getText().toString().contains("اختبار الإصلاح"));
   }
  }
+ @Test public void matchingUsesOriginalLineSizeAndCanBeDisabled()throws Exception{
+  try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
+   MainActivity a=c.get();layout(a);android.view.ViewGroup root=(android.view.ViewGroup)((android.view.ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);
+   org.json.JSONObject appearance=new org.json.JSONObject("{\"matchSize\":true}");org.robolectric.util.ReflectionHelpers.setField(a,"appearance",appearance);org.robolectric.util.ReflectionHelpers.setField(a,"remoteStyle",new org.json.JSONObject("{\"fontSize\":48}"));
+   org.json.JSONObject caption=new org.json.JSONObject("{\"text\":\"حوار واضح\",\"lineHeight\":0.02,\"box\":{\"left\":0.1,\"top\":0.8,\"right\":0.9,\"bottom\":0.9}}");
+   org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"applyCaption",org.robolectric.util.ReflectionHelpers.ClassParameter.from(org.json.JSONObject.class,caption),org.robolectric.util.ReflectionHelpers.ClassParameter.from(String.class,"test"));
+   TextView label=(TextView)root.getChildAt(1);float matched=label.getTextSize();assertEquals(Math.max(14,Math.min(48*a.getResources().getDisplayMetrics().widthPixels/1920f,root.getHeight()*.02f*1.1f)),matched,.1f);
+   appearance.put("matchSize",false);org.robolectric.util.ReflectionHelpers.callInstanceMethod(a,"applySubtitleStyle");assertTrue(label.getTextSize()>matched);
+  }
+ }
  private static void layout(MainActivity a){View d=a.getWindow().getDecorView();int w=a.getResources().getDisplayMetrics().widthPixels,h=a.getResources().getDisplayMetrics().heightPixels;d.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));d.layout(0,0,w,h);}
  private static Button find(View v,String text){if(v instanceof Button&&((Button)v).getText().toString().equals(text))return (Button)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){Button b=find(((ViewGroup)v).getChildAt(i),text);if(b!=null)return b;}return null;}
  @Test public void panelStaysNarrowAndTestSubtitleCanShow(){try(var c=Robolectric.buildActivity(MainActivity.class).setup()){

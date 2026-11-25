@@ -44,3 +44,9 @@ public sealed record ReadingLayout(int Schema, ReadingArea[] Areas)
         var ids=new HashSet<string>();return layout with{Areas=layout.Areas.Select(a=>{var v=a.Validate();if(!Enum.IsDefined(v.Kind)||!ids.Add(v.Id))throw new ArgumentException("منطقة غير صالحة أو مكررة.");return v;}).ToArray()};
     }
 }
+
+public static class CaptionSizing
+{
+ public static double? LineHeight(string source,TextBox? box){if(box is not {} b||b.Bottom<=b.Top)return null;int lines=Math.Max(1,source.Split('\n').Count(s=>!string.IsNullOrWhiteSpace(s)));return Math.Clamp((b.Bottom-b.Top)/lines,.006,.12);}
+ public static double FontPixels(int configured,double width,double height,bool match,double? lineHeight)=>Math.Clamp(match&&lineHeight is >0?Math.Min(configured*width/1920,lineHeight.Value*height*1.1):configured*width/1920,14,80);
+}

@@ -100,7 +100,7 @@ public sealed class ReadingAreaEditor : UserControl
     }
     private void DrawPreview(ReadingArea area,string text,GameTranslator.Core.TextBox? source=null){
         var a=area.Appearance??new();var box=a.Position=="custom"?area.Output:source is {} b?new CropRegion(b.Top,b.Bottom,b.Left,b.Right):area.Source;
-        var visual=CaptionVisual.Text(text,a,area.FontSize*1280d/1920,area.Background);visual.MaxWidth=(box.Right-box.Left)*1280;visual.IsHitTestVisible=false;visual.Measure(new Size(visual.MaxWidth,double.PositiveInfinity));
+        var visual=CaptionVisual.Text(text,a,CaptionSizing.FontPixels(area.FontSize,1280,720,a.MatchSize,source is not null?controller.LastCaptionLineHeight:null),area.Background);visual.MaxWidth=(box.Right-box.Left)*1280;visual.IsHitTestVisible=false;visual.Measure(new Size(visual.MaxWidth,double.PositiveInfinity));
         double w=visual.DesiredSize.Width,h=visual.DesiredSize.Height,x=box.Left*1280+(a.Align=="right"?(box.Right-box.Left)*1280-w:a.Align=="left"?0:((box.Right-box.Left)*1280-w)/2),y=box.Top*720;
         y=a.Position switch{"above"=>y-h-4,"below"=>box.Bottom*720+4,"cover"=>y+((box.Bottom-box.Top)*720-h)/2,_=>y+(a.Vertical=="top"?0:a.Vertical=="center"?((box.Bottom-box.Top)*720-h)/2:(box.Bottom-box.Top)*720-h)};
         Canvas.SetLeft(visual,Math.Clamp(x,0,Math.Max(0,1280-w)));Canvas.SetTop(visual,Math.Clamp(y,0,Math.Max(0,720-h)));canvas.Children.Add(visual);

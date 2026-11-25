@@ -659,6 +659,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public void RequestSnapshot() => SnapshotRequested?.Invoke();
 
     /// <summary>Canlı çeviri metni bilgisayar ekranında da (overlay) gösterilsin diye tetiklenir (metin, süre ms, kutu koordinatı).</summary>
+    public double? LastCaptionLineHeight {get;private set;}
     public event Action<string, int, TextBox?>? LiveSubtitleShown;
     public event Action<TextBox>? LiveCoverShown;
 
@@ -1074,7 +1075,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             var ms = RegionTranslation.DisplayMilliseconds(translation);
             post(() =>
             {
-                LastSource = source;
+                LastSource = source;LastCaptionLineHeight=CaptionSizing.LineHeight(source,built.LastBox);
                 LastTranslation = translation;
                 if (box is not null) lastSubtitleBox = box;
                 var targetBox = box ?? lastSubtitleBox ?? (settings.Region is { } r

@@ -562,7 +562,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         }
         Write(request, $"{SubtitleLog.Excerpt(source)} → {pack}");
         lastShown = request.Number;
-        sender.SendSubtitle(translated, 15000, request.Box, replaces: RevisesShown(source));
+        sender.SendSubtitleWithLineHeight(translated, 15000, request.Box,CaptionSizing.LineHeight(source,request.Box), replaces: RevisesShown(source));
         LastPair = (source, translated);
         LastBox = request.Box;
         LastOrigin = "paket";
@@ -601,7 +601,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                     Write($"#{number} geri geldi (yarım okuması): {SubtitleLog.Excerpt(source)}");
                     if (translation is not null)
                     {
-                        sender.SendSubtitle(translation, 15000, box, replaces: true);
+                        sender.SendSubtitleWithLineHeight(translation, 15000, box,CaptionSizing.LineHeight(source,box), replaces: true);
                         LastPair = (last.Source, translation);
                         LastBox = box;
                     }
@@ -616,7 +616,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             lineOnScreen = number;
             Write($"#{number} geri geldi: {SubtitleLog.Excerpt(source)}");
             if (translation is null) return null;
-            sender.SendSubtitle(translation, 15000, box, replaces: RevisesShown(source));
+            sender.SendSubtitleWithLineHeight(translation, 15000, box,CaptionSizing.LineHeight(source,box), replaces: RevisesShown(source));
             LastPair = (source, translation);
             LastBox = box;
             return null;
@@ -756,7 +756,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             lastShown = request.Number;
             lastPresentedAt=now();
             // Satır hâlâ ekrandaysa kalkınca silinir; kalktıysa okunacak kadar gösterilir.
-            sender.SendSubtitle(translated, onScreen ? 15000 : ReadingTime(translated), request.Box, replaces: RevisesShown(source));
+            sender.SendSubtitleWithLineHeight(translated, onScreen ? 15000 : ReadingTime(translated), request.Box,CaptionSizing.LineHeight(source,request.Box), replaces: RevisesShown(source));
             LastPair = (source, translated);
             LastBox = request.Box;
             LastOrigin = "motor";
