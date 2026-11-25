@@ -72,7 +72,7 @@ public sealed class WindowsOcrReader : ITextReader
         // OCR motoru çok küçük ya da çok büyük görüntüyü reddeder.
         if (image.Width < 40 || image.Height < 40 || image.Width > OcrEngine.MaxImageDimension || image.Height > OcrEngine.MaxImageDimension)
             return Reading.Empty;
-        using var bitmap = new SoftwareBitmap(BitmapPixelFormat.Bgra8, image.Width, image.Height, BitmapAlphaMode.Premultiplied);
+        using var bitmap = new SoftwareBitmap(BitmapPixelFormat.Bgra8, image.Width, image.Height, BitmapAlphaMode.Ignore);
         bitmap.CopyFromBuffer(image.Pixels.AsBuffer());
         Windows.Media.Ocr.OcrResult result;
         lock (recognizeGate) result = engine.RecognizeAsync(bitmap).AsTask().GetAwaiter().GetResult();

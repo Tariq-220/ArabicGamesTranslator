@@ -136,7 +136,7 @@ public sealed partial class GameDisplayWindow : Window
                 writeableBitmap.PixelWidth != frame.Width ||
                 writeableBitmap.PixelHeight != frame.Height)
             {
-                writeableBitmap = new WriteableBitmap(frame.Width, frame.Height, 96, 96, PixelFormats.Bgra32, null);
+                writeableBitmap = new WriteableBitmap(frame.Width, frame.Height, 96, 96, PixelFormats.Bgr32, null);
                 RenderOptions.SetBitmapScalingMode(LiveGameImage, BitmapScalingMode.LowQuality);
                 LiveGameImage.Source = writeableBitmap;
             }

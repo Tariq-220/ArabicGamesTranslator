@@ -24,4 +24,6 @@ public class RebuildPreviewTests
         controller.Settings=controller.Settings with{Region=new(.4,.6,.2,.8)};
         controller.PrepareRebuildAreas();Assert.Equal(new CropRegion(.4,.6,.2,.8),controller.Settings.Region);Assert.Equal("retained",store.Load<string>("sentinel-api-key"));
     }
+
+    [Fact]public void IndependentTimingSurvivesRestartWithoutChangingApiOrLayout(){var store=new MemoryStore();store.Save("sentinel-api-key","kept");var expected=new ReadingTiming(60,30,16,100,100,true,250);using(var controller=AppControllerTests.Make(store:store)){var before=controller.Settings.Region;controller.Timing=expected;Assert.Equal(before,controller.Settings.Region);}using(var restored=AppControllerTests.Make(store:store)){Assert.Equal(expected,restored.Timing);Assert.Equal("kept",store.Load<string>("sentinel-api-key"));}}
 }

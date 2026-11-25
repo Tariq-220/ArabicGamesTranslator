@@ -24,9 +24,19 @@ public static class ScreenRenderer
         if(root is FrameworkElement element)yield return element;
         foreach(var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())foreach(var item in LogicalElements(child))yield return item;
     }
+    private static void VerifyOpaqueOcr(string folder)
+    {
+        var reader=WindowsOcrReader.Create("en");if(reader is null){File.WriteAllText(Path.Combine(folder,"ocr-probe.txt"),"English OCR unavailable on this runner; live recognition probe skipped.");return;}
+        var drawing=new DrawingVisual();using(var dc=drawing.RenderOpen()){dc.DrawRectangle(Brushes.White,null,new Rect(0,0,640,120));dc.DrawText(new FormattedText("Coming home with Lucia.",System.Globalization.CultureInfo.GetCultureInfo("en-US"),FlowDirection.LeftToRight,new Typeface("Segoe UI"),36,Brushes.Black,1),new Point(18,24));}
+        var bitmap=new RenderTargetBitmap(640,120,96,96,PixelFormats.Pbgra32);bitmap.Render(drawing);var bytes=new byte[640*120*4];bitmap.CopyPixels(bytes,640*4,0);
+        var opaque=reader.ReadSpatial(new Frame(bytes,640,120,640*4)).Text;var zero=(byte[])bytes.Clone();for(int i=3;i<zero.Length;i+=4)zero[i]=0;var ignored=reader.ReadSpatial(new Frame(zero,640,120,640*4)).Text;
+        if(string.IsNullOrWhiteSpace(opaque)||TextMatch.Normalize(opaque)!=TextMatch.Normalize(ignored))throw new InvalidOperationException("OCR must read RGB text consistently regardless of undefined capture alpha.");
+        File.WriteAllText(Path.Combine(folder,"ocr-probe.txt"),"Synthetic Windows OCR passed with opaque and zero alpha: "+opaque);
+    }
     public static void RunArabic(Application app,string folder)
     {
         Directory.CreateDirectory(folder);app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
+        VerifyOpaqueOcr(folder);
         ThemeManager.Apply(app.Resources,true);
         try {
             AssertInternalPlayerSelectable();
