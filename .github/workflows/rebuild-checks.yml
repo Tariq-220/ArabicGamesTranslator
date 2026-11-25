@@ -61,6 +61,12 @@ jobs:
           ROBOLECTRIC_REPO: https://maven-central.storage-download.googleapis.com/maven2
         working-directory: android
         run: bash gradlew :common:test :tv:testDebugUnitTest --console=plain
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: rebuild-tv-preview
+          path: android/tv/build/ui-previews
+          if-no-files-found: ignore
       - name: Report individual test failures
         if: always()
         run: python scripts/rebuild-test-report.py
