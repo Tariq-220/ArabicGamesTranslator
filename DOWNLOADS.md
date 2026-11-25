@@ -1,3 +1,20 @@
+# أحدث نسخة فحص: Windows 0.5.5 + TV 0.4.5
+
+[تنزيل ملفات النسخة المكتملة للفحص](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/untagged-cbfdaab04bb51b51f891) — مسودة خاصة بمالك المستودع، لم تُنشر للعامة.
+
+- لديك التطبيق: `ArabicGames-Windows-0.5.5-Update.zip` (نحو33MB)، فك الضغط ثم `Reading-Fix.cmd`. تبقى النماذج والمفاتيح.
+- تثبيت جديد: `ArabicGames-Windows-0.5.5-Full-Install.zip` (نحو194MB)، ثم `Install.cmd`.
+- الشاشة: `ArabicGames-TV-0.4.5.apk` (نحو1.1MB) فوق الموجود.
+- اختر GTA6 وانتظر «الحزمة العربية جاهزة» في «السجل والتحديث». تنزيل مباشر بنحو20MB أول مرة، ثم تطابق قبل QuickMT وDeepL معًا.
+- بطاقة الجوال: «أسلوب جوال اللعبة» يختار لوحة المحادثة أو الفقاعات العائمة، بنفس القراءة والألوان.
+- «السجل والتحديث ← سجل النصوص المباشر»: بحث ونسخ، وتصديرJSONL.
+
+المصدر التنفيذي `5e78ee426345e4e3bd118bc47d76983a4849d8ee`. [تفاصيل التحقق وحدود التسجيل الفعلي](docs/rebuild/DIALOGUE-AND-REGION-RECOVERY.md). تطبيق الجوال Android نفسه مؤجل؛ تحديثTV هو المرفق هنا.
+
+---
+
+## إصدارات سابقة للأرشيف
+
 # التنزيل والتحديث
 
 [الموقع والشرح المصور](https://arabic-games-translator-guide.fullcrayon16.chatgpt.site) — يفتح بحساب مالك الموقع حاليًا.
