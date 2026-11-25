@@ -17,7 +17,7 @@ public static class CaptionVisual
     {
         var a=(appearance??new()).Validate();var split=CaptionAppearance.SplitSpeaker(text);
         var label=new TextBlock{FlowDirection=FlowDirection.RightToLeft,FontFamily=Font(a.Font),FontSize=size,FontWeight=bold?FontWeights.Bold:FontWeights.Medium,
-            TextWrapping=TextWrapping.Wrap,TextAlignment=a.Align switch{"left"=>TextAlignment.Left,"right"=>TextAlignment.Right,_=>TextAlignment.Center},Foreground=Brushes.White,
+            TextWrapping=TextWrapping.Wrap,TextAlignment=a.Align switch{"left"=>TextAlignment.Right,"right"=>TextAlignment.Left,_=>TextAlignment.Center},Foreground=Brushes.White,
             LineHeight=size*1.42,LineStackingStrategy=LineStackingStrategy.BlockLineHeight};
         bool first=true;foreach(var row in text.Split('\n')){if(!first)label.Inlines.Add(new LineBreak());first=false;var part=CaptionAppearance.SplitSpeaker(row);if(part.Name.Length>0)label.Inlines.Add(new Run(part.Name+" "){Foreground=Brush(CaptionAppearance.SpeakerAccent(row,a))});label.Inlines.Add(new Run(part.Body));}
         if(a.Outline)label.Effect=new DropShadowEffect{Color=Colors.Black,ShadowDepth=1.3,BlurRadius=3.5,Opacity=1};
@@ -50,8 +50,10 @@ public static class CaptionVisual
             if(string.IsNullOrWhiteSpace(cell.Text))continue;var box=cell.Box;
             double w=Math.Max(8,(box.Right-box.Left)*panel.Width),h=Math.Max(8,(box.Bottom-box.Top)*panel.Height);
             double max=area.Appearance?.MatchSize!=false?Math.Max(8,cell.LineHeight*panel.Height*.95):area.FontSize;
+            bool rtl=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff');
             var label=new TextBlock{Width=w,HorizontalAlignment=HorizontalAlignment.Stretch,Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?FlowDirection.RightToLeft:FlowDirection.LeftToRight,TextWrapping=TextWrapping.Wrap,
-                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Left:TextAlignment.Right,VerticalAlignment=phone||area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize*targetWidth/1920/scale,Padding=phone?new Thickness(6,3,6,3):new Thickness(3,0,3,0)};
+                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?(rtl?TextAlignment.Right:TextAlignment.Left):(rtl?TextAlignment.Left:TextAlignment.Right),VerticalAlignment=phone||area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize*targetWidth/1920/scale,Padding=phone?new Thickness(6,3,6,3):new Thickness(3,0,3,0)};
+            // WPF mirrors text alignment in RTL; the setting denotes the physical side on both platforms.
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
             var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
