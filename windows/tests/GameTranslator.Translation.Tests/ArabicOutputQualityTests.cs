@@ -9,6 +9,9 @@ public class ArabicOutputQualityTests
     [InlineData("Call the FIB.", "اتصل بمكتب FIB.", true)]
     [InlineData("Come here.", "تعال إلى هنا.", true)]
     [InlineData("Move now.", "", false)]
+    [InlineData("Stranger: Move now.","Stranger: تحرك الآن.",true)]
+    [InlineData("Stranger: Move now.","Stranger: تحرك now.",false)]
+    [InlineData("Move now.","Stranger: تحرك الآن.",false)]
     [InlineData("Move now.", "تحرك FIB", false)]
     [InlineData("Are you there?", "هل YOU هناك؟", false)]
     public void OnlyArabicWithGroundedCodesIsDisplayable(string source,string output,bool valid) =>

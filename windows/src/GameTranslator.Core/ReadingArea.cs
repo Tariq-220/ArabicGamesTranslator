@@ -33,10 +33,10 @@ public sealed record ReadingArea(string Id, string Name, ReadingAreaKind Kind, C
         return new(top,Math.Clamp(N(r.Bottom,.97),top+.03,1),left,Math.Clamp(N(r.Right,.9),left+.03,1));
     }
     public static ReadingArea Phone() => new(Guid.NewGuid().ToString("N"),"رسائل الجوال",ReadingAreaKind.Phone,
-        new(.08,.98,.03,.97),new(.12,.95,.08,.39),DurationMs:8000);
+        new(.08,.98,.03,.97),new(.12,.95,.08,.39),FontSize:28,DurationMs:8000,Appearance:new(Font:"tajawal",Align:"right",Vertical:"top"));
     public static ReadingArea Instructions() => new(Guid.NewGuid().ToString("N"),"هدف المهمة",ReadingAreaKind.Instructions,
         new(.935,.995,.20,.80),new(.765,.815,.10,.90),DurationMs:5000,Appearance:new(Font:"tajawal",Backdrop:"none",Align:"center",Accent:true));
-    public static ReadingArea Notification()=>new(Guid.NewGuid().ToString("N"),"تنبيه / رسالة واردة",ReadingAreaKind.Notification,new(.65,.99,.68,.99),new(.40,.73,.68,.99),DurationMs:6500);
+    public static ReadingArea Notification()=>new(Guid.NewGuid().ToString("N"),"تنبيه / رسالة واردة",ReadingAreaKind.Notification,new(.65,.99,.68,.99),new(.40,.73,.68,.99),FontSize:28,DurationMs:6500,Appearance:new(Font:"tajawal",Align:"right",Vertical:"top"));
     public static ReadingArea MapCard()=>new(Guid.NewGuid().ToString("N"),"وصف المهمة بالخريطة",ReadingAreaKind.MapCard,new(.12,.36,.10,.49),new(.37,.64,.10,.49),Background:85,DurationMs:8000,AutoDetect:false,Appearance:new(Backdrop:"game",Align:"right",Vertical:"top"));
     public static ReadingArea Restore(ReadingArea current){var preset=current.Kind switch{ReadingAreaKind.Phone=>Phone(),ReadingAreaKind.Notification=>Notification(),ReadingAreaKind.Instructions=>Instructions(),ReadingAreaKind.MapCard=>MapCard(),ReadingAreaKind.Menu=>Menu(),_=>new ReadingArea("dialogue","الحوار",ReadingAreaKind.Dialogue,new(.80,.918,.10,.90),new(.585,.785,.10,.90),FontSize:32,Background:72,Appearance:new(Position:"custom"))};return current with{Source=preset.Source,Output=preset.Output,Appearance=(current.Appearance??preset.Appearance??new()) with{Position=preset.Appearance?.Position??"custom"}};}
     public static ReadingArea Menu() => new(Guid.NewGuid().ToString("N"),"القائمة",ReadingAreaKind.Menu,

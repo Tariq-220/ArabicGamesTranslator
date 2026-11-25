@@ -28,7 +28,10 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public string DisplayText {get;private set;}="";
     public int DisplayDurationMs {get;private set;}
     public event Action? CaptionCleared;
+    public event Action? CaptionRenewed;
     private long lastPresentedAt=long.MinValue/2;
+    private long lastRenewedAt=long.MinValue/2;
+    private int SourceLeaseMs=>Math.Clamp(MissingTextMs+900,1800,2500);
     public int MissingTextMs {get=>stabilizer.MissingTextMs;set=>stabilizer.MissingTextMs=Math.Clamp(value,50,5000);}
     public int MinimumStableMs {get=>stabilizer.MinimumStableMs;set=>stabilizer.MinimumStableMs=Math.Max(0,value); }
     /// <summary>
@@ -230,6 +233,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         if(sender is ISubtitleCoverSender cover&&reading.Box is {} coverBox&&!string.IsNullOrWhiteSpace(reading.Text))cover.Cover(reading.Text,coverBox.PlacedIn(area));
         if(SourceFilter is { } filter)reading=new Reading(reading.Lines.Select(line=>line with {Text=filter(line.Text)}));
         lock(gate){observed=reading;observedArea=area;}
+        RenewVisibleSource(reading.Text);
         Action? after = null;
         Action? flushed = null;
         lock (gate)
@@ -558,12 +562,26 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     private bool RevisesShown(string source) => LastPair is { } shown && TextMatch.IsRevision(source, shown.Source);
 
     private void ClearCaption(){DisplayText="";sender.Clear();CaptionCleared?.Invoke();}
+    private void RenewVisibleSource(string source)
+    {
+        bool renewed=false;
+        lock(gate){
+            if(!ExpireWhenSourceGone||DisplayText.Length==0||LastPair is not {} pair||now()-Math.Max(lastPresentedAt,lastRenewedAt)<500)return;
+            var text=TextMatch.Normalize(source);var shown=TextMatch.Normalize(pair.Source);
+            if(text.Length<2||TextMatch.DifferentSpeakers(source,pair.Source)||!TextMatch.IsSimilar(text,shown,.94))return;
+            lastRenewedAt=now();DisplayDurationMs=SourceLeaseMs;
+            sender.SendSubtitleWithLineHeight(DisplayText,SourceLeaseMs,LastBox,CaptionSizing.LineHeight(pair.Source,LastBox),replaces:true);
+            renewed=true;
+        }
+        if(renewed)CaptionRenewed?.Invoke();
+    }
     private void Present(string source,string translated,TextBox? box,int duration)
     {
-        var replaces=RevisesShown(source);
+        var replaces=RevisesShown(source)||LastPair is {} last&&TextMatch.Normalize(last.Translation)==TextMatch.Normalize(translated);
         // Keep at most the preceding reply. Never hold up inference to make a caption readable.
         DisplayText=KeepRapidReplies&&!replaces&&DisplayText.Length>0&&LastPair is {} previous&&now()-lastPresentedAt<MinimumDisplayMs
             ?previous.Translation+"\n"+translated:translated;
+        if(ExpireWhenSourceGone)duration=Math.Min(duration,SourceLeaseMs);
         DisplayDurationMs=duration;lastPresentedAt=now();
         sender.SendSubtitleWithLineHeight(DisplayText,duration,box,CaptionSizing.LineHeight(source,box),replaces:replaces);
     }

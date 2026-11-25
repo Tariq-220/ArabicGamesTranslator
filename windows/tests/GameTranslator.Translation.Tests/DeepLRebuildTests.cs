@@ -47,7 +47,7 @@ public class DeepLRebuildTests
         await engine.TranslateAsync("Second source.");Assert.DoesNotContain("First source.",Context(service.Bodies[1]));
         Assert.Contains("Modern Standard Arabic",Context(service.Bodies[1]));
     }
-    [Fact]public void OldDialectCacheIsSkippedWhileSafeLexicalChangesAreReused(){var file=Path.GetTempFileName();try{File.WriteAllText(file,System.Text.Json.JsonSerializer.Serialize(new[]{"What do you want?","وش تبغى؟"})+"\n"+System.Text.Json.JsonSerializer.Serialize(new[]{"You son of a bitch!","يا ابن القحبة!"})+"\n");var cache=new TranslationCache(file,targetLanguage:"ar");Assert.False(cache.TryGet("What do you want?",out _));Assert.True(cache.TryGet("You son of a bitch!",out var normalized));Assert.Equal("يا ابن العاهرة!",normalized);}finally{File.Delete(file);}}
+    [Fact]public void ArabicCacheKeepsDialogueAndNormalizesSafeLexicalChanges(){var file=Path.GetTempFileName();try{File.WriteAllText(file,System.Text.Json.JsonSerializer.Serialize(new[]{"What do you want?","وش تبغى؟"})+"\n"+System.Text.Json.JsonSerializer.Serialize(new[]{"You son of a bitch!","يا ابن القحبة!"})+"\n");var cache=new TranslationCache(file,targetLanguage:"ar");Assert.True(cache.TryGet("What do you want?",out var intelligible));Assert.Equal("وش تبغى؟",intelligible);Assert.True(cache.TryGet("You son of a bitch!",out var normalized));Assert.Equal("يا ابن العاهرة!",normalized);}finally{File.Delete(file);}}
     [Fact]public async Task ValidCacheAvoidsAnotherRequestAfterEngineRecreation()
     {
         var file=Path.Combine(Path.GetTempPath(),Guid.NewGuid()+".jsonl");

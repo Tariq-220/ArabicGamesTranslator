@@ -60,6 +60,7 @@ public sealed class XboxTestWindow : Window
     private readonly TextBlock consoleHelp=Label("");private readonly TextBlock sourceInstruction=Label("");
     private readonly TextBlock connectionInfo = Label("", 16);
     private readonly Action<string, int, GameTranslator.Core.TextBox?> overlay;
+    private readonly Action<string,int,GameTranslator.Core.TextBox?> renewOverlay;
 
     public XboxTestWindow(AppController controller, bool preview=false)
     {
@@ -275,7 +276,8 @@ public sealed class XboxTestWindow : Window
         };
         controller.AreasCleared+=AreaOverlayWindow.ClearAll;
         controller.AreaCaptionShown+=AreaOverlayWindow.Apply;
-        controller.LiveSubtitleShown += overlay;controller.LiveCoverShown+=DesktopSubtitleOverlay.Cover;
+        renewOverlay=(text,ms,box)=>DesktopSubtitleOverlay.Display(text,ms,controller.Settings.Style with{StackPrevious=false},box,controller.LastCaptionLineHeight);
+        controller.LiveSubtitleRenewed+=renewOverlay;controller.LiveSubtitleShown += overlay;controller.LiveCoverShown+=DesktopSubtitleOverlay.Cover;
         controller.SubtitlesCleared += DesktopSubtitleOverlay.Clear;
         controller.PropertyChanged += Changed;
         start.Click += async (_, _) =>
@@ -311,7 +313,7 @@ public sealed class XboxTestWindow : Window
             updateCancel.Cancel();
             controller.AreasCleared-=AreaOverlayWindow.ClearAll;
             controller.AreaCaptionShown-=AreaOverlayWindow.Apply;AreaOverlayWindow.ClearAll();
-            controller.LiveCoverShown-=DesktopSubtitleOverlay.Cover;controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
+            controller.LiveCoverShown-=DesktopSubtitleOverlay.Cover;controller.LiveSubtitleRenewed-=renewOverlay;controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
             controller.PropertyChanged -= Changed; DesktopSubtitleOverlay.Clear(); controller.Dispose(); comparison.DisposeAsync().AsTask().GetAwaiter().GetResult();
         };
         RefreshWindows();
@@ -351,7 +353,7 @@ public sealed class XboxTestWindow : Window
         resetWindowPreference=false;RefreshWindows();UpdateConsoleHelp();
     }
 
-    private async Task PauseXboxForRecording(){if(xboxPlayer is null){status.Text="إن كان المصدر متصفحًا خارجيًا، أغلق جلسة Remote Play هناك ثم جرّب زر المشاركة. هذا الخيار يحرر البث المدمج فقط.";return;}controller.Stop();controller.StopSourcePreview();controller.ClearLastFrame();await xboxPlayer.PauseForRecordingAsync();status.Text="تحرير Remote Play للتسجيل (تجريبي): جرّب زر المشاركة في Xbox الآن. الترجمة متوقفة لغياب المصدر. للعودة اضغط فتح البث داخل التطبيق ثم ابدأ الترجمة. للتسجيل والترجمة معًا استخدم مصدر كرت التقاط/OBS دون Remote Play.";}
+    private async Task PauseXboxForRecording(){if(xboxPlayer is null){status.Text="إن كان المصدر متصفحًا خارجيًا، أغلق جلسة Remote Play هناك ثم جرّب زر المشاركة. هذا الخيار يحرر البث المدمج فقط.";return;}controller.Stop();controller.StopSourcePreview();controller.ClearLastFrame();await xboxPlayer.PauseForRecordingAsync();xboxPlayer.Close();xboxPlayer=null;status.Text="تحرير Remote Play للتسجيل (تجريبي): جرّب زر المشاركة في Xbox الآن. الترجمة متوقفة لغياب المصدر. للعودة اضغط فتح البث داخل التطبيق ثم ابدأ الترجمة. للتسجيل والترجمة معًا استخدم مصدر كرت التقاط/OBS دون Remote Play.";}
 
     private void InstallReadyUpdate()
     {

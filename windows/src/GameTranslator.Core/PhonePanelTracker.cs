@@ -8,10 +8,19 @@ public sealed class PhonePanelTracker
     private PanelLayout? current,pending;
     private long pendingAt,newPageAt;
     private int confirmations;
+    private CropRegion? capture;private long captureSeen;
+    public CropRegion? Locate(CropRegion? detected,long at){
+        if(detected is null)return capture is not null&&at-captureSeen<=1500?capture:null;
+        captureSeen=at;
+        if(capture is {} p){double common=Math.Max(0,Math.Min(p.Right,detected.Right)-Math.Max(p.Left,detected.Left))*Math.Max(0,Math.Min(p.Bottom,detected.Bottom)-Math.Max(p.Top,detected.Top));double union=(p.Right-p.Left)*(p.Bottom-p.Top)+(detected.Right-detected.Left)*(detected.Bottom-detected.Top)-common;
+            if(union>0&&common/union>.65)detected=new(p.Top*.75+detected.Top*.25,p.Bottom*.75+detected.Bottom*.25,p.Left*.75+detected.Left*.25,p.Right*.75+detected.Right*.25);
+        }
+        return capture=detected;
+    }
     private readonly Dictionary<string,long> seen=new(StringComparer.Ordinal);
     private static string Key(PanelCell c)=>TextMatch.Normalize(c.Source)+(c.Source.Contains('?')?"?":"");
     public static bool Body(PanelCell c){if(c.Heading)return false;var text=c.Source.Trim();if(System.Text.RegularExpressions.Regex.IsMatch(text,@"^(?:New messages?|Locating\.*)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase))return false;var words=text.Split(' ',StringSplitOptions.RemoveEmptyEntries);return text.StartsWith("Map Pin ",StringComparison.OrdinalIgnoreCase)||text.IndexOfAny(['!','?','…'])>=0||words.Skip(1).Any(w=>w.Length>0&&char.IsLower(w[0]))||new[]{"Hey","Hi","Hello","Okay","OK","Thanks","Yes","No"}.Contains(text,StringComparer.OrdinalIgnoreCase);}
-    public void Reset(){current=pending=null;seen.Clear();confirmations=0;newPageAt=0;}
+    public void Reset(){current=pending=null;capture=null;seen.Clear();confirmations=0;newPageAt=0;}
     private static bool Negation(string s)=>System.Text.RegularExpressions.Regex.IsMatch(s,@"\b(?:not|no|never|cannot)\b|n['’]t\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     private static bool Same(PanelCell a,PanelCell b)
     {
@@ -43,7 +52,7 @@ public sealed class PhonePanelTracker
             var cell=prior is null?n:n with{Source=prior.Source,Background=prior.Background,Foreground=prior.Foreground,LineHeight=prior.LineHeight,Box=Shift(prior.Box,n.Box)<.018?prior.Box:n.Box};
             cells.Add(cell);seen[Key(cell)]=at;
         }
-        foreach(var p in current.Cells.Where(p=>!cells.Any(n=>Same(p,n))))if(at-seen.GetValueOrDefault(Key(p),at)<=1400&&!cells.Any(n=>Overlap(p.Box,n.Box)))cells.Add(p);
+        foreach(var p in current.Cells.Where(p=>!cells.Any(n=>Same(p,n))))if(at-seen.GetValueOrDefault(Key(p),at)<=4000&&!cells.Any(n=>Overlap(p.Box,n.Box)))cells.Add(p);
         current=next with{Cells=cells.OrderBy(c=>c.Box.Top).ToArray()};return current;
     }
 }

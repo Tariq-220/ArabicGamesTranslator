@@ -25,6 +25,11 @@ public static partial class ArabicOutputQuality
     {
         if (string.IsNullOrWhiteSpace(translated)) return false;
         translated=ArabicGameNames.Localize(source,translated);
+        var sourceLine=CaptionAppearance.SplitSpeaker(source);var targetLine=CaptionAppearance.SplitSpeaker(translated);
+        if(sourceLine.Name.Length>0&&sourceLine.Body.Any(char.IsLetter)&&targetLine.Name.Length>0&&!targetLine.Body.Any(char.IsLetter))return false;
+        // A source-grounded speaker label is metadata. An unfamiliar character name must not reject an Arabic body.
+        var speakers=source.Split('\n').Select(CaptionAppearance.SplitSpeaker).Where(p=>p.Name.Length>0).Select(p=>p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        translated=string.Join("\n",translated.Split('\n').Select(row=>{var p=CaptionAppearance.SplitSpeaker(row);return p.Name.Length>0&&speakers.Contains(p.Name)?p.Body:row;}));
         var letters = translated.Where(char.IsLetter).ToArray();
         var arabic = letters.Count(c => c is >= '\u0620' and <= '\u064a' or >= '\u066e' and <= '\u06d3' or >= '\u06fa' and <= '\u06ff');
         if (arabic == 0) return false;

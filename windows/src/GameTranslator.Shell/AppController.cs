@@ -661,6 +661,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     /// <summary>Canlı çeviri metni bilgisayar ekranında da (overlay) gösterilsin diye tetiklenir (metin, süre ms, kutu koordinatı).</summary>
     public double? LastCaptionLineHeight {get;private set;}
     public event Action<string, int, TextBox?>? LiveSubtitleShown;
+    public event Action<string, int, TextBox?>? LiveSubtitleRenewed;
     public event Action<TextBox>? LiveCoverShown;
 
     /// <summary>Son altyazının algılandığı normalize ekran koordinatı kutusu.</summary>
@@ -1011,7 +1012,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<string,string>? LineDiscarded;
     private ReadingAreaSession? areaSession;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string,string> areaStatus=new();
-    public string ReadingAreaStatus(string id)=>id=="dialogue"?(isRunning?"الحوار · حالة المحرك: "+(TranslatorStatus==TranslatorStatus.OutputRejected?"ناتج غير صالح بالفصحى":TranslatorStatus==TranslatorStatus.ServiceBusy?"المحرك مشغول":TranslatorStatus.ToString()):"ابدأ الترجمة لتفعيل قراءة الحوار"):areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
+    public string ReadingAreaStatus(string id)=>id=="dialogue"?(isRunning?"الحوار · حالة المحرك: "+(TranslatorStatus==TranslatorStatus.OutputRejected?"الناتج فارغ أو غير مترجم":TranslatorStatus==TranslatorStatus.ServiceBusy?"المحرك مشغول":TranslatorStatus.ToString()):"ابدأ الترجمة لتفعيل قراءة الحوار"):areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
     private TranslationWorkQueue? translationQueue;
     public event Action? AreasCleared;
     private void ClearAreas(){server.ClearAreas();post(()=>AreasCleared?.Invoke());}
@@ -1022,6 +1023,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public void PrepareRebuildAreas()
     {
+        if(!store.Load<bool>("readable-message-fonts-v1")){
+            ReadingAreas=ReadingAreas.Select(a=>a.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification && a.Appearance?.Font is null or "noto"?a with{FontSize=Math.Max(28,a.FontSize),Appearance=(a.Appearance??ReadingArea.DefaultAppearance(a.Kind)) with{Font="tajawal"}}:a).ToList();
+            store.Save("readable-message-fonts-v1",true);
+        }
         if(settings.Style.Appearance is null){
             var r=settings.Region;if(Math.Abs(r.Top-.8)<.001&&Math.Abs(r.Bottom-.918)<.001)r=r with{Bottom=.97};
             Settings=settings with{Region=r,Style=settings.Style with{Appearance=new(Position:"above"),Background=72}};
@@ -1039,7 +1044,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<AreaCaption>? AreaCaptionShown;
     public event Action<AreaTrace>? AreaTraceObserved;
     public bool ArabicPacksEnabled {get=>store.Load<bool?>("arabic-ready-packs")??true;set{store.Save("arabic-ready-packs",value);ArabicGamePackStore.Shared.Enabled=value;}}
-    private static string? ReadyArabic(string game,string source){foreach(var candidate in new[]{CommunityCorrections.Find(game,source),ArabicGamePackStore.Shared.Find(game,source),CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null}){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(!ArabicRegister.NeedsRephrase(source,value)&&ArabicOutputQuality.Accepts(source,value))return value;}return null;}
+    private static string? ReadyArabic(string game,string source){foreach(var candidate in new[]{CommunityCorrections.Find(game,source),ArabicGamePackStore.Shared.Find(game,source),CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null}){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(ArabicOutputQuality.Accepts(source,value))return value;}return null;}
     private void MakeAreaSession()
     {
         areaSession?.Dispose();areaSession=null;
@@ -1070,7 +1075,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var built = new SubtitlePipeline(reader, new ProfileTranslator(translationQueue.Dialogue,DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         built.CaptionCleared+=()=>post(()=>SubtitlesCleared?.Invoke());
-        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>{var result=ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;return ReadingModes.DialogueOnly(ReadingContentMode)?areaSession?.WithoutPhoneText(result,area)??result:result;};built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode,FasterPresentation);
         var presentation=settings.Style.Appearance??new();built.ReviewedOnly=presentation.ReviewedOnly;built.StackUp=presentation.StackUp;built.CenterOnly=presentation.CenterOnly;
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
@@ -1082,7 +1087,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });
         if (settings.TargetLanguage == "tr") built.PackLookup = CommunityPatchManager.Shared.Match;
-        Action<string,string> present = (source, translation) =>
+        Action<string,string,bool> present = (source, translation, renewed) =>
         {
             var outputArea=DialogueOutput;
             TextBox? box = (settings.Style.Appearance?.Position??"custom")=="custom"?new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom):settings.Style.Appearance?.Ride==false?new TextBox(settings.Region.Left,settings.Region.Top,settings.Region.Right,settings.Region.Bottom):built.LastBox;
@@ -1095,10 +1100,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 var targetBox = box ?? lastSubtitleBox ?? (settings.Region is { } r
                     ? new TextBox(r.Left, r.Top, r.Right, r.Bottom)
                     : null);
-                LiveSubtitleShown?.Invoke(display, ms, targetBox);
+                if(renewed)LiveSubtitleRenewed?.Invoke(display,ms,targetBox);else LiveSubtitleShown?.Invoke(display, ms, targetBox);
             });
         };
-        built.PairShown+=present;built.PairRestored+=present;
+        built.PairShown+=(s,t)=>present(s,t,false);built.PairRestored+=(s,t)=>present(s,t,false);built.CaptionRenewed+=()=>{if(built.LastPair is {} p)present(p.Source,p.Translation,true);};
         // Model bu arada inmiş olabilir; her çeviri sonucu durumu günceller.
         built.TranslationResult += error => post(() => TranslatorStatus = error ?? TranslatorStatus.Ready);
         built.SpeechReady += lines => post(() => Speak(lines));

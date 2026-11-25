@@ -67,9 +67,11 @@ public static class SpatialText
     {
         if(panel.Kind!="phone"||panel.Cells.Count==0)return panel;
         double width=panel.Width,originalHeight=panel.Height,cursor=0;
+        var heights=panel.Cells.Where(c=>!c.Heading).Select(c=>c.LineHeight*originalHeight).Order().ToArray();
+        var bodyFont=manualFont??Math.Max(width*.036,(heights.Length==0?originalHeight*.03:heights[heights.Length/2])*.98);
         var placed=new List<(PanelCell Cell,double Top,double Height)>();
         foreach(var cell in panel.Cells.OrderBy(c=>c.Box.Top)){
-            var font=manualFont??Math.Max(width*.032,cell.LineHeight*originalHeight*.9);
+            var font=cell.Heading?Math.Max(bodyFont,cell.LineHeight*originalHeight*.98):bodyFont;
             var chars=Math.Max(8,(cell.Box.Right-cell.Box.Left)*width/(font*.52));
             // Reserve the English message's space before translation so incremental results do not resize the page.
             var rows=Math.Max(1,Math.Ceiling(Math.Max(cell.Text.Length,cell.Source.Length*.85)/chars));
@@ -77,7 +79,7 @@ public static class SpatialText
             var top=Math.Max(cell.Box.Top*originalHeight,cursor);placed.Add((cell,top,height));cursor=top+height+font*.38;
         }
         var total=Math.Max(originalHeight,cursor);
-        return panel with{Height=(int)Math.Ceiling(total),Cells=placed.Select(p=>p.Cell with{Box=p.Cell.Box with{Top=p.Top/total,Bottom=(p.Top+p.Height)/total},LineHeight=(manualFont??Math.Max(width*.032,p.Cell.LineHeight*originalHeight*.9))/total}).ToArray()};
+        return panel with{Height=(int)Math.Ceiling(total),Cells=placed.Select(p=>p.Cell with{Box=p.Cell.Box with{Top=p.Top/total,Bottom=(p.Top+p.Height)/total},LineHeight=(p.Cell.Heading?Math.Max(bodyFont,p.Cell.LineHeight*originalHeight*.98):bodyFont)/total}).ToArray()};
     }
     private static string Ink(Frame frame,TextBox b,byte[] background)
     {
@@ -145,6 +147,7 @@ public static class SpatialText
         origin=t;while(t>0&&origin-t<maxY&&Row(t-1))t--;origin=b;while(b+1<frame.Height&&b-origin<maxY&&Row(b+1))b++;
         return new((double)l/frame.Width,(double)t/frame.Height,(double)(r+1)/frame.Width,(double)(b+1)/frame.Height);
     }
+    public static bool PhoneSurfacePresent(Frame f,CropRegion region){int light=0,total=0;for(int row=0;row<12;row++)for(int col=0;col<8;col++){var c=Pixel(f,(int)((region.Left+(region.Right-region.Left)*(col+.5)/8)*f.Width),(int)((region.Top+(region.Bottom-region.Top)*(row+.5)/12)*f.Height));if(c.Max()-c.Min()<75&&c.Sum(x=>(int)x)>300)light++;total++;}return light>=total/5;}
     public static bool HasDarkBackground(Frame f,TextBox box)=>Sample(f,box).Max()<110;
     private static byte[] Pixel(Frame f,int x,int y){var i=Math.Clamp(y,0,f.Height-1)*f.Stride+Math.Clamp(x,0,f.Width-1)*4;return [f.Pixels[i+2],f.Pixels[i+1],f.Pixels[i]];}
     private static byte[] Sample(Frame f,TextBox b)

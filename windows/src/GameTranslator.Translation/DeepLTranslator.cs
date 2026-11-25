@@ -147,7 +147,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
 
     private void RememberIfValid(string source,string result)
     {
-        if(rememberDialogue&&(!validateArabic||ArabicOutputQuality.Accepts(source,result)&&!ArabicRegister.NeedsRephrase(source,result)))Shown(source);
+        if(rememberDialogue&&(!validateArabic||ArabicOutputQuality.Accepts(source,result)))Shown(source);
     }
 
     /// <summary>Son gösterilen satırlar, eskiden yeniye; DeepL'e bağlam olarak gider.</summary>

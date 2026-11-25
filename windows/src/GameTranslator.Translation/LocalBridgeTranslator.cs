@@ -13,7 +13,7 @@ public sealed class LocalBridgeTranslator(string model,string token,HttpClient? 
  public async Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> texts,CancellationToken cancellationToken=default){
   if(texts.Count is <1 or >24)throw new ArgumentException("Invalid local batch size.");
   var names=new List<string?>();var bodies=new List<string>();
-  foreach(var text in texts){var(label,body)=CaptionAppearance.SplitSpeaker(text);var name=label.Length>0?ArabicGameNames.Speaker(label.TrimEnd(':','：')):null;names.Add(name);bodies.Add(name is null?text:body);}
+  foreach(var text in texts){var(label,body)=CaptionAppearance.SplitSpeaker(text);var name=label.Length>0?(ArabicGameNames.Speaker(label.TrimEnd(':','：'))??label.TrimEnd(':','：')):null;names.Add(name);bodies.Add(name is null?text:body);}
   if(bodies.Any(string.IsNullOrWhiteSpace))throw new TranslatorException(TranslatorStatus.OutputRejected);
   using var request=new HttpRequestMessage(HttpMethod.Post,"http://127.0.0.1:8790/translate");request.Headers.Authorization=new AuthenticationHeaderValue("Bearer",token);
   request.Content=new StringContent(JsonSerializer.Serialize(new{text=bodies,source_lang="EN",target_lang="AR",model}),Encoding.UTF8,"application/json");

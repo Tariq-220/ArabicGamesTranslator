@@ -30,7 +30,7 @@ public sealed class XboxPlayerWindow : Window
         StateChanged+=(_,_)=>{if(!closing&&WindowState==WindowState.Minimized)WindowState=WindowState.Normal;};
         Closed+=(_,_)=>{closing=true;WindowCaptureService.UnregisterInternalPlayer(playerHandle);browser.Dispose();};
     }
-    public async Task PauseForRecordingAsync(){if(closing||browser.CoreWebView2 is not {} web)return;RecordingPaused=true;try{await web.ExecuteScriptAsync("document.querySelectorAll('video').forEach(v=>{v.pause();if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());});");}catch{}web.Navigate("about:blank");message.Text="تم تحرير جلسة Remote Play للتجربة. سجّل من Xbox، ثم افتح البث من المترجم لاستئنافه. تسجيل Microsoft محفوظ.";message.Visibility=Visibility.Visible;}
+    public async Task PauseForRecordingAsync(){if(closing||browser.CoreWebView2 is not {} web)return;RecordingPaused=true;try{await web.ExecuteScriptAsync("window.__arabicGamesDisconnect?.();document.querySelectorAll('video').forEach(v=>{v.pause();if(v.srcObject)v.srcObject.getTracks().forEach(t=>t.stop());});");}catch{}web.Navigate("about:blank");message.Text="تم تحرير جلسة Remote Play للتجربة. سجّل من Xbox، ثم افتح البث من المترجم لاستئنافه. تسجيل Microsoft محفوظ.";message.Visibility=Visibility.Visible;}
     public void ResumeAfterRecording(){if(!RecordingPaused||closing)return;RecordingPaused=false;message.Visibility=Visibility.Collapsed;browser.CoreWebView2?.Navigate("https://play.xbox.com/remoteplay");}
     private async Task Open()
     {
@@ -66,10 +66,15 @@ public sealed class XboxPlayerWindow : Window
         };
         await web.AddScriptToExecuteOnDocumentCreatedAsync("""
         (()=>{try {
+          if(typeof RTCPeerConnection==='function'){
+            const peers=new Set(),Native=window.RTCPeerConnection;
+            window.RTCPeerConnection=new Proxy(Native,{construct(target,args){const pc=Reflect.construct(target,args);peers.add(pc);pc.addEventListener('connectionstatechange',()=>{if(pc.connectionState==='closed')peers.delete(pc);});return pc;}});
+            window.__arabicGamesDisconnect=()=>{for(const pc of peers){try{pc.close();}catch(e){}}peers.clear();};
+          }
           Object.defineProperty(Document.prototype,'hidden',{configurable:true,get:()=>false});
           Object.defineProperty(Document.prototype,'visibilityState',{configurable:true,get:()=> 'visible'});
           const quiet=e=>{if(e.target===window||e.target===document)e.stopImmediatePropagation();};
-          for(const t of [window,document])for(const event of ['visibilitychange','blur','pagehide'])t.addEventListener(event,quiet,true);
+          for(const t of [window,document])for(const event of ['visibilitychange','blur'])t.addEventListener(event,quiet,true);
         }catch(e){}})();
         """);
         web.Navigate("https://play.xbox.com/remoteplay");
