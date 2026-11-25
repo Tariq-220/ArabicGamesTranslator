@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 namespace GameTranslator.Core;
 
-public enum ReadingAreaKind { Dialogue, Phone, Menu, Instructions }
+public enum ReadingAreaKind { Dialogue, Phone, Menu, Instructions, Notification }
 
 /// <summary>Source coordinates and output placement are independent; all coordinates are normalized.</summary>
 public sealed record ReadingArea(string Id, string Name, ReadingAreaKind Kind, CropRegion Source,
@@ -27,8 +27,9 @@ public sealed record ReadingArea(string Id, string Name, ReadingAreaKind Kind, C
         new(.12,.95,.40,.97),new(.12,.95,.08,.39),DurationMs:8000);
     public static ReadingArea Instructions() => new(Guid.NewGuid().ToString("N"),"هدف المهمة",ReadingAreaKind.Instructions,
         new(.935,.995,.10,.90),new(.84,.92,.10,.90),DurationMs:5000,Appearance:new(Font:"tajawal",Backdrop:"none",Align:"center",Accent:true));
+    public static ReadingArea Notification()=>new(Guid.NewGuid().ToString("N"),"تنبيه / رسالة واردة",ReadingAreaKind.Notification,new(.65,.99,.68,.99),new(.40,.73,.68,.99),DurationMs:6500);
     public static ReadingArea Menu() => new(Guid.NewGuid().ToString("N"),"القائمة",ReadingAreaKind.Menu,
-        new(.14,.86,.08,.47),new(.14,.86,.50,.90),DurationMs:6000);
+        new(.14,.86,.08,.47),new(.14,.86,.50,.90),Background:85,DurationMs:6000);
 }
 
 public sealed record AreaCaption(string Id, long Revision, string Text, CropRegion Output,

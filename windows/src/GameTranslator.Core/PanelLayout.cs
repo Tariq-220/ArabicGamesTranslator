@@ -11,8 +11,9 @@ public sealed record PanelLayout(int Width,int Height,string Kind,string? Image,
 /// <summary>Keep OCR geometry and measured colours. Never flatten unrelated messages into one sentence.</summary>
 public static class SpatialText
 {
-    public static PanelLayout Build(Frame frame,Reading reading,ReadingAreaKind kind)
+    public static PanelLayout Build(Frame frame,Reading reading,ReadingAreaKind kind,bool includeImage=true)
     {
+        bool phoneLike=kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification;
         var lines=reading.Lines.Where(l=>!string.IsNullOrWhiteSpace(l.Text)&&l.Box is not null)
             .OrderBy(l=>l.Box!.Value.Top).ThenBy(l=>l.Box!.Value.Left).Take(64).ToList();
         var groups=new List<List<TextLine>>();
@@ -26,11 +27,11 @@ public static class SpatialText
                     &&overlap>Math.Min(last.Right-last.Left,b.Right-b.Left)*.45
                     &&ColorDistance(Sample(frame,last),Sample(frame,b))<42
                     // Short menu entries remain separate; wrapped paragraphs and bubbles stay together.
-                    &&(kind==ReadingAreaKind.Phone||g[^1].Text.Length>36);
+                    &&(phoneLike||g[^1].Text.Length>36);
             });
             if(group is null)groups.Add([line]);else group.Add(line);
         }
-        var cells=new List<PanelCell>();var clean=new Frame((byte[])frame.Pixels.Clone(),frame.Width,frame.Height,frame.Stride);
+        var cells=new List<PanelCell>();Frame? clean=includeImage?new Frame((byte[])frame.Pixels.Clone(),frame.Width,frame.Height,frame.Stride):null;
         foreach(var g in groups.Take(24))
         {
             var b=g.Select(l=>l.Box!.Value).Aggregate((a,b)=>a.Union(b));
@@ -40,17 +41,24 @@ public static class SpatialText
             // Grow only into the surrounding margin, never into the neighbouring message.
             var pad=Math.Min(.012,medianH*.22);var box=new TextBox(Math.Max(0,b.Left-pad),Math.Max(0,b.Top-pad),Math.Min(1,b.Right+pad),Math.Min(1,b.Bottom+pad));
             var background=Hex(color);var foreground=color.Sum(x=>(int)x)>390&&!blue?"#20232A":"#FFFFFF";
-            var title=kind==ReadingAreaKind.Phone&&b.Top<.12&&g.Count==1;
-            cells.Add(new(text,"",box,background,foreground,medianH,kind==ReadingAreaKind.Phone&&!title,title));
-            Fill(clean,box,color); // Preserve avatars, dividers, badges and the phone's original panel; remove English ink.
+            var title=phoneLike&&b.Top<.12&&g.Count==1;
+            cells.Add(new(text,"",box,background,foreground,medianH,phoneLike&&!title,title));
+            if(clean is not null)Fill(clean,box,color); // Preserve avatars, dividers, badges and the phone's original panel; remove English ink.
         }
-        var image=kind==ReadingAreaKind.Phone?Png(clean):null;
-        return new(frame.Width,frame.Height,kind==ReadingAreaKind.Phone?"phone":"spatial",image,cells);
+        var image=phoneLike&&clean is not null?Png(clean):null;
+        return new(frame.Width,frame.Height,kind==ReadingAreaKind.Phone?"phone":kind==ReadingAreaKind.Notification?"notification":"spatial",image,cells);
     }
     // Phone screen search is confined to the selected ROI. Scenery outside it cannot become a phone.
-    public static CropRegion? FindPhone(Frame frame)
+    public static PanelLayout WithImage(Frame frame,PanelLayout panel){
+        var clean=new Frame((byte[])frame.Pixels.Clone(),frame.Width,frame.Height,frame.Stride);
+        foreach(var c in panel.Cells){var color=c.Background;Fill(clean,c.Box,[(byte)Convert.ToInt32(color[1..3],16),(byte)Convert.ToInt32(color[3..5],16),(byte)Convert.ToInt32(color[5..7],16)]);}
+        return panel with{Image=Png(clean)};
+    }
+    public static CropRegion? FindPhone(Frame frame)=>FindPanel(frame,true);
+    public static CropRegion? FindMessage(Frame frame)=>FindPanel(frame,false);
+    private static CropRegion? FindPanel(Frame frame,bool phone)
     {
-        if(frame.Width<90||frame.Height<150)return null;
+        if(frame.Width<90||frame.Height<(phone?150:60))return null;
         const int step=6;int w=frame.Width/step,h=frame.Height/step;var light=new bool[w*h];
         for(int y=0;y<h;y++)for(int x=0;x<w;x++){
             var c=Pixel(frame,x*step+step/2,y*step+step/2);var lo=c.Min();var hi=c.Max();light[y*w+x]=lo>125&&hi-lo<65;
@@ -64,7 +72,7 @@ public static class SpatialText
                 if(x>0)Add(i-1);if(x+1<w)Add(i+1);if(y>0)Add(i-w);if(y+1<h)Add(i+w);
             }
             var pw=(r-l+1)*step;var ph=(b-t+1)*step;
-            if(pw<frame.Width*.14||ph<frame.Height*.38||ph<pw*1.1||ph>pw*4.5||n<((r-l+1)*(b-t+1))*.38)continue;
+            if(phone?(pw<frame.Width*.14||ph<frame.Height*.38||ph<pw*1.1||ph>pw*4.5||n<((r-l+1)*(b-t+1))*.38):(pw<frame.Width*.4||ph<frame.Height*.14||ph>pw*.85||n<((r-l+1)*(b-t+1))*.65))continue;
             if(best is null||n>best.Value.Count)best=(l,t,r,b,n);
         }
         return best is {} a?new((double)a.T*step/frame.Height,(double)(a.B+1)*step/frame.Height,(double)a.L*step/frame.Width,(double)(a.R+1)*step/frame.Width):null;
@@ -89,7 +97,9 @@ public static class SpatialText
         using var output=new MemoryStream();output.Write(new byte[]{137,80,78,71,13,10,26,10});
         void Chunk(string name,byte[] data){var type=System.Text.Encoding.ASCII.GetBytes(name);Span<byte> n=stackalloc byte[4];BinaryPrimitives.WriteInt32BigEndian(n,data.Length);output.Write(n);output.Write(type);output.Write(data);uint crc=0xffffffff;foreach(var v in type.Concat(data)){crc^=v;for(int k=0;k<8;k++)crc=(crc&1)!=0?0xedb88320^(crc>>1):crc>>1;}BinaryPrimitives.WriteUInt32BigEndian(n,crc^0xffffffff);output.Write(n);}
         var header=new byte[13];BinaryPrimitives.WriteInt32BigEndian(header,w);BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4),h);header[8]=8;header[9]=2;Chunk("IHDR",header);
-        using var packed=new MemoryStream();using(var zip=new ZLibStream(packed,CompressionLevel.Fastest,true))for(int y=0;y<h;y++){zip.WriteByte(0);for(int x=0;x<w;x++){var c=Pixel(frame,(int)(x/ratio),(int)(y/ratio));zip.Write(c);}}
+        using var packed=new MemoryStream();using(var zip=new ZLibStream(packed,CompressionLevel.Fastest,true)){
+            var row=new byte[1+w*3];for(int y=0;y<h;y++){int offset=(int)(y/ratio)*frame.Stride;for(int x=0;x<w;x++){int i=offset+(int)(x/ratio)*4;row[1+x*3]=frame.Pixels[i+2];row[2+x*3]=frame.Pixels[i+1];row[3+x*3]=frame.Pixels[i];}zip.Write(row);}
+        }
         Chunk("IDAT",packed.ToArray());Chunk("IEND",[]);return Convert.ToBase64String(output.ToArray());
     }
 }

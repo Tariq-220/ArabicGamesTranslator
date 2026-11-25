@@ -111,15 +111,15 @@ def make_handler(engine, token):
                 if payload['source_lang'] != 'EN' or payload['target_lang'] != 'AR':
                     raise ValueError()
                 rows = payload['text']
-                if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], str) or not 1 <= len(rows[0]) <= 1200:
+                if not isinstance(rows, list) or not 1 <= len(rows) <= 4 or any(not isinstance(row, str) or not 1 <= len(row) <= 1200 for row in rows):
                     raise ValueError()
             except (ValueError, TypeError, KeyError, TimeoutError):
                 self.reply(400, {'error': 'request'}); return
             if not gate.acquire(timeout=5):
                 self.reply(503, {'error': 'busy'}); return
             try:
-                arabic = engine.translate(rows[0])
-                self.reply(200, {'translations': [{'text': arabic}]})
+                translated = [{'text': engine.translate(row)} for row in rows]
+                self.reply(200, {'translations': translated})
             except Exception:
                 self.reply(500, {'error': 'inference'})
             finally:

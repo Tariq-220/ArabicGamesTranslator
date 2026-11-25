@@ -24,6 +24,11 @@ class ServerTest(unittest.TestCase):
             self.assertEqual(401, request('wrong', body)[0])
             status, result = request('local-test-token', body)
             self.assertEqual(200, status); self.assertEqual('مرحبًا.', result['translations'][0]['text'])
+            body['text'] = ['First message.', 'Second message.']
+            status, result = request('local-test-token', body)
+            self.assertEqual(200, status); self.assertEqual(2, len(result['translations']))
+            body['text'] = ['x'] * 5; self.assertEqual(400, request('local-test-token', body)[0])
+            body['text'] = ['Hello.']
             body['target_lang'] = 'TR'; self.assertEqual(400, request('local-test-token', body)[0])
         finally:
             server.shutdown(); server.server_close(); thread.join()

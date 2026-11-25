@@ -8,6 +8,10 @@ namespace GameTranslator.Core;
 public interface ITextTranslator
 {
     Task<string> TranslateAsync(string text, CancellationToken cancellationToken = default);
+    int PreferredBatchSize=>24;
+    /// <summary>Independent spatial pieces; providers can batch transport without merging text.</summary>
+    async Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> texts,CancellationToken cancellationToken=default){var result=new List<string>();foreach(var text in texts)result.Add(await TranslateAsync(text,cancellationToken).ConfigureAwait(false));return result;}
+
 
     /// <summary>Independent conversational context for menus/phone; stateless engines may share themselves.</summary>
     ITextTranslator ForIndependentArea() => this;

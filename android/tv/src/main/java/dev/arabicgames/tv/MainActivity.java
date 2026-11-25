@@ -32,6 +32,7 @@ public final class MainActivity extends Activity {
  };
  private TvView.TvInputCallback videoCallbacks;
  private AreaCaptionLayer areaLayer;
+ private View earlyCover;
  private TvView tv;private LinearLayout panel,connectionPanel;private ScrollView panelWindow;
  private TextView subtitle,status,received,hdmiStatus;private Button menuHandle;private int swallowedKey=-1;private android.window.OnBackInvokedCallback backCallback;
  private EditText host,code;private Spinner input;private CheckBox desktop,audio;
@@ -194,6 +195,7 @@ public final class MainActivity extends Activity {
        if("subtitle".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->applyCaption(json,"بث لحظي"));}
        else if("areas-clear".equals(event)){post(generation,()->areaLayer.clearAll());}
        else if("area".equals(event)){JSONObject area=new JSONObject(data);post(generation,()->areaLayer.apply(area));}
+       else if("cover".equals(event)){JSONObject cover=new JSONObject(data);post(generation,()->showCover(cover.optJSONObject("box")));}
        else if("style".equals(event)){JSONObject style=new JSONObject(data);post(generation,()->{remoteStyle=style;appearance=style.optJSONObject("appearance");if(appearance==null)appearance=new JSONObject();sourcePlacement="cover".equals(style.optString("placement"));captionPositionKey="";applySubtitleStyle();});}
        else if("settings".equals(event)){post(generation,this::showPanel);}
        else if("clear".equals(event)){JSONObject json=new JSONObject(data);post(generation,()->applyClear(json.optLong("revision",0)));}event="";data="";
@@ -222,8 +224,10 @@ public final class MainActivity extends Activity {
   View parent=(View)subtitle.getParent();if(parent==null)return;int w=parent.getWidth(),h=parent.getHeight();if(w<1||h<1)return;
   JSONObject box=currentCaptionBox;double l=box==null?.1:box.optDouble("left",.1),t=box==null?.78:box.optDouble("top",.78),r=box==null?.9:box.optDouble("right",.9),b=box==null?.92:box.optDouble("bottom",.92);
   if(!Double.isFinite(l)||!Double.isFinite(t)||!Double.isFinite(r)||!Double.isFinite(b)||l<0||t<0||r>1||b>1||r<=l||b<=t)return;
-  int available=Math.max(dp(60),(int)((r-l)*w));subtitle.setMaxWidth(available);subtitle.setMaxHeight((int)(h*.4));
+  int available=Math.max(dp(60),(int)((r-l)*w));subtitle.setMinWidth(0);subtitle.setMinHeight(0);subtitle.setMaxWidth(available);subtitle.setMaxHeight((int)(h*.4));
   subtitle.measure(View.MeasureSpec.makeMeasureSpec(available,View.MeasureSpec.AT_MOST),View.MeasureSpec.makeMeasureSpec((int)(h*.4),View.MeasureSpec.AT_MOST));
+  String desiredPosition=appearance.optString("position","custom");
+  if("cover".equals(desiredPosition)&&appearance.optBoolean("coverMinimum",true)){subtitle.setMinWidth(available);subtitle.setMinHeight((int)((b-t)*h));subtitle.measure(View.MeasureSpec.makeMeasureSpec(available,View.MeasureSpec.AT_MOST),View.MeasureSpec.makeMeasureSpec((int)(h*.4),View.MeasureSpec.AT_MOST));}else{subtitle.setMinWidth(0);subtitle.setMinHeight(0);}
   int sw=subtitle.getMeasuredWidth(),sh=subtitle.getMeasuredHeight();String horizontal=appearance.optString("align","center"),vertical=appearance.optString("vertical","bottom");
   float x=(float)(l*w)+("left".equals(horizontal)?0:"right".equals(horizontal)?available-sw:(available-sw)/2f);
   String position=appearance.optString("position",customCaption?"custom":sourcePlacement?"cover":"custom");float y;
@@ -232,10 +236,12 @@ public final class MainActivity extends Activity {
   if(getPreferences(0).getBoolean("localCaptionPosition",false))y=h-sh-h*getPreferences(0).getInt("subtitleBottom",7)/100f;
   FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.LEFT);p.leftMargin=Math.round(Math.max(0,Math.min(w-sw,x)));p.topMargin=Math.round(Math.max(0,Math.min(h-sh,y)));subtitle.setLayoutParams(p);
  }
- private void applyClear(long revision){if(revision>0&&revision<acceptedRevision)return;acceptedRevision=Math.max(acceptedRevision,revision);if(SystemClock.uptimeMillis()<manualTestUntil)return;lastArabic="";ui.removeCallbacks(hide);hide.run();}
+ private void clearCover(){if(earlyCover!=null){((android.view.ViewGroup)earlyCover.getParent()).removeView(earlyCover);earlyCover=null;}}
+ private void showCover(JSONObject b){if(b==null)return;clearCover();FrameLayout root=(FrameLayout)subtitle.getParent();double l=b.optDouble("left",-1),t=b.optDouble("top",-1),r=b.optDouble("right",-1),bottom=b.optDouble("bottom",-1);if(l<0||t<0||r>1||bottom>1||r<=l||bottom<=t)return;View mask=new View(this);mask.setBackgroundColor(Color.BLACK);FrameLayout.LayoutParams p=new FrameLayout.LayoutParams((int)((r-l)*root.getWidth()),(int)((bottom-t)*root.getHeight()),Gravity.TOP|Gravity.LEFT);p.leftMargin=(int)(l*root.getWidth());p.topMargin=(int)(t*root.getHeight());root.addView(mask,p);earlyCover=mask;panelWindow.bringToFront();ui.postDelayed(()->{if(earlyCover==mask)clearCover();},5000);}
+ private void applyClear(long revision){if(revision>0&&revision<acceptedRevision)return;acceptedRevision=Math.max(acceptedRevision,revision);if(SystemClock.uptimeMillis()<manualTestUntil)return;lastArabic="";clearCover();ui.removeCallbacks(hide);hide.run();}
  private void testLocal(String text){manualTestUntil=SystemClock.uptimeMillis()+7000;show(text,7000);}
  private void post(int generation,Runnable action){ui.post(()->{if(!destroyed&&session==generation)action.run();});}
- private void show(String text,int ms){if(!android.text.TextUtils.equals(subtitle.getText(),text)){subtitle.setText(CaptionVisual.speaker(text,appearance));int fade=Math.max(0,Math.min(300,appearance.optInt("fadeMs",100)));subtitle.animate().cancel();if(fade>0){subtitle.setAlpha(0);subtitle.animate().alpha(1).setDuration(fade).start();}else subtitle.setAlpha(1);}layoutCaption();if(subtitle.getVisibility()!=View.VISIBLE)subtitle.setVisibility(View.VISIBLE);ui.removeCallbacks(hide);ui.postDelayed(hide,ms);}
+ private void show(String text,int ms){clearCover();if(!android.text.TextUtils.equals(subtitle.getText(),text)){subtitle.setText(CaptionVisual.speaker(text,appearance));int fade=Math.max(0,Math.min(300,appearance.optInt("fadeMs",100)));subtitle.animate().cancel();if(fade>0){subtitle.setAlpha(0);subtitle.animate().alpha(1).setDuration(fade).start();}else subtitle.setAlpha(1);}layoutCaption();if(subtitle.getVisibility()!=View.VISIBLE)subtitle.setVisibility(View.VISIBLE);ui.removeCallbacks(hide);ui.postDelayed(hide,ms);}
  private void applySubtitleStyle(){
   boolean local=getPreferences(0).getBoolean("localCaptionStyle",false);
   int opacity=local?getPreferences(0).getInt("subtitleOpacity",70):remoteStyle.optInt("background",72);

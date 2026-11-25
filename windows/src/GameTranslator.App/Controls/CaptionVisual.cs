@@ -39,7 +39,8 @@ public static class CaptionVisual
     }
     public static FrameworkElement Panel(PanelLayout panel,ReadingArea area)
     {
-        var canvas=new Canvas{Width=panel.Width,Height=panel.Height,ClipToBounds=true,Background=panel.Kind=="phone"?Brushes.White:Brushes.Transparent};
+        bool phone=panel.Kind is "phone" or "notification";
+        var canvas=new Canvas{Width=panel.Width,Height=panel.Height,ClipToBounds=true,Background=phone?Brushes.White:Brushes.Transparent};
         if(panel.Image is {Length:>0 and <1600000} encoded){try{using var stream=new MemoryStream(Convert.FromBase64String(encoded));var bmp=new BitmapImage();bmp.BeginInit();bmp.CacheOption=BitmapCacheOption.OnLoad;bmp.StreamSource=stream;bmp.EndInit();bmp.Freeze();canvas.Children.Add(new Image{Source=bmp,Width=panel.Width,Height=panel.Height,Stretch=Stretch.Fill});}catch(FormatException){}}
         foreach(var cell in panel.Cells)
         {
@@ -50,9 +51,9 @@ public static class CaptionVisual
                 FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=TextAlignment.Right,Foreground=Brush(cell.Foreground),FontSize=Math.Min(max,area.FontSize),Padding=new Thickness(3,0,3,0)};
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
-            var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=panel.Kind=="phone"?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
-            if(panel.Kind!="phone"&&area.Appearance?.Outline!=false)label.Effect=new DropShadowEffect{Color=Colors.Black,ShadowDepth=1,BlurRadius=3,Opacity=1};
-            if(panel.Kind!="phone")Decorate(block,area.Appearance??new(),area.Background,label.FontSize);
+            var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
+            if(!phone&&area.Appearance?.Outline!=false)label.Effect=new DropShadowEffect{Color=Colors.Black,ShadowDepth=1,BlurRadius=3,Opacity=1};
+            if(!phone)Decorate(block,area.Appearance??new(),area.Background,label.FontSize);
             Canvas.SetLeft(block,box.Left*panel.Width);Canvas.SetTop(block,box.Top*panel.Height);canvas.Children.Add(block);
         }
         return new Viewbox{Child=canvas,Stretch=Stretch.Uniform,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Top};

@@ -123,6 +123,25 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         return result;
     }
 
+    public async Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> texts,CancellationToken cancellationToken=default)
+    {
+        if(texts.Count is <1 or >24)throw new ArgumentException("Invalid spatial batch size.");
+        var result=new string[texts.Count];var missing=new List<int>();
+        for(int i=0;i<texts.Count;i++){if(_cache.TryGet(texts[i],out var hit))result[i]=hit;else missing.Add(i);}
+        if(missing.Count==0)return result;
+        if(now()<_pausedUntil){foreach(var i in missing)result[i]=await FallbackAsync(texts[i],cancellationToken).ConfigureAwait(false);return result;}
+        try{
+            var sources=missing.Select(i=>texts[i]).ToList();var context=Context()+"\nIndependent screen items (retain each item separately):\n"+string.Join("\n",sources);
+            var translated=await RequestAsync(sources,context,cancellationToken).ConfigureAwait(false);Report(null);
+            for(int n=0;n<missing.Count;n++){int i=missing[n];var value=validateArabic?ArabicGameNames.Localize(texts[i],translated[n]):translated[n];
+                result[i]=value;if(!validateArabic||ArabicOutputQuality.Accepts(texts[i],value))_cache.Store(texts[i],value);}
+            return result;
+        }catch(Exception error)when(error is HttpRequestException or TaskCanceledException or DeepLException&&!cancellationToken.IsCancellationRequested){
+            Report(error is DeepLException deepL?deepL.State:OnlineKeyState.Unreachable);_pausedUntil=now()+(error is DeepLException failed?failed.RetryDelay:TimeSpan.FromSeconds(2));
+            foreach(var i in missing)result[i]=await FallbackAsync(texts[i],cancellationToken).ConfigureAwait(false);return result;
+        }
+    }
+
     public ITextTranslator ForIndependentArea() => new DeepLTranslator(_key,_fallback,_http,cache:new TranslationCache(targetLanguage:validateArabic?"ar":null),
         modelType:_modelType,game:_game,rememberDialogue:false,validateArabic:validateArabic,clock:now);
 

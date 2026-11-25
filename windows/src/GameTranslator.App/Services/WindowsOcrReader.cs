@@ -44,7 +44,7 @@ public sealed class WindowsOcrReader : ITextReader
     /// Kare hem olduğu gibi hem de yalnız beyaz yazısı bırakılarak okunur; daha sözcüğe benzeyen okuma seçilir.
     /// Parlak sahnelerde ikincisi, renkli altyazılarda birincisi kazanır.
     /// </summary>
-    public Reading ReadSpatial(Frame image) => RecognizeOnce(image);
+    public Reading ReadSpatial(Frame image){if(image.Width<1||image.Height<1)return Reading.Empty;int factor=Math.Max(1,(int)Math.Ceiling(40d/Math.Min(image.Width,image.Height)));return factor>4?Reading.Empty:RecognizeOnce(factor>1?image.Scaled(factor):image);}
 
     private Reading Recognize(Frame image)
     {

@@ -5,7 +5,7 @@ android {
  buildFeatures { buildConfig true }
  signingConfigs { debug { enableV1Signing true; enableV2Signing true } }
  sourceSets { main.java.srcDir '../shared/src/main/java' }
- defaultConfig { applicationId 'dev.arabicgames.tv'; minSdk 26; targetSdk 35; versionCode 28; versionName '0.4.0' }
+ defaultConfig { applicationId 'dev.arabicgames.tv'; minSdk 26; targetSdk 35; versionCode 29; versionName '0.4.1' }
  buildTypes {
   debug { debuggable false; jniDebuggable false }
   release { debuggable false; jniDebuggable false; minifyEnabled false; signingConfig signingConfigs.debug }
@@ -13,7 +13,7 @@ android {
  testOptions { unitTests.includeAndroidResources = true
   unitTests.all {
    maxHeapSize = '1g'
-   systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
+   systemProperty 'robolectric.dependency.repo.url', System.getenv('ROBOLECTRIC_REPO') ?: 'https://repo.maven.apache.org/maven2'
    ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort','javax.net.ssl.trustStore'].each { key -> if(System.getProperty(key)) systemProperty key,System.getProperty(key) }
   }
  }

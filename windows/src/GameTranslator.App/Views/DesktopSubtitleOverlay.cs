@@ -34,6 +34,7 @@ public sealed class DesktopSubtitleOverlay : Window
         var bounds=CaptionBounds;var a=(style.Appearance??new()).Validate();double size=Math.Clamp(style.FontSize*bounds.Width/1920,14,64);
         var b=box??new GameTranslator.Core.TextBox(.1,.74,.9,.9);
         var visual=CaptionVisual.Text(text,a,size,style.Background,style.Bold);visual.MaxWidth=Math.Max(100,(b.Right-b.Left)*bounds.Width);visual.Measure(new Size(visual.MaxWidth,double.PositiveInfinity));
+        if(a.Position=="cover"&&a.CoverMinimum){visual.MinWidth=(b.Right-b.Left)*bounds.Width;visual.MinHeight=(b.Bottom-b.Top)*bounds.Height;visual.Measure(new Size(visual.MaxWidth,double.PositiveInfinity));}
         var width=Math.Min(visual.MaxWidth,visual.DesiredSize.Width);var height=visual.DesiredSize.Height;
         Content=visual;
         double x=b.Left*bounds.Width,y=b.Top*bounds.Height,availableW=(b.Right-b.Left)*bounds.Width,availableH=(b.Bottom-b.Top)*bounds.Height;
@@ -41,6 +42,9 @@ public sealed class DesktopSubtitleOverlay : Window
         y=a.Position switch{"above"=>y-height-6,"below"=>b.Bottom*bounds.Height+6,"cover"=>y+(availableH-height)/2,_=>y+(a.Vertical=="top"?0:a.Vertical=="center"?(availableH-height)/2:availableH-height)};
         Left=dragged?.X??bounds.Left+Math.Clamp(x,0,Math.Max(0,bounds.Width-width));Top=dragged?.Y??bounds.Top+Math.Clamp(y,0,Math.Max(0,bounds.Height-height));
         Show();if(a.FadeMs>0)visual.BeginAnimation(UIElement.OpacityProperty,new System.Windows.Media.Animation.DoubleAnimation(0,1,TimeSpan.FromMilliseconds(a.FadeMs)));timer.Stop();timer.Interval=TimeSpan.FromMilliseconds(Math.Max(250,duration));timer.Start();
+    }
+    public static void Cover(GameTranslator.Core.TextBox box){
+        if(!enabled||Application.Current is not {} app)return;app.Dispatcher.BeginInvoke(()=>{instance??=new();var bounds=CaptionBounds;instance.Content=new Border{Width=Math.Max(1,(box.Right-box.Left)*bounds.Width),Height=Math.Max(1,(box.Bottom-box.Top)*bounds.Height),Background=Brushes.Black};instance.Left=bounds.Left+box.Left*bounds.Width;instance.Top=bounds.Top+box.Top*bounds.Height;instance.Show();instance.timer.Stop();instance.timer.Interval=TimeSpan.FromSeconds(5);instance.timer.Start();});
     }
     public static void Clear(){Application.Current?.Dispatcher.BeginInvoke(()=>{instance?.timer.Stop();instance?.Hide();});}
     public static void ResetPosition(){dragged=null;}

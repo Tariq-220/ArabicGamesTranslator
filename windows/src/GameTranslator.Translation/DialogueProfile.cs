@@ -72,6 +72,11 @@ public sealed class ProfileTranslator(ITextTranslator inner,string game,Action<s
   if(validateArabic&&!ArabicOutputQuality.Accepts(text,result)){rejectedSource=text;retryAfter=DateTimeOffset.UtcNow.AddSeconds(3);rejected?.Invoke(text,result);throw new TranslatorException(TranslatorStatus.EngineFailed);}
   return result;
  }
+ public async Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> texts,CancellationToken token=default){
+  var results=await inner.TranslateManyAsync(texts,token).ConfigureAwait(false);if(results.Count!=texts.Count)throw new TranslatorException(TranslatorStatus.EngineFailed);
+  return texts.Select((source,i)=>{var result=CommunityCorrections.Improve(game,source,DialogueProfile.Arabic(source,results[i],game));if(validateArabic)result=ArabicGameNames.Localize(source,result);if(validateArabic&&!ArabicOutputQuality.Accepts(source,result)){rejected?.Invoke(source,result);return "";}return result;}).ToArray();
+ }
+ public int PreferredBatchSize=>inner.PreferredBatchSize;
  public bool Prefetches=>inner.Prefetches;
  public void Prefetch(string text)=>inner.Prefetch(text);
  public IReadOnlyList<GameTranslator.Core.Dubbing.SpokenLine> SpokenLines(string text)=>inner.SpokenLines(text);

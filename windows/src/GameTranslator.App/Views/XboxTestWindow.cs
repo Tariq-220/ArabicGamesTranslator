@@ -254,7 +254,7 @@ public sealed class XboxTestWindow : Window
         };
         controller.AreasCleared+=AreaOverlayWindow.ClearAll;
         controller.AreaCaptionShown+=AreaOverlayWindow.Apply;
-        controller.LiveSubtitleShown += overlay;
+        controller.LiveSubtitleShown += overlay;controller.LiveCoverShown+=DesktopSubtitleOverlay.Cover;
         controller.SubtitlesCleared += DesktopSubtitleOverlay.Clear;
         controller.PropertyChanged += Changed;
         start.Click += async (_, _) =>
@@ -290,7 +290,7 @@ public sealed class XboxTestWindow : Window
             updateCancel.Cancel();
             controller.AreasCleared-=AreaOverlayWindow.ClearAll;
             controller.AreaCaptionShown-=AreaOverlayWindow.Apply;AreaOverlayWindow.ClearAll();
-            controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
+            controller.LiveCoverShown-=DesktopSubtitleOverlay.Cover;controller.LiveSubtitleShown -= overlay; controller.SubtitlesCleared -= DesktopSubtitleOverlay.Clear;
             controller.PropertyChanged -= Changed; DesktopSubtitleOverlay.Clear(); controller.Dispose(); comparison.DisposeAsync().AsTask().GetAwaiter().GetResult();
         };
         RefreshWindows();

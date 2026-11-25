@@ -12,14 +12,15 @@ public sealed class ReadingAreaSession : IDisposable
         public readonly ITextReader Reader=reader;
         public string Candidate="", Sent="", LastResult="";
         public long Since, Seen, ReadAt=long.MinValue/2, Revision;
-        public bool Busy, Visible;
-        public PanelLayout? Panel;
+        public bool Busy, Visible;public long RetryAt;public int Failures;
+        public PanelLayout? Panel;public Frame? PanelFrame;
         public readonly Dictionary<string,string> Cache=new(StringComparer.Ordinal);
     }
     private readonly object gate=new();
     private readonly List<State> states;
     private readonly ITextTranslator translator;
     private readonly Func<long> now;
+    private readonly Func<string,string?>? reviewed;
     private readonly CancellationTokenSource lifetime=new();
     private int cursor, processing;
     private bool disposed;
@@ -27,9 +28,9 @@ public sealed class ReadingAreaSession : IDisposable
     public event Action<string,string>? Failed;
 
     public ReadingAreaSession(IEnumerable<ReadingArea> areas, Func<ITextReader> makeReader,
-        ITextTranslator translator, Func<long>? clock=null)
+        ITextTranslator translator, Func<long>? clock=null,Func<string,string?>? reviewedLookup=null)
     {
-        this.translator=translator;now=clock??(()=>Environment.TickCount64);
+        this.translator=translator;reviewed=reviewedLookup;now=clock??(()=>Environment.TickCount64);
         states=areas.Where(a=>a.Enabled&&a.Kind!=ReadingAreaKind.Dialogue).Take(8)
             .GroupBy(a=>a.Id,StringComparer.Ordinal).Select(g=>new State(g.First().Validate(),makeReader())).ToList();
     }
@@ -56,17 +57,18 @@ public sealed class ReadingAreaSession : IDisposable
             var crop=frame.Crop((int)(source.Left*frame.Width),(int)(source.Top*frame.Height),
                 Math.Max(1,(int)((source.Right-source.Left)*frame.Width)),Math.Max(1,(int)((source.Bottom-source.Top)*frame.Height)));
             if(s.Area.Kind==ReadingAreaKind.Phone&&SpatialText.FindPhone(crop) is {} phone)crop=RegionCropper.Crop(crop,phone);
+            if(s.Area.Kind==ReadingAreaKind.Notification&&SpatialText.FindMessage(crop) is {} message)crop=RegionCropper.Crop(crop,message);
             var reading=await Task.Run(()=>s.Reader.ReadSpatial(crop),lifetime.Token).ConfigureAwait(false);
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
-            var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind):null;
-            Observe(s,reading.Text.Trim(),panel);
+            var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind,includeImage:false):null;
+            Observe(s,reading.Text.Trim(),panel,crop);
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke("ocr",error.GetType().Name);}
         finally { Volatile.Write(ref processing,0); }
     }
 
-    private void Observe(State s,string text,PanelLayout? panel)
+    private void Observe(State s,string text,PanelLayout? panel,Frame frame)
     {
         AreaCaption? clear=null;bool start=false;
         lock(gate)
@@ -79,10 +81,10 @@ public sealed class ReadingAreaSession : IDisposable
             }
             else
             {
-                s.Seen=at;s.Panel=panel;
+                s.Seen=at;s.Panel=panel;s.PanelFrame=frame;
                 if(!TextMatch.IsSimilar(TextMatch.Normalize(text),TextMatch.Normalize(s.Candidate),.94))
-                {s.Candidate=text;s.Since=at;}
-                if(at-s.Since>=120&&s.Candidate!=s.Sent&&!s.Busy){s.Busy=true;start=true;}
+                {s.Candidate=text;s.Since=at;s.RetryAt=0;s.Failures=0;}
+                if(at-s.Since>=120&&s.Candidate!=s.Sent&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
             }
         }
         if(clear is not null)Caption?.Invoke(clear);
@@ -91,34 +93,41 @@ public sealed class ReadingAreaSession : IDisposable
 
     private async Task Translate(State s)
     {
-        string source;long revision;PanelLayout? panel;
-        lock(gate){if(disposed){s.Busy=false;return;}source=s.Candidate;panel=s.Panel;revision=++s.Revision;}
+        string source;long revision;PanelLayout? panel;Frame? frame;
+        lock(gate){if(disposed){s.Busy=false;return;}source=s.Candidate;panel=s.Panel;frame=s.PanelFrame;revision=++s.Revision;}
         try
         {
             async Task<string> Piece(string text){
                 string? hit;lock(gate)s.Cache.TryGetValue(text,out hit);if(hit is not null)return hit;
-                var translated=await translator.TranslateAsync(text,lifetime.Token).ConfigureAwait(false);
+                var translated=s.Area.Appearance?.ReviewedOnly==true?reviewed?.Invoke(text)??throw new TranslatorException(TranslatorStatus.EngineFailed):await translator.TranslateAsync(text,lifetime.Token).ConfigureAwait(false);
                 lock(gate){if(s.Cache.Count>=128)s.Cache.Clear();s.Cache[text]=translated;}return translated;
             }
             string result;
             if(panel is {Cells.Count:>0}){
+                var missing=panel.Cells.Select(c=>c.Source).Distinct(StringComparer.Ordinal).Where(t=>{lock(gate)return !s.Cache.ContainsKey(t);}).ToArray();
+                if(missing.Length>0&&s.Area.Appearance?.ReviewedOnly!=true){
+                    var values=await translator.TranslateManyAsync(missing,lifetime.Token).ConfigureAwait(false);if(values.Count!=missing.Length)throw new TranslatorException(TranslatorStatus.EngineFailed);
+                    lock(gate)for(int i=0;i<missing.Length;i++)if(!string.IsNullOrWhiteSpace(values[i]))s.Cache[missing[i]]=values[i];
+                }
                 var cells=new List<PanelCell>();
                 foreach(var cell in panel.Cells){
                     lifetime.Token.ThrowIfCancellationRequested();
                     lock(gate){if(disposed||s.Candidate!=source)return;}
-                    try{cells.Add(cell with{Text=await Piece(cell.Source).ConfigureAwait(false)});}
+                    try{if(s.Area.Appearance?.ReviewedOnly==true)cells.Add(cell with{Text=await Piece(cell.Source).ConfigureAwait(false)});else{string? translated;lock(gate)s.Cache.TryGetValue(cell.Source,out translated);cells.Add(cell with{Text=translated??""});}}
                     catch(TranslatorException error){Failed?.Invoke(s.Area.Id,error.GetType().Name);cells.Add(cell);}
                 }
-                panel=panel with{Cells=cells};result=string.Join("\n",cells.Select(c=>c.Text));
+                panel=panel with{Cells=cells};if(frame is not null&&panel.Kind is "phone" or "notification")panel=SpatialText.WithImage(frame,panel);result=string.Join("\n",cells.Select(c=>c.Text));
             }else result=await Piece(source).ConfigureAwait(false);
             AreaCaption? caption=null;
             lock(gate)
             {
                 if(disposed||s.Revision!=revision||s.Candidate!=source||now()-s.Seen>1000)return;
-                if(s.Cache.Count>=128)s.Cache.Clear();s.Cache[source]=result;
-                s.Sent=source;s.LastResult=result;s.Visible=true;caption=Make(s,result) with{Panel=panel};
+                if(s.Cache.Count>=128)s.Cache.Clear();if(panel is null&&!string.IsNullOrWhiteSpace(result))s.Cache[source]=result;
+                var partial=panel is not null&&panel.Cells.Any(c=>string.IsNullOrWhiteSpace(c.Text));
+                if(partial&&s.Failures++<2){s.Sent="";s.RetryAt=now()+2500;}else s.Sent=source;
+                if(!string.IsNullOrWhiteSpace(result)&&result!=s.LastResult){s.LastResult=result;s.Visible=true;caption=Make(s,result) with{Panel=panel};}
             }
-            Caption?.Invoke(caption);
+            if(caption is not null)Caption?.Invoke(caption);
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke(s.Area.Id,error.GetType().Name);}

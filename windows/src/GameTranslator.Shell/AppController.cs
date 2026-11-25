@@ -94,6 +94,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var ready = accountId is not null && console is not null && tv is not null && store.Load<string>(StoreKeys.TvKey) is not null;
         step = OnboardingStep.Done;
         server.ClientsChanged += OnClientsChanged;
+        server.CoverRequested+=box=>post(()=>LiveCoverShown?.Invoke(box));
         _ = Task.Run(async () =>
         {
             try { await StartServerAsync(); } catch { }
@@ -185,7 +186,9 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             if (!Set(ref settings, value)) return;
             settingsStore.Save(value);
             if(ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",value.Region);
+            server.DialogueAnchor=new TextBox(settings.Region.Left,settings.Region.Top,settings.Region.Right,settings.Region.Bottom);
             server.SendStyle(PresentationStyle);
+            if(pipeline is not null){var a=settings.Style.Appearance??new();pipeline.ReviewedOnly=a.ReviewedOnly;pipeline.StackUp=a.StackUp;pipeline.CenterOnly=a.CenterOnly;}
             if (old.Dubbing != value.Dubbing) DubbingSettingsChanged(old.Dubbing);
             if (isRunning && (old.SourceLanguage != value.SourceLanguage || old.TargetLanguage != value.TargetLanguage
                               || old.OnlineTranslation != value.OnlineTranslation || old.Engine != value.Engine))
@@ -657,6 +660,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     /// <summary>Canlı çeviri metni bilgisayar ekranında da (overlay) gösterilsin diye tetiklenir (metin, süre ms, kutu koordinatı).</summary>
     public event Action<string, int, TextBox?>? LiveSubtitleShown;
+    public event Action<TextBox>? LiveCoverShown;
 
     /// <summary>Son altyazının algılandığı normalize ekran koordinatı kutusu.</summary>
     public TextBox? LastSubtitleBox => lastSubtitleBox;
@@ -1010,9 +1014,12 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public void PrepareRebuildAreas()
     {
-        if(settings.Style.Appearance is null)Settings=settings with{Style=settings.Style with{Appearance=new(Position:"above"),Background=72}};
+        if(settings.Style.Appearance is null){
+            var r=settings.Region;if(Math.Abs(r.Top-.8)<.001&&Math.Abs(r.Bottom-.918)<.001)r=r with{Bottom=.97};
+            Settings=settings with{Region=r,Style=settings.Style with{Appearance=new(Position:"above"),Background=72}};
+        }
         if(store.Load<bool>("v024-rebuild-areas"))return;
-        Settings=settings with{Region=new(.80,.918,.10,.90),Style=settings.Style with{FontSize=32,Background=0,StackPrevious=false}};
+        Settings=settings with{Region=new(.80,.97,.10,.90),Style=settings.Style with{FontSize=32,Background=72,StackPrevious=false}};
         DialogueOutput=new(.65,.83,.10,.90);
         store.Save("v024-rebuild-areas",true);
     }
@@ -1029,7 +1036,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var enabled=ReadingAreas.Where(a=>a.Enabled).ToList();
         if(enabled.Count==0)return;
         var current=new ReadingAreaSession(enabled,()=>services.MakeReader(settings.SourceLanguage) ?? throw new InvalidOperationException("OCR unavailable"),
-            new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false));
+            new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false),reviewedLookup:text=>CommunityCorrections.Find(DialogueGame,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,DialogueGame):null));
         current.Caption+=caption=>{if(!ReferenceEquals(areaSession,current))return;server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
         areaSession=current;
     }
@@ -1038,6 +1045,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     {
         pipeline?.Reset();
         pipeline = null;
+        server.DialogueAnchor=new TextBox(settings.Region.Left,settings.Region.Top,settings.Region.Right,settings.Region.Bottom);
         var output=DialogueOutput;server.DialogueOutput=new TextBox(output.Left,output.Top,output.Right,output.Bottom);
         ActiveSourceLanguage = settings.SourceLanguage;
         var reader = services.MakeReader(settings.SourceLanguage);
@@ -1049,6 +1057,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode,FasterPresentation);
+        var presentation=settings.Style.Appearance??new();built.ReviewedOnly=presentation.ReviewedOnly;built.StackUp=presentation.StackUp;built.CenterOnly=presentation.CenterOnly;
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>{
             var reviewed=CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
@@ -1061,7 +1070,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         built.PairShown += (source, translation) =>
         {
             var outputArea=DialogueOutput;
-            TextBox? box = (settings.Style.Appearance?.Position??"custom")=="custom"?new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom):built.LastBox;
+            TextBox? box = (settings.Style.Appearance?.Position??"custom")=="custom"?new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom):settings.Style.Appearance?.Ride==false?new TextBox(settings.Region.Left,settings.Region.Top,settings.Region.Right,settings.Region.Bottom):built.LastBox;
             var ms = RegionTranslation.DisplayMilliseconds(translation);
             post(() =>
             {

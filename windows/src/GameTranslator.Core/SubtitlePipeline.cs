@@ -19,6 +19,9 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public const int MaxWaiting = 2;
     public int PendingLineLimit { get; set; } = MaxWaiting;
     public bool DropOffscreenResults {get;set;}
+    public bool ReviewedOnly {get;set;}
+    public bool StackUp {get;set;}
+    public bool CenterOnly {get;set;}
     public int MinimumDisplayMs {get;set;}
     private long lastPresentedAt=long.MinValue/2;
     public int MinimumStableMs {get=>stabilizer.MinimumStableMs;set=>stabilizer.MinimumStableMs=Math.Max(0,value); }
@@ -168,6 +171,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     /// <param name="capturedAt">Karenin geldiği an (aynı saatle); verilmezse şimdi. Gecikme bu andan ölçülür.</param>
     public async Task ProcessAsync(Frame frame, CropRegion region, long? capturedAt = null)
     {
+        var anchorRegion=region;
+        if(StackUp)region=region with{Top=Math.Max(0,region.Top-.22)};
         var captured = capturedAt ?? now();
         lock (gate)
         {
@@ -210,6 +215,9 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         if(DialogueBlockOnly)filtered=SpeakerMerge.AttachStandaloneLabels(filtered);
         var reading = DialogueBlockOnly?filtered.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area):filtered.WithoutOcrNoise();
 
+        if(StackUp&&reading.Box is {} anchored&&anchored.PlacedIn(area).Bottom<anchorRegion.Top)reading=Reading.Empty;
+        if(CenterOnly&&reading.Box is {} middle&&Math.Abs((middle.PlacedIn(area).Left+middle.PlacedIn(area).Right)/2-.5)>.18)reading=Reading.Empty;
+        if(sender is ISubtitleCoverSender cover&&reading.Box is {} coverBox&&!string.IsNullOrWhiteSpace(reading.Text))cover.Cover(reading.Text,coverBox.PlacedIn(area));
         if(SourceFilter is { } filter)reading=new Reading(reading.Lines.Select(line=>line with {Text=filter(line.Text)}));
         Action? after = null;
         Action? flushed = null;
@@ -498,6 +506,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         lastSent = (source, ReadingScore(source), now());
         if(ReviewedLookup?.Invoke(source) is { } reviewed)return ShowPacked(request,new PackMatch(reviewed,[]));
         if (PackLookup?.Invoke(source) is { } packed) return ShowPacked(request, packed);
+        if(ReviewedOnly){LineDiscarded?.Invoke(source,"reviewed_only_no_match");return null;}
         var missed = PackMissed;
         if (inFlight is not { } current)
         {

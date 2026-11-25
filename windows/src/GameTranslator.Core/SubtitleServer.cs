@@ -85,7 +85,9 @@ public sealed record SubtitleEvent(SubtitleEventKind Kind, string Text = "", int
 /// TV uygulamasının bağlandığı yerel Server-Sent Events sunucusu.
 /// <c>GET /events</c> akışında <c>subtitle</c>, <c>clear</c> ve <c>style</c> olaylarını yayınlar.
 /// </summary>
-public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = null) : ISubtitleSender, IDisposable
+public interface ISubtitleCoverSender { void Cover(string source,TextBox box); }
+
+public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = null) : ISubtitleSender, ISubtitleCoverSender, IDisposable
 {
     private sealed class Client(TcpClient tcp, bool viewer = false)
     {
@@ -191,10 +193,18 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
 
     /// <param name="paragraphs">true ise metin satır satır, sola yaslı gösterilir (görev paneli gibi başlık ve maddeli yazılar).</param>
     /// <param name="replaces">TV satırı öncekinin üstüne yığmaz, yerine koyar (<c>replace</c> alanı; eski TV uygulamaları yok sayar).</param>
+    public event Action<TextBox>? CoverRequested;
+    private string coverSource="";
+    public void Cover(string source,TextBox box){
+        var a=lastStyle?.Appearance;if(a?.CoverEarly!=true||a.Position!="cover"||coverSource==source)return;
+        coverSource=source;Broadcast(Frame("cover",new SortedDictionary<string,object>{["box"]=BoxJson(box)}));CoverRequested?.Invoke(box);
+    }
+    public TextBox? DialogueAnchor {get;set;}
     public TextBox? DialogueOutput {get;set;}
     public void SendSubtitle(string text, int durationMs = 15000, TextBox? box = null, bool paragraphs = false, bool replaces = false)
     {
         if(DialogueOutput is {} output && (lastStyle?.Appearance?.Position??"custom")=="custom"){box=output;}
+        if(lastStyle?.Appearance is {Ride:false,Position:"above"}&&DialogueAnchor is {} anchor)box=anchor;
         var json = new SortedDictionary<string, object>
         {
             ["at"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
@@ -216,6 +226,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
 
     public void Clear()
     {
+        coverSource="";
         Broadcast(Frame("clear", new SortedDictionary<string, object>()), subtitle: true);
         EventSent?.Invoke(SubtitleEvent.Cleared);
     }

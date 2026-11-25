@@ -15,5 +15,11 @@ public class CaptionPresentationTests
   Assert.Empty(SpeakerMerge.AttachStandaloneLabels(new Reading([new("Jason:",new(.1,.2,.2,.3))])).Lines);
   Assert.True(SpeakerMerge.HasBody(r));Assert.False(SpeakerMerge.HasBody(new Reading([new("Tourist:")])));
  }
+ [Fact] public void EarlyCoverIsExplicitAndCannotTurnOnForTransparentAboveMode(){
+  using var server=new SubtitleServer();var boxes=new List<GameTranslator.Core.TextBox>();server.CoverRequested+=boxes.Add;var box=new GameTranslator.Core.TextBox(.2,.8,.8,.9);
+  server.SendStyle(new(Appearance:new(Position:"above",CoverEarly:true)));server.Cover("Hello",box);Assert.Empty(boxes);
+  server.SendStyle(new(Appearance:new(Position:"cover",CoverEarly:true)));server.Cover("Hello",box);server.Cover("Hello",box);Assert.Single(boxes);Assert.Equal(box,boxes[0]);
+ }
+ [Fact] public void InstructionsHaveAnOptionalViceCityFrameAndDistinctSourceOutputNumbers(){var a=ReadingArea.Instructions().Validate();Assert.True(a.Appearance!.Accent);Assert.Equal("tajawal",a.Appearance.Font);Assert.NotEqual(a.Source,a.Output);Assert.True(a.Source.Top>a.Output.Top);}
  private static void Fill(Frame f,int x,int y,int width,int height,byte r,byte g,byte b){for(int yy=y;yy<y+height;yy++)for(int xx=x;xx<x+width;xx++){int i=yy*f.Stride+xx*4;f.Pixels[i]=b;f.Pixels[i+1]=g;f.Pixels[i+2]=r;f.Pixels[i+3]=255;}}
 }

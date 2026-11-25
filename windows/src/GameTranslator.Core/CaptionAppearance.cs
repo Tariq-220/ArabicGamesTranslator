@@ -6,7 +6,7 @@ namespace GameTranslator.Core;
 /// <summary>Portable rendering settings. Same identifiers are understood by desktop and TV.</summary>
 public sealed record CaptionAppearance(string Font="noto", string Backdrop="game", string Align="center",
     string Vertical="bottom", string Position="custom", bool MatchSize=true, bool SpeakerColors=true,
-    string SpeakerColor="auto", bool Outline=true, int FadeMs=100, bool Accent=false)
+    string SpeakerColor="auto", bool Outline=true, int FadeMs=100, bool Accent=false, bool CoverMinimum=true, bool CoverEarly=false, bool StackUp=false, bool Ride=true, bool ReviewedOnly=false, bool CenterOnly=false)
 {
     public CaptionAppearance Validate()=>this with {
         Font=Fonts.Contains(Font)?Font:"noto", Backdrop=Backdrops.Contains(Backdrop)?Backdrop:"game",
