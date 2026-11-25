@@ -6,7 +6,7 @@ namespace GameTranslator.Core;
 /// A failed translation is an error, never an English caption or an invented replacement.</summary>
 public static partial class ArabicOutputQuality
 {
-    private static readonly HashSet<string> Acronyms=new(["FIB","IAA","FPS","XP","PSN","DLC","HUD","GTA","TV","USB","HDMI","A","B","X","Y","LB","RB","LT","RT","ESC","ENTER","TAB"],StringComparer.Ordinal);
+    private static readonly HashSet<string> Acronyms=new(["FIB","IAA","FPS","XP","PSN","DLC","HUD","GTA","TV","USB","HDMI","LB","RB","LT","RT","ESC","ENTER","TAB"],StringComparer.Ordinal);
     public static string DialogueInput(string text)
     {
         var result=new System.Text.StringBuilder();
@@ -32,7 +32,8 @@ public static partial class ArabicOutputQuality
         foreach (Match match in Latin().Matches(translated))
         {
             var word = match.Value;
-            var code = Acronyms.Contains(word) || Regex.IsMatch(word,@"^[A-Z]{1,5}[0-9]{1,4}$",RegexOptions.CultureInvariant);
+            var button = word is "A" or "B" or "X" or "Y" && Regex.IsMatch(source,@"\b(?:press|hold|tap|back|select|confirm|cancel|zoom|scroll|rotate|recenter|open|close|next|previous)\b",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant);
+            var code = button || Acronyms.Contains(word) || Regex.IsMatch(word,@"^[A-Z]{1,5}[0-9]{1,4}$",RegexOptions.CultureInvariant);
             if (!code || !SourceWord(source, word)) return false;
         }
         return arabic >= letters.Length * .55;
