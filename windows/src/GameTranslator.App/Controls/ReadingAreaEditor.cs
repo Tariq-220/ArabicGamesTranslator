@@ -66,7 +66,7 @@ Coordinates(settings,"source","منطقة القراءة · %");Coordinates(sett
         demo.Checked+=(_,_)=>Render();demo.Unchecked+=(_,_)=>Render();sample.TextChanged+=(_,_)=>Render();
         canvas.MouseLeftButtonDown+=(_,e)=>{Begin(e.GetPosition(canvas));if(dragging)canvas.CaptureMouse();e.Handled=true;};canvas.MouseMove+=(_,e)=>{if(dragging)Move(e.GetPosition(canvas));};canvas.MouseLeftButtonUp+=(_,e)=>{End();canvas.ReleaseMouseCapture();};canvas.LostMouseCapture+=(_,_)=>End();
         canvas.TouchDown+=(_,e)=>{Begin(e.GetTouchPoint(canvas).Position);if(dragging)e.TouchDevice.Capture(canvas);e.Handled=true;};canvas.TouchMove+=(_,e)=>{if(dragging)Move(e.GetTouchPoint(canvas).Position);e.Handled=true;};canvas.TouchUp+=(_,e)=>{End();e.TouchDevice.Capture(null);e.Handled=true;};
-        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};frames.Tick+=(_,_)=>Refresh();Loaded+=(_,_)=>{frames.Start();if(!subscribed){subscribed=true;controller.AreaCaptionShown+=LiveArea;controller.LiveSubtitleShown+=LiveDialogue;controller.AreasCleared+=ClearLive;}};Unloaded+=(_,_)=>{frames.Stop();if(subscribed){subscribed=false;controller.AreaCaptionShown-=LiveArea;controller.LiveSubtitleShown-=LiveDialogue;controller.AreasCleared-=ClearLive;}if(saveTimer.IsEnabled){saveTimer.Stop();Save();}};
+        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};frames.Tick+=(_,_)=>Refresh();Loaded+=(_,_)=>{frames.Start();if(!subscribed){subscribed=true;controller.AreaCaptionShown+=LiveArea;controller.LiveSubtitleShown+=LiveDialogue;controller.SubtitlesCleared+=ClearDialogue;controller.AreasCleared+=ClearLive;}};Unloaded+=(_,_)=>{frames.Stop();if(subscribed){subscribed=false;controller.AreaCaptionShown-=LiveArea;controller.LiveSubtitleShown-=LiveDialogue;controller.SubtitlesCleared-=ClearDialogue;controller.AreasCleared-=ClearLive;}if(saveTimer.IsEnabled){saveTimer.Stop();Save();}};
         Rebuild(0);
     }
     private static InputBox Input()=>new(){MinHeight=34,Margin=new Thickness(2),Background=new SolidColorBrush(Color.FromRgb(28,32,44)),Foreground=Brushes.White,Padding=new Thickness(5)};
@@ -91,6 +91,7 @@ Coordinates(settings,"source","منطقة القراءة · %");Coordinates(sett
     private void FirstLive(){if(receivedLive)return;receivedLive=true;demo.IsChecked=false;}
     private void LiveArea(AreaCaption c){if(c.Clear){live.Remove(c.Id);rendered.Remove(c.Id);}else{live[c.Id]=(c,Environment.TickCount64+c.DurationMs);FirstLive();}Render();}
     private void LiveDialogue(string text,int ms,GameTranslator.Core.TextBox? box){liveDialogue=text;liveBox=box;dialogueUntil=Environment.TickCount64+ms;FirstLive();Render();}
+    private void ClearDialogue(){liveDialogue="";dialogueUntil=0;Render();}
     private void ClearLive(){live.Clear();rendered.Clear();Render();}
     private int previewBusy;
     private async void Refresh(){

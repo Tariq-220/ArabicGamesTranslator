@@ -1080,7 +1080,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });
         if (settings.TargetLanguage == "tr") built.PackLookup = CommunityPatchManager.Shared.Match;
-        built.PairShown += (source, translation) =>
+        Action<string,string> present = (source, translation) =>
         {
             var outputArea=DialogueOutput;
             TextBox? box = (settings.Style.Appearance?.Position??"custom")=="custom"?new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom):settings.Style.Appearance?.Ride==false?new TextBox(settings.Region.Left,settings.Region.Top,settings.Region.Right,settings.Region.Bottom):built.LastBox;
@@ -1096,6 +1096,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 LiveSubtitleShown?.Invoke(display, ms, targetBox);
             });
         };
+        built.PairShown+=present;built.PairRestored+=present;
         // Model bu arada inmiş olabilir; her çeviri sonucu durumu günceller.
         built.TranslationResult += error => post(() => TranslatorStatus = error ?? TranslatorStatus.Ready);
         built.SpeechReady += lines => post(() => Speak(lines));

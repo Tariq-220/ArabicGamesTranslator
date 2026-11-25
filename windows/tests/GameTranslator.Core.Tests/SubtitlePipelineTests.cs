@@ -317,14 +317,15 @@ public class SubtitlePipelineTests
         var translator = new FakeTranslator();
         var pipeline = new SubtitlePipeline(new FakeReader(Lines(("Hold the gate.", 2), ("", 20), ("Hold the gate.", 2))),
             translator, sender, clock: clock.Read);
-        var shown = 0;
+        var shown = 0;var restored=0;
+        pipeline.PairRestored+=(_,_)=>restored++;
         pipeline.PairShown += (_, _) => shown++;
         await Run(pipeline, 24, clock: clock);
         Assert.Equal(1, sender.Clears);
         Assert.Equal(["TR: Hold the gate.", "TR: Hold the gate."], sender.Sent);
         Assert.Equal([15000, 15000], sender.Durations);
         Assert.Single(translator.Requested);
-        Assert.Equal(1, shown);
+        Assert.Equal(1, shown);Assert.Equal(1,restored);
     }
 
     /// Daha geç gelen aynı satır gerçek bir tekrardır; yeniden çevrilir.

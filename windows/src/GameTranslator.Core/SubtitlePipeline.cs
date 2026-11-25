@@ -132,6 +132,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
 
     /// <summary>Yeni çeviri gösterilince çağrılır (kaynak, çeviri).</summary>
     public event Action<string, string>? PairShown;
+    public event Action<string,string>? PairRestored;
     /// <summary>TV'ye giden her yeni satırın ölçümleri; <see cref="PairShown"/>'dan hemen önce çağrılır.</summary>
     public event Action<LineMetrics>? MetricsReady;
     /// <summary>TV'ye giden son satırın ölçümleri (henüz satır gitmediyse null).</summary>
@@ -623,6 +624,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                         Present(last.Source,translation,box,15000);
                         LastPair = (last.Source, translation);
                         LastBox = box;
+                        return ()=>PairRestored?.Invoke(last.Source,translation);
                     }
                     return null;
                 }
@@ -638,7 +640,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             Present(source,translation,box,15000);
             LastPair = (source, translation);
             LastBox = box;
-            return null;
+            return ()=>PairRestored?.Invoke(source,translation);
         }
         // Çevirisi henüz gelmediyse istek sürüyordur; satır yeniden ekranda sayılır.
         foreach (var request in Requests)

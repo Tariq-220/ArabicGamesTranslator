@@ -90,14 +90,14 @@ public static class ScreenRenderer
     private static void RenderPresentation(string folder)
     {
         using var _unused=new System.IO.MemoryStream();
-        for(int variant=0;variant<3;variant++){
+        for(int variant=0;variant<4;variant++){
             var root=new System.Windows.Controls.Grid{Width=1280,Height=720,FlowDirection=FlowDirection.LeftToRight,Background=new LinearGradientBrush(Color.FromRgb(41,52,65),Color.FromRgb(85,94,78),45)};
             if(variant==0){
                 var visual=GameTranslator.App.Controls.CaptionVisual.Text("جيسون: افتح الباب، لوسيا. سنعود إلى المنزل.",new(Backdrop:"game",Accent:false),30,78);visual.HorizontalAlignment=HorizontalAlignment.Center;visual.VerticalAlignment=VerticalAlignment.Bottom;visual.Margin=new Thickness(0,0,0,65);visual.MaxWidth=980;root.Children.Add(visual);
                 visual.Measure(new Size(980,double.PositiveInfinity));if(visual.DesiredSize.Width>=980||visual.DesiredSize.Height-visual.Margin.Top-visual.Margin.Bottom>110)throw new InvalidOperationException("Dialogue background must hug its text.");
-            }else if(variant==1){
+            }else if(variant is 1 or 3){
                 var cells=new List<PanelCell>{new("Kenton","كينتون",new(.25,.02,.75,.08),"#F1F1F4","#20232A",.04,Heading:true),new("Map Pin Unavailable","علامة الخريطة غير متاحة",new(.07,.13,.93,.21),"#FAFAFA","#20232A",.028,Bubble:true),new("Dropped off scuba to your boat man. Happy hunting!","أوصلت معدات الغوص إلى قاربك. صيدًا موفقًا!",new(.06,.31,.9,.43),"#FAFAFA","#20232A",.03,Bubble:true),new("Still can't believe you found them doubloons.","ما زلت لا أصدق أنك وجدت تلك العملات الذهبية. نحتاجك عند السفن الغارقة.",new(.06,.47,.9,.65),"#FAFAFA","#20232A",.03,Bubble:true),new("Yeah, I'm on it man.","نعم، سأهتم بالأمر.",new(.28,.72,.96,.80),"#2867D8","#FFFFFF",.03,Bubble:true),new("Got a few things to take care of right now.","لدي بعض الأمور الآن، لكنني سأبدأ البحث لاحقًا.",new(.23,.84,.96,.97),"#2867D8","#FFFFFF",.03,Bubble:true)};
-                var panel=new PanelLayout(420,740,"phone",null,cells);var translated=GameTranslator.App.Controls.CaptionVisual.Panel(panel,ReadingArea.Phone());translated.Width=360;translated.Height=650;translated.HorizontalAlignment=HorizontalAlignment.Left;translated.Margin=new Thickness(310,35,0,0);root.Children.Add(translated);
+                var panel=new PanelLayout(420,740,"phone",null,cells);var translated=GameTranslator.App.Controls.CaptionVisual.Panel(panel,ReadingArea.Phone() with{Appearance=new(PhoneStyle:variant==3?"floating":"panel")});translated.Width=360;translated.Height=650;translated.HorizontalAlignment=HorizontalAlignment.Left;translated.Margin=new Thickness(310,35,0,0);root.Children.Add(translated);
                 var original=GameTranslator.App.Controls.CaptionVisual.Panel(panel with{Cells=cells.Select(c=>c with{Text=c.Source}).ToArray()},ReadingArea.Phone());original.Width=360;original.Height=650;original.HorizontalAlignment=HorizontalAlignment.Right;original.Margin=new Thickness(0,35,200,0);root.Children.Add(original);
             }else{
                 var card=GameTranslator.App.Controls.CaptionVisual.Text("اتبع لوسيا إلى السيارة",new(Font:"tajawal",Backdrop:"none",Accent:true),32,0);card.HorizontalAlignment=HorizontalAlignment.Center;card.VerticalAlignment=VerticalAlignment.Bottom;card.Margin=new Thickness(0,0,0,65);root.Children.Add(card);
