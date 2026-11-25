@@ -88,7 +88,7 @@ public sealed class ReadingAreaSession : IDisposable
                 s.Seen=at;s.Panel=panel;s.PanelFrame=frame;
                 if(!TextMatch.IsSimilar(TextMatch.Normalize(text),TextMatch.Normalize(s.Candidate),.94))
                 {s.Candidate=text;s.Since=at;s.RetryAt=0;s.Failures=0;}
-                if(at-s.Since>=120&&s.Candidate!=s.Sent&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
+                if((at-s.Since>=120||(panel is {Cells.Count:>0}?panel.Cells.All(c=>s.Cache.ContainsKey(c.Source)):s.Cache.ContainsKey(text)))&&s.Candidate!=s.Sent&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
                 else if(s.Area.Kind==ReadingAreaKind.Phone&&s.Visible&&s.Sent==s.Candidate&&s.LastPanel is not null&&at-s.LastEmit>=s.Area.DurationMs/2){s.LastEmit=at;s.Revision++;renewed=Make(s,s.LastResult) with{Panel=s.LastPanel};}
             }
         }

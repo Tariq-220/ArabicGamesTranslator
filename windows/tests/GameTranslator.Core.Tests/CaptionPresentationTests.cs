@@ -47,5 +47,10 @@ public class CaptionPresentationTests
   await session.ProcessAsync(f);now=500;await session.ProcessAsync(f);var c=await shown.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.InRange(c.Output.Right-c.Output.Left,.22,.25);Assert.InRange(c.Output.Bottom-c.Output.Top,.14,.18);Assert.NotNull(c.Panel);
  }
  [Fact] public void SmallOcrBoxCannotShrinkDialogueBelowReadableConfiguredFloor(){Assert.Equal(24,CaptionSizing.FontPixels(32,1920,1080,true,.006));}
+ [Fact] public async Task PreviouslyTranslatedPhoneReturnsOnFirstReadWithoutAnExtraSettlingDelay(){
+  long now=0;var f=Frame.Blank(300,600);Fill(f,0,0,300,600,235,235,235);var engine=new CountEngine();var a=ReadingArea.Phone() with{Source=new(0,1,0,1)};
+  using var session=new ReadingAreaSession([a],()=>new CountReader(),engine,()=>now);var first=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);var restored=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);int shown=0;session.Caption+=c=>{if(!c.Clear){if(++shown==1)first.TrySetResult();else restored.TrySetResult();}};
+  await session.ProcessAsync(f);now=500;await session.ProcessAsync(f);await first.Task.WaitAsync(TimeSpan.FromSeconds(3));now=1500;await session.ProcessAsync(Frame.Blank(300,600));now=2000;await session.ProcessAsync(f);await restored.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.Equal(1,engine.Calls);
+ }
  private static void Fill(Frame f,int x,int y,int width,int height,byte r,byte g,byte b){for(int yy=y;yy<y+height;yy++)for(int xx=x;xx<x+width;xx++){int i=yy*f.Stride+xx*4;f.Pixels[i]=b;f.Pixels[i+1]=g;f.Pixels[i+2]=r;f.Pixels[i+3]=255;}}
 }
