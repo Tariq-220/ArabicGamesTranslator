@@ -34,7 +34,7 @@ final class CaptionVisual {
  }
  static android.graphics.drawable.Drawable background(JSONObject a,GradientDrawable inner,int opacity,float size){
   String back=a==null?"game":a.optString("backdrop","game");
-  if("game".equals(back)){inner.setOrientation(GradientDrawable.Orientation.LEFT_RIGHT);inner.setColors(new int[]{(Math.max(0,Math.min(100,opacity))*255/100<<24)|0x030306,(Math.max(0,Math.min(100,opacity))*210/100<<24)|0x1a1a20});}
+  if("game".equals(back)){inner.setColor((Math.max(0,Math.min(100,opacity))*255/100<<24)|0x16243e);}
   if(a==null||!a.optBoolean("accent",false))return inner;
   if("none".equals(back))inner.setColor((Math.max(0,Math.min(100,opacity))*255/100<<24)|0x0a0614);
   GradientDrawable outer=new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,new int[]{0xffff2d95,0xffff7a45,0xffffc94a,0xffb45cff,0xff2fd6ff});

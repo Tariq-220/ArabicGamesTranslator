@@ -30,7 +30,7 @@ public static class CaptionVisual
 
     public static void Decorate(Border border,CaptionAppearance a,int opacity,double size)
     {
-        if(a.Backdrop=="game")border.Background=new LinearGradientBrush(Color.FromArgb((byte)(opacity*255/100),3,3,6),Color.FromArgb((byte)(opacity*210/100),26,26,32),0);
+        if(a.Backdrop=="game")border.Background=new SolidColorBrush(Color.FromArgb((byte)(Math.Clamp(opacity,0,100)*255/100),22,36,62));
         if(!a.Accent)return;
         border.CornerRadius=new CornerRadius(0);border.BorderThickness=new Thickness(Math.Max(1.5,size/16));
         var gradient=new LinearGradientBrush{StartPoint=new Point(0,.5),EndPoint=new Point(1,.5)};
@@ -51,10 +51,10 @@ public static class CaptionVisual
             double w=Math.Max(8,(box.Right-box.Left)*panel.Width),h=Math.Max(8,(box.Bottom-box.Top)*panel.Height);
             double max=area.Appearance?.MatchSize!=false?Math.Max(8,cell.LineHeight*panel.Height*.95):area.FontSize;
             var label=new TextBlock{Width=w,HorizontalAlignment=HorizontalAlignment.Stretch,Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?FlowDirection.RightToLeft:FlowDirection.LeftToRight,TextWrapping=TextWrapping.Wrap,
-                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Right:TextAlignment.Left,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize*targetWidth/1920/scale,Padding=new Thickness(3,0,3,0)};
+                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Right:TextAlignment.Left,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize*targetWidth/1920/scale,Padding=new Thickness(3,0,3,0)};
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
-            var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
+            var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
             if(!phone&&area.Appearance?.Outline!=false)label.Effect=new DropShadowEffect{Color=Colors.Black,ShadowDepth=1,BlurRadius=3,Opacity=1};
             if(!phone)Decorate(block,area.Appearance??new(),area.Background,label.FontSize);
             Canvas.SetLeft(block,box.Left*panel.Width);Canvas.SetTop(block,box.Top*panel.Height);canvas.Children.Add(block);

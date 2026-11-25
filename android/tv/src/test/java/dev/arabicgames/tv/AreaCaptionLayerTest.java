@@ -35,4 +35,7 @@ public class AreaCaptionLayerTest {
   assertEquals(2,canvas.getChildCount());TextView incoming=(TextView)canvas.getChildAt(0),outgoing=(TextView)canvas.getChildAt(1);assertEquals("رسالة واردة",incoming.getText().toString());assertNotEquals(incoming.getCurrentTextColor(),outgoing.getCurrentTextColor());
   assertTrue(((android.widget.FrameLayout.LayoutParams)incoming.getLayoutParams()).topMargin<((android.widget.FrameLayout.LayoutParams)outgoing.getLayoutParams()).topMargin);
  }
+
+ @Test public void CaptionBeforeLayoutIsReplayedAtRealSize()throws Exception{AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.apply(caption("notice",1,"نص عربي واضح"));assertEquals(0,layer.getChildCount());layer.layout(0,0,1920,1080);assertEquals(1,layer.getChildCount());assertTrue(layer.getChildAt(0).getLayoutParams().width>100);}
+ @Test public void EmptyRichPanelUsesItsArabicTextInsteadOfEmptyBox()throws Exception{AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.layout(0,0,1920,1080);JSONObject data=caption("notice",1,"تنبيه مقروء");data.put("panel",new JSONObject("{\"kind\":\"notification\",\"cells\":[]}"));layer.apply(data);assertTrue(layer.getChildAt(0) instanceof TextView);assertEquals("تنبيه مقروء",((TextView)layer.getChildAt(0)).getText().toString());}
 }

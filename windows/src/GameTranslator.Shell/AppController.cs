@@ -1005,6 +1005,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<string,string>? TranslationRejected;
     public event Action<string,string>? LineDiscarded;
     private ReadingAreaSession? areaSession;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string,string> areaStatus=new();
+    public string ReadingAreaStatus(string id)=>areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
     private TranslationWorkQueue? translationQueue;
     public event Action? AreasCleared;
     private void ClearAreas(){server.ClearAreas();post(()=>AreasCleared?.Invoke());}
@@ -1026,8 +1028,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public IReadOnlyList<ReadingArea> ReadingAreas
     {
-        get => (store.Load<List<ReadingArea>>("reading-areas-v1") ?? []).Select(a=>a.Kind==ReadingAreaKind.Phone&&a.Source==new CropRegion(.12,.95,.40,.97)?a with{Source=new(.08,.98,.03,.97)}:a).ToList();
-        set { store.Save("reading-areas-v1", value.Take(8).Select(a=>a.Validate()).ToList()); if(isRunning)MakeAreaSession(); Changed(nameof(ReadingAreas)); }
+        get => ReadingArea.Unique(store.Load<List<ReadingArea>>("reading-areas-v1") ?? []).Select(a=>a.Kind==ReadingAreaKind.Phone&&a.Source==new CropRegion(.12,.95,.40,.97)?a with{Source=new(.08,.98,.03,.97)}:a.Kind==ReadingAreaKind.Menu&&a.Source==new CropRegion(.14,.86,.08,.47)&&a.Output==new CropRegion(.14,.86,.50,.90)?ReadingArea.Menu() with{Id=a.Id,Name=a.Name,Enabled=a.Enabled}:a).ToList();
+        set { var unique=ReadingArea.Unique(value).Take(8).ToList();if(ReadingAreas.SequenceEqual(unique))return;store.Save("reading-areas-v1", unique); if(isRunning)MakeAreaSession(); Changed(nameof(ReadingAreas)); }
     }
     public event Action<AreaCaption>? AreaCaptionShown;
     private void MakeAreaSession()
@@ -1036,8 +1038,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         ClearAreas();
         var enabled=ReadingAreas.Where(a=>a.Enabled).ToList();
         if(enabled.Count==0)return;
+        areaStatus.Clear();
         var current=new ReadingAreaSession(enabled,()=>services.MakeReader(settings.SourceLanguage) ?? throw new InvalidOperationException("OCR unavailable"),
             new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false),reviewedLookup:text=>CommunityCorrections.Find(DialogueGame,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,DialogueGame):null));
+        current.Status+=(id,status)=>{if(ReferenceEquals(areaSession,current))areaStatus[id]=status;};
         current.Caption+=caption=>{if(!ReferenceEquals(areaSession,current))return;server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
         areaSession=current;
     }

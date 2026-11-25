@@ -26,18 +26,23 @@ public sealed class ReadingAreaSession : IDisposable
     private bool disposed;
     public event Action<AreaCaption>? Caption;
     public event Action<string,string>? Failed;
+    public event Action<string,string>? Status;
 
     public ReadingAreaSession(IEnumerable<ReadingArea> areas, Func<ITextReader> makeReader,
         ITextTranslator translator, Func<long>? clock=null,Func<string,string?>? reviewedLookup=null)
     {
         this.translator=translator;reviewed=reviewedLookup;now=clock??(()=>Environment.TickCount64);
-        states=areas.Where(a=>a.Enabled&&a.Kind!=ReadingAreaKind.Dialogue).Take(8)
+        states=ReadingArea.Unique(areas).Where(a=>a.Enabled&&a.Kind!=ReadingAreaKind.Dialogue).Take(8)
             .GroupBy(a=>a.Id,StringComparer.Ordinal).Select(g=>new State(g.First().Validate(),makeReader())).ToList();
     }
 
-    public async Task ProcessAsync(Frame frame)
+    public Task ProcessAsync(Frame frame)
     {
-        if(Interlocked.Exchange(ref processing,1)!=0)return;
+        if(Interlocked.Exchange(ref processing,1)!=0)return Task.CompletedTask;
+        return Task.Run(()=>ProcessFrame(frame));
+    }
+    private void ProcessFrame(Frame frame)
+    {
         try
         {
             State? state=null;
@@ -56,16 +61,17 @@ public sealed class ReadingAreaSession : IDisposable
             var source=s.Area.Source;
             var crop=frame.Crop((int)(source.Left*frame.Width),(int)(source.Top*frame.Height),
                 Math.Max(1,(int)((source.Right-source.Left)*frame.Width)),Math.Max(1,(int)((source.Bottom-source.Top)*frame.Height)));
-            if(s.Area.Kind==ReadingAreaKind.Phone&&s.Area.Structured){var phone=SpatialText.FindPhone(crop);if(phone is null){Observe(s,"",null,crop);return;}crop=RegionCropper.Crop(crop,phone); }
-            if(s.Area.Kind==ReadingAreaKind.Notification&&s.Area.Structured){var message=SpatialText.FindMessage(crop);if(message is null){Observe(s,"",null,crop);return;}crop=RegionCropper.Crop(crop,message); }
+            if(s.Area.Kind==ReadingAreaKind.Phone&&s.Area.Structured&&s.Area.AutoDetect){var phone=SpatialText.FindPhone(crop);if(phone is null){Status?.Invoke(s.Area.Id,"لم تُكتشف حدود الجوال؛ حدّد مربع الشاشة ثم أوقف الكشف التلقائي عند الحاجة.");Observe(s,"",null,crop);return;}crop=RegionCropper.Crop(crop,phone); }
+            if(s.Area.Kind==ReadingAreaKind.Notification&&s.Area.Structured&&s.Area.AutoDetect){var message=SpatialText.FindMessage(crop);if(message is null){Status?.Invoke(s.Area.Id,"لم تُكتشف بطاقة التنبيه؛ راجع مربع القراءة أو استخدم حدوده مباشرة.");Observe(s,"",null,crop);return;}crop=RegionCropper.Crop(crop,message); }
             if(s.Area.Kind==ReadingAreaKind.Notification&&s.Area.Structured){
                 var o=s.Area.PresentationOutput();var scale=Math.Min(1,Math.Min((o.Right-o.Left)*frame.Width/crop.Width,(o.Bottom-o.Top)*frame.Height/crop.Height));
                 s.Output=new(o.Top,o.Top+crop.Height*scale/frame.Height,o.Right-crop.Width*scale/frame.Width,o.Right);
             }
-            var reading=await Task.Run(()=>s.Reader.ReadSpatial(crop),lifetime.Token).ConfigureAwait(false);
+            lifetime.Token.ThrowIfCancellationRequested();var reading=s.Reader.ReadSpatial(crop);if(s.Area.Kind==ReadingAreaKind.Menu&&s.Area.AutoDetect)reading=MenuReading.Select(crop,reading);
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
             var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind,includeImage:false):null;
-            Observe(s,reading.Text.Trim(),panel,crop);
+            Status?.Invoke(s.Area.Id,string.IsNullOrWhiteSpace(reading.Text)?"اللوحة موجودة، لكن OCR لم يقرأ نصًا.":$"قُرئت {reading.Lines.Count} أسطر · الترجمة قيد المعالجة");
+            Observe(s,reading.Text.Trim(),panel is {Cells.Count:0}?null:panel,crop);
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke("ocr",error.GetType().Name);}
@@ -117,12 +123,17 @@ public sealed class ReadingAreaSession : IDisposable
                 var cells=new List<PanelCell>();
                 foreach(var cell in panel.Cells){
                     lifetime.Token.ThrowIfCancellationRequested();
-                    lock(gate){if(disposed||s.Candidate!=source)return;}
+                    lock(gate){if(disposed||s.Revision!=revision)return;}
                     try{if(s.Area.Appearance?.ReviewedOnly==true)cells.Add(cell with{Text=await Piece(cell.Source).ConfigureAwait(false)});else{string? translated;lock(gate)s.Cache.TryGetValue(cell.Source,out translated);cells.Add(cell with{Text=translated??""});}}
                     catch(TranslatorException error){Failed?.Invoke(s.Area.Id,error.GetType().Name);cells.Add(cell);}
                 }
-                panel=panel with{Cells=cells};if(frame is not null&&panel.Kind is "phone" or "notification")panel=SpatialText.WithImage(frame,panel);result=string.Join("\n",cells.Select(c=>c.Text));
+                panel=panel with{Cells=cells};result=string.Join("\n",cells.Select(c=>c.Text));
             }else result=await Piece(source).ConfigureAwait(false);
+            if(panel is not null){
+                lock(gate){if(s.Candidate!=source){panel=s.Panel;frame=s.PanelFrame;if(panel is null)return;panel=panel with{Cells=panel.Cells.Select(c=>c with{Text=s.Cache.GetValueOrDefault(c.Source,"")}).ToArray()};source=s.Candidate;}}
+                if(frame is not null&&panel.Kind is "phone" or "notification")panel=SpatialText.WithImage(frame,panel);
+                result=string.Join("\n",panel.Cells.Select(c=>c.Text));
+            }
             AreaCaption? caption=null;
             lock(gate)
             {
@@ -132,10 +143,10 @@ public sealed class ReadingAreaSession : IDisposable
                 if(partial&&s.Failures++<2){s.Sent="";s.RetryAt=now()+2500;}else s.Sent=source;
                 if(!string.IsNullOrWhiteSpace(result)&&result!=s.LastResult){s.LastResult=result;s.LastPanel=panel;s.LastEmit=now();s.Visible=true;caption=Make(s,result) with{Panel=panel};}
             }
-            if(caption is not null)Caption?.Invoke(caption);
+            if(caption is not null){Status?.Invoke(s.Area.Id,$"تُعرض الترجمة · {panel?.Cells.Count(c=>!string.IsNullOrWhiteSpace(c.Text))??1} أجزاء");Caption?.Invoke(caption);}
         }
         catch(OperationCanceledException) { }
-        catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke(s.Area.Id,error.GetType().Name);}
+        catch(Exception error){if(!lifetime.IsCancellationRequested){Status?.Invoke(s.Area.Id,"تعذر طلب الترجمة: "+(error is TranslatorException failure?failure.Status.ToString():error.GetType().Name));Failed?.Invoke(s.Area.Id,error.GetType().Name);}}
         finally {lock(gate)s.Busy=false;}
     }
     private static AreaCaption Make(State s,string text,bool clear=false)=>new(s.Area.Id,s.Revision,text,s.Output??s.Area.PresentationOutput(),

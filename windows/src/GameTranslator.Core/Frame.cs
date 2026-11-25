@@ -23,6 +23,18 @@ public sealed class Frame(byte[] pixels, int width, int height, int stride)
         return new Frame(pixels, width, height, width * 4);
     }
 
+    /// <summary>Bound OCR input while retaining normalized geometry; never enlarge a frame.</summary>
+    public Frame Fit(int maxDimension)
+    {
+        if(maxDimension<1)throw new ArgumentOutOfRangeException(nameof(maxDimension));
+        var ratio=Math.Min(1,(double)maxDimension/Math.Max(Width,Height));if(ratio>=1)return this;
+        var target=Blank(Math.Max(1,(int)(Width*ratio)),Math.Max(1,(int)(Height*ratio)));
+        for(int y=0;y<target.Height;y++)for(int x=0;x<target.Width;x++){
+            int a=Math.Min(Height-1,(int)((y+.5)/ratio))*Stride+Math.Min(Width-1,(int)((x+.5)/ratio))*4,b=y*target.Stride+x*4;
+            target.Pixels[b]=Pixels[a];target.Pixels[b+1]=Pixels[a+1];target.Pixels[b+2]=Pixels[a+2];target.Pixels[b+3]=Pixels[a+3];
+        }
+        return target;
+    }
     public Frame Crop(int x, int y, int width, int height)
     {
         x = Math.Clamp(x, 0, Width);

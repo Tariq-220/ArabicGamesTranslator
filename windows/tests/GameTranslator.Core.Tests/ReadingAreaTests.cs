@@ -14,7 +14,7 @@ public class ReadingAreaTests
     [Fact] public async Task RemovedAreaCannotPublishSlowTranslation()
     {
         long now=0;var translator=new SlowTranslator();var results=new List<AreaCaption>();
-        var session=new ReadingAreaSession([ReadingArea.Menu()],()=>new FakeReader("A complete message.","A complete message."),translator,()=>now);
+        var session=new ReadingAreaSession([ReadingArea.Menu() with{AutoDetect=false}],()=>new FakeReader("A complete message.","A complete message."),translator,()=>now);
         session.Caption+=results.Add;
         await session.ProcessAsync(Frame.Blank(320,180));now=500;
         await session.ProcessAsync(Frame.Blank(320,180));

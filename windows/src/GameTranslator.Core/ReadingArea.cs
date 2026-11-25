@@ -6,8 +6,9 @@ public enum ReadingAreaKind { Dialogue, Phone, Menu, Instructions, Notification 
 /// <summary>Source coordinates and output placement are independent; all coordinates are normalized.</summary>
 public sealed record ReadingArea(string Id, string Name, ReadingAreaKind Kind, CropRegion Source,
     CropRegion Output, bool Enabled = true, int FontSize = 24, int Background = 0,
-    int DurationMs = 3500, int IntervalMs = 450, CaptionAppearance? Appearance=null, bool Structured=true)
+    int DurationMs = 3500, int IntervalMs = 450, CaptionAppearance? Appearance=null, bool Structured=true, bool AutoDetect=true)
 {
+    public static IReadOnlyList<ReadingArea> Unique(IEnumerable<ReadingArea> source) => source.Select(a=>a.Validate()).DistinctBy(a=>(a.Kind,a.Source,a.Output)).ToArray();
     public ReadingArea Validate() => this with {
         Id = string.IsNullOrWhiteSpace(Id) ? Guid.NewGuid().ToString("N") : Id,
         Name = string.IsNullOrWhiteSpace(Name) ? "منطقة قراءة" : Name[..Math.Min(60,Name.Length)],
@@ -37,7 +38,7 @@ public sealed record ReadingArea(string Id, string Name, ReadingAreaKind Kind, C
         new(.935,.995,.10,.90),new(.84,.92,.10,.90),DurationMs:5000,Appearance:new(Font:"tajawal",Backdrop:"none",Align:"center",Accent:true));
     public static ReadingArea Notification()=>new(Guid.NewGuid().ToString("N"),"تنبيه / رسالة واردة",ReadingAreaKind.Notification,new(.65,.99,.68,.99),new(.40,.73,.68,.99),DurationMs:6500);
     public static ReadingArea Menu() => new(Guid.NewGuid().ToString("N"),"القائمة",ReadingAreaKind.Menu,
-        new(.14,.86,.08,.47),new(.14,.86,.50,.90),Background:85,DurationMs:6000);
+        new(.01,.99,.01,.99),new(.01,.99,.01,.99),Background:100,DurationMs:6000,Appearance:new(Backdrop:"source",Align:"right",Vertical:"top",Position:"cover"));
 }
 
 public sealed record AreaCaption(string Id, long Revision, string Text, CropRegion Output,

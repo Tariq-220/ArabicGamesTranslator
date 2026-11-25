@@ -19,6 +19,7 @@ import java.util.Map;
 public final class AreaCaptionLayer extends FrameLayout {
  private final android.graphics.Typeface font;
  private final Handler handler=new Handler(Looper.getMainLooper());
+ private final Map<String,JSONObject> pending=new HashMap<>();
  private final Map<String,View> views=new HashMap<>();
  private final Map<String,String> texts=new HashMap<>();
  private final Map<String,Long> revisions=new HashMap<>();
@@ -26,6 +27,7 @@ public final class AreaCaptionLayer extends FrameLayout {
  public AreaCaptionLayer(Context context){super(context);font=android.graphics.Typeface.createFromAsset(context.getAssets(),"fonts/NotoSansArabic.ttf");setFocusable(false);setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);}
  public void apply(JSONObject data){
   String id=data.optString("id","");if(id.isEmpty()||id.length()>80)return;
+  if(getWidth()==0||getHeight()==0){if(data.optBoolean("clear",false))pending.remove(id);else if(pending.size()<8||pending.containsKey(id))pending.put(id,data);return;}
   long revision=data.optLong("revision",0);if(revision<revisions.getOrDefault(id,-1L))return;
   if(!views.containsKey(id)&&views.size()>=8)return;
   revisions.put(id,revision);Runnable old=expiry.remove(id);if(old!=null)handler.removeCallbacks(old);
@@ -40,7 +42,7 @@ public final class AreaCaptionLayer extends FrameLayout {
   int screenWidth=Math.max(1,getWidth()),screenHeight=Math.max(1,getHeight());
   int outWidth=Math.max(40,(int)((right-left)*screenWidth)),outHeight=Math.max(30,(int)((bottom-top)*screenHeight));
   View view;
-  if(panel!=null&&panel.optJSONArray("cells")!=null)view=panel(panel,appearance,outWidth,outHeight,data.optInt("fontSize",24),data.optInt("background",0));
+  if(hasCells(panel))view=panel(panel,appearance,outWidth,outHeight,data.optInt("fontSize",24),data.optInt("background",0));
   else{TextView label=new TextView(getContext());CaptionVisual.apply(label,appearance,data.optInt("background",0),Math.max(14,screenWidth*data.optInt("fontSize",24)/1920f));label.setText(CaptionVisual.speaker(text,appearance));label.setMaxWidth(outWidth);view=label;}
   view.setFocusable(false);views.put(id,view);addView(view);
   
@@ -51,6 +53,8 @@ public final class AreaCaptionLayer extends FrameLayout {
   Runnable hide=()->{if(revisions.getOrDefault(id,-1L)==revision)caption.setVisibility(View.INVISIBLE);expiry.remove(id);};expiry.put(id,hide);handler.postDelayed(hide,Math.max(1200,Math.min(30000,data.optInt("duration",3500))));
  }
 
+ private static boolean hasCells(JSONObject panel){if(panel==null||panel.optJSONArray("cells")==null)return false;org.json.JSONArray cells=panel.optJSONArray("cells");for(int i=0;i<Math.min(24,cells.length());i++){JSONObject c=cells.optJSONObject(i);if(c==null||c.optString("text","").trim().isEmpty())continue;JSONObject b=c.optJSONObject("box");if(b!=null&&b.optDouble("right")>b.optDouble("left")&&b.optDouble("bottom")>b.optDouble("top"))return true;}return false;}
+ @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){super.onSizeChanged(w,h,oldw,oldh);if(w>0&&h>0&&!pending.isEmpty()){java.util.List<JSONObject> values=new java.util.ArrayList<>(pending.values());pending.clear();for(JSONObject value:values)apply(value);}}
  private View panel(JSONObject panel,JSONObject appearance,int width,int height,int fontSize,int opacity){
   FrameLayout outer=new FrameLayout(getContext());outer.setClipChildren(true);
   int pw=Math.max(1,Math.min(4096,panel.optInt("width",360))),ph=Math.max(1,Math.min(4096,panel.optInt("height",700)));
@@ -62,8 +66,8 @@ public final class AreaCaptionLayer extends FrameLayout {
    JSONObject cell=cells.optJSONObject(i);if(cell==null)continue;String text=cell.optString("text","");if(text.length()==0||text.length()>2000)continue;
    JSONObject box=cell.optJSONObject("box");if(box==null)continue;double l=bound(box.optDouble("left")),t=bound(box.optDouble("top")),r=bound(box.optDouble("right")),b=bound(box.optDouble("bottom"));if(r<=l||b<=t)continue;
    int cw=Math.max(8,(int)((r-l)*w)),ch=Math.max(8,(int)((b-t)*h));TextView label=new TextView(getContext());label.setText(text);label.setTextDirection(View.TEXT_DIRECTION_RTL);String alignment=appearance==null?"right":appearance.optString("align","right"),vertical=appearance==null?"top":appearance.optString("vertical","top");label.setGravity(("center".equals(alignment)?Gravity.CENTER_HORIZONTAL:"left".equals(alignment)?Gravity.LEFT:Gravity.RIGHT)|("center".equals(vertical)?Gravity.CENTER_VERTICAL:"bottom".equals(vertical)?Gravity.BOTTOM:Gravity.TOP));label.setTypeface(CaptionVisual.font(getContext(),appearance==null?"noto":appearance.optString("font","noto")),cell.optBoolean("heading")?android.graphics.Typeface.BOLD:android.graphics.Typeface.NORMAL);
-   label.setTextColor(phone?CaptionVisual.color(cell.optString("foreground"),Color.BLACK):Color.WHITE);
-   GradientDrawable bg=new GradientDrawable();bg.setColor(phone?CaptionVisual.color(cell.optString("background"),Color.WHITE):appearance!=null&&"none".equals(appearance.optString("backdrop"))?Color.TRANSPARENT:Math.max(0,Math.min(100,opacity))*255/100<<24);bg.setCornerRadius(cell.optBoolean("bubble")?Math.min(8,ch*.15f):0);label.setBackground(phone?bg:CaptionVisual.background(appearance,bg,opacity,16));label.setPadding(2,0,2,0);label.setIncludeFontPadding(false);
+   label.setTextColor(phone||appearance!=null&&"source".equals(appearance.optString("backdrop"))?CaptionVisual.color(cell.optString("foreground"),Color.BLACK):Color.WHITE);
+   GradientDrawable bg=new GradientDrawable();bg.setColor(phone||appearance!=null&&"source".equals(appearance.optString("backdrop"))?CaptionVisual.color(cell.optString("background"),Color.WHITE):appearance!=null&&"none".equals(appearance.optString("backdrop"))?Color.TRANSPARENT:Math.max(0,Math.min(100,opacity))*255/100<<24);bg.setCornerRadius(cell.optBoolean("bubble")?Math.min(8,ch*.15f):0);label.setBackground(phone?bg:CaptionVisual.background(appearance,bg,opacity,16));label.setPadding(2,0,2,0);label.setIncludeFontPadding(false);
    int max=(int)((appearance==null||appearance.optBoolean("matchSize",true)?Math.max(8,cell.optDouble("lineHeight",.03)*ph*.95):fontSize*Math.max(1,getWidth())/1920f/scale)*scale);
    label.setAutoSizeTextTypeUniformWithConfiguration(Math.min(8,Math.max(4,max)),Math.max(8,max),1,TypedValue.COMPLEX_UNIT_PX);label.setMaxHeight(ch);if(!phone)label.setShadowLayer(2,0,1,Color.BLACK);
    FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(cw,ch,Gravity.TOP|Gravity.LEFT);p.leftMargin=(int)(l*w);p.topMargin=(int)(t*h);canvas.addView(label,p);
@@ -72,6 +76,6 @@ public final class AreaCaptionLayer extends FrameLayout {
  }
  private static double bound(double value){return Double.isFinite(value)?Math.max(0,Math.min(1,value)):0;}
  private void remove(String id){texts.remove(id);View view=views.remove(id);if(view!=null)removeView(view);}
- public void clearAll(){for(Runnable r:expiry.values())handler.removeCallbacks(r);expiry.clear();views.clear();texts.clear();revisions.clear();removeAllViews();}
+ public void clearAll(){pending.clear();for(Runnable r:expiry.values())handler.removeCallbacks(r);expiry.clear();views.clear();texts.clear();revisions.clear();removeAllViews();}
  @Override protected void onDetachedFromWindow(){clearAll();super.onDetachedFromWindow();}
 }

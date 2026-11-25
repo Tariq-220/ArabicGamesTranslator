@@ -15,7 +15,7 @@ public sealed record CaptionAppearance(string Font="noto", string Backdrop="game
         Position=Positions.Contains(Position)?Position:"custom", SpeakerColor=SpeakerColor=="auto"||IsColor(SpeakerColor)?SpeakerColor:"auto",
         AccentOpacity=Math.Clamp(AccentOpacity,0,100), AccentStrength=Math.Clamp(AccentStrength,0,100), FadeMs=Math.Clamp(FadeMs,0,300) };
     public static readonly string[] Fonts=["noto","tajawal","cairo","changa","lalezar"];
-    public static readonly string[] Backdrops=["none","game","rounded","rectangle"];
+    public static readonly string[] Backdrops=["none","game","rounded","rectangle","source"];
     public static readonly string[] Positions=["custom","above","cover","below"];
     public static bool IsColor(string? color)=>color is not null&&Regex.IsMatch(color,"^#[0-9a-fA-F]{6}$",RegexOptions.CultureInvariant);
     public static string SpeakerAccent(string text,CaptionAppearance? appearance)
@@ -41,6 +41,7 @@ public sealed record ReadingLayout(int Schema, ReadingArea[] Areas)
         var layout=JsonSerializer.Deserialize<ReadingLayout>(json)??throw new ArgumentException("ملف التخطيط فارغ.");
         if(layout.Schema!=1||layout.Areas is null||layout.Areas.Length is <1 or >9||layout.Areas.Any(a=>a is null)||layout.Areas.Count(a=>a.Kind==ReadingAreaKind.Dialogue)!=1)
             throw new ArgumentException("ملف تخطيط غير متوافق؛ يجب وجود منطقة حوار واحدة وحتى 8 مناطق إضافية.");
+        if(ReadingArea.Unique(layout.Areas).Count!=layout.Areas.Length)throw new ArgumentException("التخطيط يحتوي بطاقات مكررة بنفس مناطق القراءة والظهور.");
         var ids=new HashSet<string>();return layout with{Areas=layout.Areas.Select(a=>{var v=a.Validate();if(!Enum.IsDefined(v.Kind)||!ids.Add(v.Id))throw new ArgumentException("منطقة غير صالحة أو مكررة.");return v;}).ToArray()};
     }
 }

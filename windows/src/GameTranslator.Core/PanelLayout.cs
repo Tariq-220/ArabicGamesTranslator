@@ -52,18 +52,19 @@ public static class SpatialText
     // Phone screen search is confined to the selected ROI. Scenery outside it cannot become a phone.
     public static PanelLayout WithImage(Frame frame,PanelLayout panel){
         var clean=new Frame((byte[])frame.Pixels.Clone(),frame.Width,frame.Height,frame.Stride);
-        foreach(var c in panel.Cells){var color=c.Background;Fill(clean,c.Box,[(byte)Convert.ToInt32(color[1..3],16),(byte)Convert.ToInt32(color[3..5],16),(byte)Convert.ToInt32(color[5..7],16)]);}
+        foreach(var c in panel.Cells.Where(c=>!string.IsNullOrWhiteSpace(c.Text))){var color=c.Background;Fill(clean,c.Box,[(byte)Convert.ToInt32(color[1..3],16),(byte)Convert.ToInt32(color[3..5],16),(byte)Convert.ToInt32(color[5..7],16)]);}
         return panel with{Image=Png(clean)};
     }
-    public static CropRegion? FindPhone(Frame frame)=>FindPanel(frame,true);
-    public static CropRegion? FindMessage(Frame frame)=>FindPanel(frame,false);
-    private static CropRegion? FindPanel(Frame frame,bool phone)
+    public static CropRegion? FindPhone(Frame frame)=>FindPanel(frame,true,175)??FindPanel(frame,true,145)??FindPanel(frame,true,115);
+    public static CropRegion? FindMessage(Frame frame)=>FindPanel(frame,false,155)??FindPanel(frame,false,125);
+    private static CropRegion? FindPanel(Frame frame,bool phone,int threshold)
     {
         if(frame.Width<90||frame.Height<(phone?150:60))return null;
         const int step=6;int w=frame.Width/step,h=frame.Height/step;var light=new bool[w*h];
         for(int y=0;y<h;y++)for(int x=0;x<w;x++){
-            int votes=0;foreach(var (dx,dy) in new[]{(1,1),(4,1),(1,4),(4,4),(2,2)}){int i=(y*step+dy)*frame.Stride+(x*step+dx)*4;int red=frame.Pixels[i+2],green=frame.Pixels[i+1],blue=frame.Pixels[i];int lo=Math.Min(red,Math.Min(green,blue)),hi=Math.Max(red,Math.Max(green,blue));if(lo>=155&&hi-lo<=35)votes++;}light[y*w+x]=votes>=3;
+            int votes=0;foreach(var (dx,dy) in new[]{(1,1),(4,1),(1,4),(4,4),(2,2)}){int i=(y*step+dy)*frame.Stride+(x*step+dx)*4;int red=frame.Pixels[i+2],green=frame.Pixels[i+1],blue=frame.Pixels[i];int lo=Math.Min(red,Math.Min(green,blue)),hi=Math.Max(red,Math.Max(green,blue));if(lo>=threshold&&hi-lo<=45)votes++;}light[y*w+x]=votes>=3;
         }
+        var components=new List<(int L,int T,int R,int B,int Count)>();
         var seen=new bool[light.Length];(int L,int T,int R,int B,int Count)? best=null;
         for(int start=0;start<light.Length;start++){
             if(!light[start]||seen[start])continue;var stack=new Stack<int>();stack.Push(start);seen[start]=true;
@@ -72,11 +73,25 @@ public static class SpatialText
                 void Add(int at){if(!seen[at]&&light[at]){seen[at]=true;stack.Push(at);}}
                 if(x>0)Add(i-1);if(x+1<w)Add(i+1);if(y>0)Add(i-w);if(y+1<h)Add(i+w);
             }
+            components.Add((l,t,r,b,n));
             var pw=(r-l+1)*step;var ph=(b-t+1)*step;
             // A notification is a compact, bounded card, not the light road reaching the ROI edge.
             if(!phone&&(pw>frame.Width*.95||ph>frame.Height*.65||pw<ph*1.5||n<(r-l+1)*(b-t+1)*.82))continue;
             if(phone?(pw<frame.Width*.14||ph<frame.Height*.38||ph<pw*1.1||ph>pw*4.5||n<((r-l+1)*(b-t+1))*.38):(pw<frame.Width*.4||ph<frame.Height*.14||ph>pw*.85||n<((r-l+1)*(b-t+1))*.65))continue;
             if(best is null||n>best.Value.Count)best=(l,t,r,b,n);
+        }
+        if(phone){
+            foreach(var c in components){int cw=c.R-c.L+1;if(cw*step<frame.Height*.12||cw*step>frame.Height*.65||c.Count<cw*3)continue;
+                int l=c.L,r=c.R,t=c.T,b=c.B,n=c.Count;
+                foreach(var part in components.Where(p=>p!=c).OrderByDescending(p=>p.Count)){
+                    int overlap=Math.Min(r,part.R)-Math.Max(l,part.L)+1;
+                    if(overlap<cw*.8||part.R-part.L+1>cw*1.2||part.B<t-cw||part.T>b+cw)continue;
+                    l=Math.Min(l,part.L);r=Math.Max(r,part.R);t=Math.Min(t,part.T);b=Math.Max(b,part.B);n+=part.Count;
+                }
+                int pw=(r-l+1)*step,ph=(b-t+1)*step;
+                if(ph<frame.Height*.32||ph<pw*1.1||ph>pw*4.5||n<(r-l+1)*(b-t+1)*.38)continue;
+                if(best is null||n>best.Value.Count)best=(l,t,r,b,n);
+            }
         }
         return best is {} a?new((double)a.T*step/frame.Height,(double)(a.B+1)*step/frame.Height,(double)a.L*step/frame.Width,(double)(a.R+1)*step/frame.Width):null;
     }
@@ -91,6 +106,7 @@ public static class SpatialText
         origin=t;while(t>0&&origin-t<maxY&&Row(t-1))t--;origin=b;while(b+1<frame.Height&&b-origin<maxY&&Row(b+1))b++;
         return new((double)l/frame.Width,(double)t/frame.Height,(double)(r+1)/frame.Width,(double)(b+1)/frame.Height);
     }
+    public static bool HasDarkBackground(Frame f,TextBox box)=>Sample(f,box).Max()<110;
     private static byte[] Pixel(Frame f,int x,int y){var i=Math.Clamp(y,0,f.Height-1)*f.Stride+Math.Clamp(x,0,f.Width-1)*4;return [f.Pixels[i+2],f.Pixels[i+1],f.Pixels[i]];}
     private static byte[] Sample(Frame f,TextBox b)
     {
