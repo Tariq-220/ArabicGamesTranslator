@@ -26,5 +26,5 @@ public class RebuildPreviewTests
     }
 
     [Fact]public void IndependentTimingSurvivesRestartWithoutChangingApiOrLayout(){var store=new MemoryStore();store.Save("sentinel-api-key","kept");var expected=new ReadingTiming(60,30,16,100,100,true,250);using(var controller=AppControllerTests.Make(store:store)){var before=controller.Settings.Region;controller.Timing=expected;Assert.Equal(before,controller.Settings.Region);}using(var restored=AppControllerTests.Make(store:store)){Assert.Equal(expected,restored.Timing);Assert.Equal("kept",store.Load<string>("sentinel-api-key"));}}
-    [Fact]public void ExistingFasterPresetKeepsItsOriginalDisplayDelayOnTimingMigration(){var store=new MemoryStore();store.Save("FasterPresentation",true);using var controller=AppControllerTests.Make(store:store);Assert.Equal(80,controller.Timing.SettleMs);Assert.Equal(450,controller.Timing.MinimumDisplayMs);}
+    [Fact]public void ExistingFasterPresetKeepsItsOriginalDisplayDelayOnTimingMigration(){var store=new MemoryStore();store.Save("FasterPresentation",true);store.Save("FastCaptureEnabled",true);using var controller=AppControllerTests.Make(store:store);Assert.Equal(80,controller.Timing.SettleMs);Assert.Equal(450,controller.Timing.MinimumDisplayMs);Assert.Equal(25,controller.Timing.CaptureFps);}
 }

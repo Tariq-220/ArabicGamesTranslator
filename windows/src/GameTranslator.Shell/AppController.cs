@@ -989,7 +989,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     /// <summary>Okuma hattını güncel dillerle (yeniden) kurar.</summary>
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
     private ReadingTiming? readingTiming;
-    public ReadingTiming Timing {get=>readingTiming??= (store.Load<ReadingTiming>("reading-timing-v1")??new(SettleMs:FasterPresentation?80:120,MinimumDisplayMs:FasterPresentation?450:700)).Validate();set{readingTiming=value.Validate();store.Save("reading-timing-v1",readingTiming);ApplyTiming();Changed(nameof(Timing));}}
+    public ReadingTiming Timing {get=>readingTiming??= (store.Load<ReadingTiming>("reading-timing-v1")??new(CaptureFps:FastCaptureEnabled?25:12,SettleMs:FasterPresentation?80:120,MinimumDisplayMs:FasterPresentation?450:700)).Validate();set{readingTiming=value.Validate();store.Save("reading-timing-v1",readingTiming);ApplyTiming();Changed(nameof(Timing));}}
     private void ApplyTiming(){if(pipeline is not null){pipeline.MinimumStableMs=Timing.SettleMs;pipeline.MissingTextMs=Timing.GoneMs;pipeline.MinimumDisplayMs=Timing.MinimumDisplayMs;}areaSession?.SetTiming(Timing);}
     public bool FasterPresentation {get=>store.Load<bool>("FasterPresentation");set{store.Save("FasterPresentation",value);if(pipeline is not null)DialogueReadingPolicy.Configure(pipeline,PreferLatestDialogue,ReadingContentMode,value);Timing=Timing with{SettleMs=value?80:120,MinimumDisplayMs=value?450:700};}}
 
