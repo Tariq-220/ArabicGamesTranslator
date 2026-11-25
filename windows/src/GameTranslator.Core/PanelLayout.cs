@@ -62,7 +62,7 @@ public static class SpatialText
         if(frame.Width<90||frame.Height<(phone?150:60))return null;
         const int step=6;int w=frame.Width/step,h=frame.Height/step;var light=new bool[w*h];
         for(int y=0;y<h;y++)for(int x=0;x<w;x++){
-            int votes=0;foreach(var (dx,dy) in new[]{(1,1),(4,1),(1,4),(4,4),(2,2)}){var c=Pixel(frame,x*step+dx,y*step+dy);if(c.Min()>=155&&c.Max()-c.Min()<=35)votes++;}light[y*w+x]=votes>=3;
+            int votes=0;foreach(var (dx,dy) in new[]{(1,1),(4,1),(1,4),(4,4),(2,2)}){int i=(y*step+dy)*frame.Stride+(x*step+dx)*4;int red=frame.Pixels[i+2],green=frame.Pixels[i+1],blue=frame.Pixels[i];int lo=Math.Min(red,Math.Min(green,blue)),hi=Math.Max(red,Math.Max(green,blue));if(lo>=155&&hi-lo<=35)votes++;}light[y*w+x]=votes>=3;
         }
         var seen=new bool[light.Length];(int L,int T,int R,int B,int Count)? best=null;
         for(int start=0;start<light.Length;start++){
