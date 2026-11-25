@@ -19,7 +19,7 @@ internal sealed class AreaOverlayWindow : Window
         Effect=new DropShadowEffect{Color=Colors.Black,BlurRadius=3,ShadowDepth=1,Opacity=1}};
     private readonly Border border=new(){Padding=new Thickness(6),CornerRadius=new CornerRadius(5)};
     private readonly DispatcherTimer expiry=new();
-    private long revision=-1;
+    private long revision=-1;private string lastText="";
     private AreaOverlayWindow()
     {
         AllowsTransparency=true;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;ShowActivated=false;ShowInTaskbar=false;Topmost=true;Focusable=false;
@@ -40,7 +40,7 @@ internal sealed class AreaOverlayWindow : Window
         else window.border.Child=CaptionVisual.Text(value.Text,value.Appearance,value.FontSize*bounds.Width/1920,value.Background);
         window.border.Padding=new Thickness(0);
         window.border.Background=Brushes.Transparent;
-        window.Show();window.expiry.Interval=TimeSpan.FromMilliseconds(value.DurationMs);window.expiry.Start();
+        window.Show();if(value.Text!=window.lastText&&(value.Appearance?.FadeMs??0)>0)window.border.BeginAnimation(UIElement.OpacityProperty,new System.Windows.Media.Animation.DoubleAnimation(0,1,TimeSpan.FromMilliseconds(value.Appearance!.FadeMs)));window.lastText=value.Text;window.expiry.Interval=TimeSpan.FromMilliseconds(value.DurationMs);window.expiry.Start();
     }
     public static void ClearAll(){foreach(var window in windows.Values){window.expiry.Stop();window.Close();}windows.Clear();}
     [DllImport("user32.dll")]private static extern bool SetWindowDisplayAffinity(IntPtr window,uint affinity);

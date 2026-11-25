@@ -16,6 +16,14 @@ public sealed record ReadingArea(string Id, string Name, ReadingAreaKind Kind, C
         IntervalMs = Math.Clamp(IntervalMs,250,2000), Appearance=(Appearance??DefaultAppearance(Kind)).Validate()
     };
     public static CaptionAppearance DefaultAppearance(ReadingAreaKind kind)=>new(Align:kind==ReadingAreaKind.Dialogue?"center":"right",Vertical:kind==ReadingAreaKind.Dialogue?"bottom":"top");
+    public CropRegion PresentationOutput()
+    {
+        var position=Appearance?.Position??"custom";if(position=="custom")return Output;if(position=="cover")return Source;
+        var width=Output.Right-Output.Left;var height=Output.Bottom-Output.Top;
+        var left=Math.Clamp((Source.Left+Source.Right-width)/2,0,1-width);
+        var top=position=="above"?Source.Top-height-.006:Source.Bottom+.006;top=Math.Clamp(top,0,1-height);
+        return Bound(new(top,top+height,left,left+width));
+    }
     public static CropRegion Bound(CropRegion r)
     {
         double N(double n,double fallback) => double.IsFinite(n)?Math.Clamp(n,0,1):fallback;

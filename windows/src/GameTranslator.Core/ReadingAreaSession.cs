@@ -134,7 +134,7 @@ public sealed class ReadingAreaSession : IDisposable
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke(s.Area.Id,error.GetType().Name);}
         finally {lock(gate)s.Busy=false;}
     }
-    private static AreaCaption Make(State s,string text,bool clear=false)=>new(s.Area.Id,s.Revision,text,s.Area.Output,
+    private static AreaCaption Make(State s,string text,bool clear=false)=>new(s.Area.Id,s.Revision,text,s.Area.PresentationOutput(),
         s.Area.FontSize,s.Area.Background,s.Area.DurationMs,clear,s.Area.Appearance);
     public void Dispose(){lock(gate){if(disposed)return;disposed=true;}lifetime.Cancel();}
 }
