@@ -21,5 +21,18 @@ public class CaptionPresentationTests
   server.SendStyle(new(Appearance:new(Position:"cover",CoverEarly:true)));server.Cover("Hello",box);server.Cover("Hello",box);Assert.Single(boxes);Assert.Equal(box,boxes[0]);
  }
  [Fact] public void InstructionsHaveAnOptionalViceCityFrameAndDistinctSourceOutputNumbers(){var a=ReadingArea.Instructions().Validate();Assert.True(a.Appearance!.Accent);Assert.Equal("tajawal",a.Appearance.Font);Assert.NotEqual(a.Source,a.Output);Assert.True(a.Source.Top>a.Output.Top);}
+ [Fact] public async Task ClosedPhoneCannotReadSceneryOrCreateAFalseConversation(){
+  var reader=new CountReader();var engine=new CountEngine();using var session=new ReadingAreaSession([ReadingArea.Phone()],()=>reader,engine);
+  await session.ProcessAsync(Frame.Blank(1280,720));Assert.Equal(0,reader.Calls);Assert.Equal(0,engine.Calls);
+ }
+ [Fact] public async Task VisiblePhoneRenewsItsPanelWithoutRepeatingInference(){
+  long now=0;var reader=new CountReader();var engine=new CountEngine();var f=Frame.Blank(300,600);Fill(f,0,0,300,600,235,235,235);
+  var a=ReadingArea.Phone() with{Source=new(0,1,0,1),DurationMs=1200};using var session=new ReadingAreaSession([a],()=>reader,engine,()=>now);
+  var captions=new List<AreaCaption>();var shown=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);session.Caption+=c=>{captions.Add(c);shown.TrySetResult();};
+  await session.ProcessAsync(f);now=500;await session.ProcessAsync(f);await shown.Task.WaitAsync(TimeSpan.FromSeconds(3));int calls=engine.Calls;
+  now=1200;await session.ProcessAsync(f);Assert.Equal(calls,engine.Calls);Assert.Equal(2,captions.Count);Assert.True(captions[1].Revision>captions[0].Revision);
+ }
+ private sealed class CountReader:ITextReader{public int Calls;public string Read(Frame f){Calls++;return "Hello from home.";}public Reading ReadSpatial(Frame f){Calls++;return new([new("Hello from home.",new(.1,.2,.8,.3))]);}}
+ private sealed class CountEngine:ITextTranslator{public int Calls;public Task<string> TranslateAsync(string s,CancellationToken t=default){Calls++;return Task.FromResult("مرحبًا من المنزل.");}}
  private static void Fill(Frame f,int x,int y,int width,int height,byte r,byte g,byte b){for(int yy=y;yy<y+height;yy++)for(int xx=x;xx<x+width;xx++){int i=yy*f.Stride+xx*4;f.Pixels[i]=b;f.Pixels[i+1]=g;f.Pixels[i+2]=r;f.Pixels[i+3]=255;}}
 }

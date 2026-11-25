@@ -13,7 +13,7 @@ public sealed class ReadingAreaSession : IDisposable
         public string Candidate="", Sent="", LastResult="";
         public long Since, Seen, ReadAt=long.MinValue/2, Revision;
         public bool Busy, Visible;public long RetryAt;public int Failures;
-        public PanelLayout? Panel;public Frame? PanelFrame;
+        public PanelLayout? Panel,LastPanel;public Frame? PanelFrame;public long LastEmit;
         public readonly Dictionary<string,string> Cache=new(StringComparer.Ordinal);
     }
     private readonly object gate=new();
@@ -56,8 +56,8 @@ public sealed class ReadingAreaSession : IDisposable
             var source=s.Area.Source;
             var crop=frame.Crop((int)(source.Left*frame.Width),(int)(source.Top*frame.Height),
                 Math.Max(1,(int)((source.Right-source.Left)*frame.Width)),Math.Max(1,(int)((source.Bottom-source.Top)*frame.Height)));
-            if(s.Area.Kind==ReadingAreaKind.Phone&&SpatialText.FindPhone(crop) is {} phone)crop=RegionCropper.Crop(crop,phone);
-            if(s.Area.Kind==ReadingAreaKind.Notification&&SpatialText.FindMessage(crop) is {} message)crop=RegionCropper.Crop(crop,message);
+            if(s.Area.Kind==ReadingAreaKind.Phone&&s.Area.Structured){var phone=SpatialText.FindPhone(crop);if(phone is null){Observe(s,"",null,crop);return;}crop=RegionCropper.Crop(crop,phone); }
+            if(s.Area.Kind==ReadingAreaKind.Notification&&s.Area.Structured){var message=SpatialText.FindMessage(crop);if(message is null){Observe(s,"",null,crop);return;}crop=RegionCropper.Crop(crop,message); }
             var reading=await Task.Run(()=>s.Reader.ReadSpatial(crop),lifetime.Token).ConfigureAwait(false);
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
             var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind,includeImage:false):null;
@@ -70,14 +70,14 @@ public sealed class ReadingAreaSession : IDisposable
 
     private void Observe(State s,string text,PanelLayout? panel,Frame frame)
     {
-        AreaCaption? clear=null;bool start=false;
+        AreaCaption? clear=null,renewed=null;bool start=false;
         lock(gate)
         {
             if(disposed)return;
             var at=now();
             if(text.Length<2)
             {
-                if(s.Visible&&at-s.Seen>=700){s.Visible=false;s.Sent="";s.Candidate="";s.Revision++;clear=Make(s,"",true);}
+                if((s.Visible||s.Candidate.Length>0)&&at-s.Seen>=700){s.Visible=false;s.Sent="";s.Candidate="";s.LastResult="";s.LastPanel=null;s.PanelFrame=null;s.Revision++;clear=Make(s,"",true);}
             }
             else
             {
@@ -85,9 +85,10 @@ public sealed class ReadingAreaSession : IDisposable
                 if(!TextMatch.IsSimilar(TextMatch.Normalize(text),TextMatch.Normalize(s.Candidate),.94))
                 {s.Candidate=text;s.Since=at;s.RetryAt=0;s.Failures=0;}
                 if(at-s.Since>=120&&s.Candidate!=s.Sent&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
+                else if(s.Area.Kind==ReadingAreaKind.Phone&&s.Visible&&s.Sent==s.Candidate&&s.LastPanel is not null&&at-s.LastEmit>=s.Area.DurationMs/2){s.LastEmit=at;s.Revision++;renewed=Make(s,s.LastResult) with{Panel=s.LastPanel};}
             }
         }
-        if(clear is not null)Caption?.Invoke(clear);
+        if(clear is not null)Caption?.Invoke(clear);if(renewed is not null)Caption?.Invoke(renewed);
         if(start)_=Task.Run(()=>Translate(s));
     }
 
@@ -125,7 +126,7 @@ public sealed class ReadingAreaSession : IDisposable
                 if(s.Cache.Count>=128)s.Cache.Clear();if(panel is null&&!string.IsNullOrWhiteSpace(result))s.Cache[source]=result;
                 var partial=panel is not null&&panel.Cells.Any(c=>string.IsNullOrWhiteSpace(c.Text));
                 if(partial&&s.Failures++<2){s.Sent="";s.RetryAt=now()+2500;}else s.Sent=source;
-                if(!string.IsNullOrWhiteSpace(result)&&result!=s.LastResult){s.LastResult=result;s.Visible=true;caption=Make(s,result) with{Panel=panel};}
+                if(!string.IsNullOrWhiteSpace(result)&&result!=s.LastResult){s.LastResult=result;s.LastPanel=panel;s.LastEmit=now();s.Visible=true;caption=Make(s,result) with{Panel=panel};}
             }
             if(caption is not null)Caption?.Invoke(caption);
         }
