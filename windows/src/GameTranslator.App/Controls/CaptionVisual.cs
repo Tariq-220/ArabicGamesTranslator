@@ -17,7 +17,7 @@ public static class CaptionVisual
     {
         var a=(appearance??new()).Validate();var split=CaptionAppearance.SplitSpeaker(text);
         var label=new TextBlock{FlowDirection=FlowDirection.RightToLeft,FontFamily=Font(a.Font),FontSize=size,FontWeight=bold?FontWeights.Bold:FontWeights.Medium,
-            TextWrapping=TextWrapping.Wrap,TextAlignment=a.Align switch{"left"=>TextAlignment.Right,"right"=>TextAlignment.Left,_=>TextAlignment.Center},Foreground=Brushes.White,
+            TextWrapping=TextWrapping.Wrap,TextAlignment=a.Align switch{"left"=>TextAlignment.Left,"right"=>TextAlignment.Right,_=>TextAlignment.Center},Foreground=Brushes.White,
             LineHeight=size*1.42,LineStackingStrategy=LineStackingStrategy.BlockLineHeight};
         bool first=true;foreach(var row in text.Split('\n')){if(!first)label.Inlines.Add(new LineBreak());first=false;var part=CaptionAppearance.SplitSpeaker(row);if(part.Name.Length>0)label.Inlines.Add(new Run(part.Name+" "){Foreground=Brush(CaptionAppearance.SpeakerAccent(row,a))});label.Inlines.Add(new Run(part.Body));}
         if(a.Outline)label.Effect=new DropShadowEffect{Color=Colors.Black,ShadowDepth=1.3,BlurRadius=3.5,Opacity=1};
@@ -41,9 +41,9 @@ public static class CaptionVisual
     public static FrameworkElement Panel(PanelLayout panel,ReadingArea area,double targetWidth=1920,double targetHeight=1080)
     {
         if(panel.Kind=="menu")area=area with{Appearance=(area.Appearance??new()) with{Backdrop="none",Outline=true}};
-        bool phone=panel.Kind is "phone" or "notification";
+        bool phone=panel.Kind is "phone" or "notification";bool floating=panel.Kind=="phone"&&area.Appearance?.PhoneStyle=="floating";
         var o=area.PresentationOutput();double scale=Math.Max(.01,Math.Min((o.Right-o.Left)*targetWidth/panel.Width,(o.Bottom-o.Top)*targetHeight/panel.Height));
-        var canvas=new Canvas{Width=panel.Width,Height=panel.Height,ClipToBounds=true,Background=phone?Brushes.White:Brushes.Transparent};
+        var canvas=new Canvas{Width=panel.Width,Height=panel.Height,ClipToBounds=true,Background=phone&&!floating?Brushes.White:Brushes.Transparent};
         if(panel.Image is {Length:>0 and <1600000} encoded){try{using var stream=new MemoryStream(Convert.FromBase64String(encoded));var bmp=new BitmapImage();bmp.BeginInit();bmp.CacheOption=BitmapCacheOption.OnLoad;bmp.StreamSource=stream;bmp.EndInit();bmp.Freeze();canvas.Children.Add(new Image{Source=bmp,Width=panel.Width,Height=panel.Height,Stretch=Stretch.Fill});}catch(FormatException){}}
         foreach(var cell in panel.Cells)
         {
@@ -51,10 +51,11 @@ public static class CaptionVisual
             double w=Math.Max(8,(box.Right-box.Left)*panel.Width),h=Math.Max(8,(box.Bottom-box.Top)*panel.Height);
             double max=area.Appearance?.MatchSize!=false?Math.Max(8,cell.LineHeight*panel.Height*.95):area.FontSize;
             var label=new TextBlock{Width=w,HorizontalAlignment=HorizontalAlignment.Stretch,Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?FlowDirection.RightToLeft:FlowDirection.LeftToRight,TextWrapping=TextWrapping.Wrap,
-                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Right:TextAlignment.Left,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize*targetWidth/1920/scale,Padding=new Thickness(3,0,3,0)};
+                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Left:TextAlignment.Right,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize*targetWidth/1920/scale,Padding=new Thickness(3,0,3,0)};
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
             var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone||area.Appearance?.Backdrop=="source"?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
+            if(floating){var bg=(SolidColorBrush)block.Background;bg.Opacity=.88;if(cell.Heading){block.Background=new SolidColorBrush(Color.FromArgb(200,8,10,16));label.Foreground=Brushes.White;}}
             if(!phone&&area.Appearance?.Outline!=false)label.Effect=new DropShadowEffect{Color=Colors.Black,ShadowDepth=1,BlurRadius=3,Opacity=1};
             if(!phone)Decorate(block,area.Appearance??new(),area.Background,label.FontSize);
             Canvas.SetLeft(block,box.Left*panel.Width);Canvas.SetTop(block,box.Top*panel.Height);canvas.Children.Add(block);

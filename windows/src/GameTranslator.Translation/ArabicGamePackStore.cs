@@ -36,9 +36,9 @@ public sealed class ArabicGamePackStore(string directory,HttpClient? client=null
         try
         {
             Directory.CreateDirectory(directory);var path=Path.Combine(directory,"gta-6-ar.pack");var meta=path+".sha256";
-            if(Entries==0&&File.Exists(path)&&File.Exists(meta)){
+            if(Entries==0&&File.Exists(path)&&new FileInfo(path).Length<=32_000_000&&File.Exists(meta)){
                 var data=await File.ReadAllBytesAsync(path,token).ConfigureAwait(false);var wanted=(await File.ReadAllTextAsync(meta,token).ConfigureAwait(false)).Trim();
-                if(data.Length<=32_000_000&&Convert.ToHexStringLower(SHA256.HashData(data))==wanted)await Load(data,token).ConfigureAwait(false);
+                if(Convert.ToHexStringLower(SHA256.HashData(data))==wanted){try{await Load(data,token).ConfigureAwait(false);}catch(Exception error)when(error is InvalidDataException or JsonException or InvalidOperationException){Status="الحزمة المحلية غير صالحة؛ جارٍ إعادة جلبها";}}
             }
             var stamp=Path.Combine(directory,"checked");if(!force&&Entries>0&&File.Exists(stamp)&&DateTime.UtcNow-File.GetLastWriteTimeUtc(stamp)<TimeSpan.FromDays(7))return;
             Status="جارٍ فحص الحزمة العربية الجاهزة لـ GTA 6…";Changed?.Invoke();
@@ -54,7 +54,7 @@ public sealed class ArabicGamePackStore(string directory,HttpClient? client=null
             await File.WriteAllBytesAsync(path+".tmp",dataNew,token).ConfigureAwait(false);File.Move(path+".tmp",path,true);await File.WriteAllTextAsync(meta,sha,token).ConfigureAwait(false);await File.WriteAllTextAsync(stamp,"",token).ConfigureAwait(false);
         }
         catch(OperationCanceledException)when(token.IsCancellationRequested){}
-        catch(Exception e)when(e is IOException or HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException or KeyNotFoundException){Status=Entries>0?$"الحزمة المحلية جاهزة · تعذر تحديثها ({e.GetType().Name})":"الحزمة غير متاحة الآن؛ سيُستخدم المحرك · "+e.GetType().Name;}
+        catch(Exception e)when(e is IOException or InvalidDataException or UnauthorizedAccessException or HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException or KeyNotFoundException){Status=Entries>0?$"الحزمة المحلية جاهزة · تعذر تحديثها ({e.GetType().Name})":"الحزمة غير متاحة الآن؛ سيُستخدم المحرك · "+e.GetType().Name;}
         finally{Changed?.Invoke();gate.Release();}
     }
     private async Task Load(byte[] data,CancellationToken token)
