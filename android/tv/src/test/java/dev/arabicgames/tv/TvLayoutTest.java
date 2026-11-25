@@ -14,7 +14,7 @@ public class TvLayoutTest {
  @Test public void subtitleSizeCanBeChangedAndSurvivesRecreation(){
   try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
    MainActivity a=c.get();ViewGroup root=(ViewGroup)((ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);TextView caption=(TextView)root.getChildAt(1);
-   assertEquals(20f,caption.getTextSize()/a.getResources().getDisplayMetrics().scaledDensity,.1f);assertEquals(-2,caption.getLayoutParams().width);
+   assertEquals(Math.max(14,32*a.getResources().getDisplayMetrics().widthPixels/1920f),caption.getTextSize(),.1f);assertEquals(-2,caption.getLayoutParams().width);
    find(root,"حجم وخلفية الترجمة").performClick();android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
    SeekBar size=dialog.getWindow().getDecorView().findViewWithTag("subtitle-size");assertNotNull(size);size.setProgress(3);
    assertEquals(17f,caption.getTextSize()/a.getResources().getDisplayMetrics().scaledDensity,.1f);
@@ -28,15 +28,16 @@ public class TvLayoutTest {
    MainActivity a=c.get();ViewGroup root=(ViewGroup)((ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);
    find(root,"حجم وخلفية الترجمة").performClick();android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
    SeekBar position=dialog.getWindow().getDecorView().findViewWithTag("subtitle-position");position.setProgress(18);dialog.dismiss();
-   TextView caption=(TextView)root.getChildAt(1);int h=a.getResources().getDisplayMetrics().heightPixels;
-   assertEquals(Math.round(h*.20f),((FrameLayout.LayoutParams)caption.getLayoutParams()).bottomMargin);
-   c.recreate();a=c.get();root=(ViewGroup)((ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);caption=(TextView)root.getChildAt(1);
-   assertEquals(Math.round(h*.20f),((FrameLayout.LayoutParams)caption.getLayoutParams()).bottomMargin);
+   TextView caption=(TextView)root.getChildAt(1);int h=a.getResources().getDisplayMetrics().heightPixels;layout(a);
+   assertEquals(Math.round(h*.80f)-caption.getMeasuredHeight(),((FrameLayout.LayoutParams)caption.getLayoutParams()).topMargin,2);
+   c.recreate();a=c.get();root=(ViewGroup)((ViewGroup)a.findViewById(android.R.id.content)).getChildAt(0);caption=(TextView)root.getChildAt(1);layout(a);
+   assertEquals(Math.round(h*.80f)-caption.getMeasuredHeight(),((FrameLayout.LayoutParams)caption.getLayoutParams()).topMargin,2);
    find(root,"إصلاح ظهور الترجمة").performClick();
-   assertEquals(Math.round(h*.07f),((FrameLayout.LayoutParams)caption.getLayoutParams()).bottomMargin);
+   layout(a);assertEquals(Math.round(h*.93f)-caption.getMeasuredHeight(),((FrameLayout.LayoutParams)caption.getLayoutParams()).topMargin,2);
    assertEquals(View.VISIBLE,caption.getVisibility());assertTrue(caption.getText().toString().contains("اختبار الإصلاح"));
   }
  }
+ private static void layout(MainActivity a){View d=a.getWindow().getDecorView();int w=a.getResources().getDisplayMetrics().widthPixels,h=a.getResources().getDisplayMetrics().heightPixels;d.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));d.layout(0,0,w,h);}
  private static Button find(View v,String text){if(v instanceof Button&&((Button)v).getText().toString().equals(text))return (Button)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){Button b=find(((ViewGroup)v).getChildAt(i),text);if(b!=null)return b;}return null;}
  @Test public void panelStaysNarrowAndTestSubtitleCanShow(){try(var c=Robolectric.buildActivity(MainActivity.class).setup()){
   MainActivity a=c.get();View decor=a.getWindow().getDecorView();int w=a.getResources().getDisplayMetrics().widthPixels,h=a.getResources().getDisplayMetrics().heightPixels;decor.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));decor.layout(0,0,w,h);

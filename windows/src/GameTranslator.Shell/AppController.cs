@@ -983,9 +983,10 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     /// <summary>Okuma hattını güncel dillerle (yeniden) kurar.</summary>
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
+    public bool FasterPresentation {get=>store.Load<bool>("FasterPresentation");set{store.Save("FasterPresentation",value);if(pipeline is not null)DialogueReadingPolicy.Configure(pipeline,PreferLatestDialogue,ReadingContentMode,value);}}
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
-    private SubtitleStyle PresentationStyle => settings.Style with {StackPrevious=false,Placement=SubtitlePlacement.Cover};
+    private SubtitleStyle PresentationStyle => settings.Style with {StackPrevious=false};
     public CropRegion DialogueCaptureRegion=>store.Load<CropRegion>("DialogueCaptureRegion")??new(.70,.97,.12,.78);
     public string ReadingContentMode {get=>store.Load<string>("ReadingContentMode")??"dialogue";set {if(value!="dialogue"&&ReadingContentMode=="dialogue")store.Save("DialogueCaptureRegion",settings.Region);store.Save("ReadingContentMode",value);}}
     public void PrepareDialogueReading(){
@@ -1009,6 +1010,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public void PrepareRebuildAreas()
     {
+        if(settings.Style.Appearance is null)Settings=settings with{Style=settings.Style with{Appearance=new(Position:"above"),Background=72}};
         if(store.Load<bool>("v024-rebuild-areas"))return;
         Settings=settings with{Region=new(.80,.918,.10,.90),Style=settings.Style with{FontSize=32,Background=0,StackPrevious=false}};
         DialogueOutput=new(.65,.83,.10,.90);
@@ -1046,7 +1048,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var built = new SubtitlePipeline(reader, new ProfileTranslator(translationQueue.Dialogue,DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
-        DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode);
+        DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode,FasterPresentation);
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>{
             var reviewed=CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
@@ -1059,7 +1061,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         built.PairShown += (source, translation) =>
         {
             var outputArea=DialogueOutput;
-            TextBox? box = new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom);
+            TextBox? box = (settings.Style.Appearance?.Position??"custom")=="custom"?new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom):built.LastBox;
             var ms = RegionTranslation.DisplayMilliseconds(translation);
             post(() =>
             {

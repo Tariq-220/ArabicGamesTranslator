@@ -35,6 +35,29 @@ public static partial class SpeakerMerge
         return chosen;
     }
 
+    /// <summary>A coloured name alone is not a complete utterance. Prefer the other OCR pass if it has the body.</summary>
+    public static bool HasBody(Reading reading)
+    {
+        var text=reading.Text.Trim();var match=Label().Match(text);
+        if(match.Success)return text[match.Length..].Any(char.IsLetter);
+        return text.Any(char.IsLetter)&&text is not ("Jason" or "Lucia" or "Tourist" or "Tourists");
+    }
+    /// <summary>Some OCR engines split a coloured speaker label from its white text. Join only adjacent geometry.</summary>
+    public static Reading AttachStandaloneLabels(Reading reading)
+    {
+        var lines=reading.Lines.ToList();var result=new List<TextLine>();
+        for(int i=0;i<lines.Count;i++){
+            var line=lines[i];var match=Label().Match(line.Text.Trim());
+            if(!match.Success||line.Text.Trim()[match.Length..].Any(char.IsLetter)){result.Add(line);continue;}
+            if(i+1>=lines.Count)continue;
+            var next=lines[i+1];bool adjacent=false;
+            if(line.Box is {} a&&next.Box is {} b){var h=Math.Max(a.Bottom-a.Top,b.Bottom-b.Top);adjacent=Math.Abs(a.Top-b.Top)<h*.6||b.Top>=a.Top&&b.Top-a.Bottom<h*1.3&&Math.Min(a.Right,b.Right)>Math.Max(a.Left,b.Left);}
+            if(!adjacent)continue;
+            result.Add(next with{Text=match.Groups["name"].Value+": "+next.Text.Trim(),Box=line.Box!.Value.Union(next.Box!.Value)});i++;
+        }
+        return new Reading(result);
+    }
+
     /// <summary>İki okuma aynı söz mü: sözcüklerin çoğu ortak (gürültülü okumada birkaç sözcük bozuk olabilir).</summary>
     private static bool SameWords(string noisy, string clean)
     {

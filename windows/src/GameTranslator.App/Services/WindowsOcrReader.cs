@@ -44,6 +44,8 @@ public sealed class WindowsOcrReader : ITextReader
     /// Kare hem olduğu gibi hem de yalnız beyaz yazısı bırakılarak okunur; daha sözcüğe benzeyen okuma seçilir.
     /// Parlak sahnelerde ikincisi, renkli altyazılarda birincisi kazanır.
     /// </summary>
+    public Reading ReadSpatial(Frame image) => RecognizeOnce(image);
+
     private Reading Recognize(Frame image)
     {
         var raw = RecognizeOnce(image);
@@ -54,11 +56,13 @@ public sealed class WindowsOcrReader : ITextReader
         var english=engine.RecognizerLanguage.LanguageTag.StartsWith("en",StringComparison.OrdinalIgnoreCase);
         var score=english && WindowsSpellDictionary.Shared.IsWorking ? (Func<string,int>)(t=>spelling.Score(t)) : OcrNoise.Score;
         var best=score(whiteText.Text)>score(raw.Text)?SpeakerMerge.WithSpeakerFrom(whiteText,raw):SpeakerMerge.WithSpeakerFrom(raw,whiteText);
+        if(SpeakerMerge.HasBody(raw)!=SpeakerMerge.HasBody(whiteText))best=SpeakerMerge.HasBody(raw)?raw:whiteText;
+        best=SpeakerMerge.AttachStandaloneLabels(best);
         // A damaged reading gets one alternate shadow radius. No six-pass OCR on every frame.
         if(english && WindowsSpellDictionary.Shared.IsWorking && spelling.IsMisread(best.Text) && score(best.Text)<8)
         {
             var alternate=RecognizeOnce(TextImage.WhiteTextOnly(image,3));
-            if(score(alternate.Text)>score(best.Text))best=alternate;
+            if(SpeakerMerge.HasBody(alternate)&&score(alternate.Text)>score(best.Text))best=SpeakerMerge.AttachStandaloneLabels(alternate);
         }
         return best;
     }

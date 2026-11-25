@@ -207,6 +207,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         // Alandaki menü ve köşe göstergeleri de altyazı değildir; yalnız altyazı bloğu çevrilir ve kutusu ona göre olur.
         var area = new TextBox(region.Left, region.Top, region.Right, region.Bottom);
         var filtered=ReadingFilter?.Invoke(raw,area)??raw;
+        if(DialogueBlockOnly)filtered=SpeakerMerge.AttachStandaloneLabels(filtered);
         var reading = DialogueBlockOnly?filtered.WithoutButtonPrompts().WithoutOcrNoise().SubtitleBlock(area):filtered.WithoutOcrNoise();
 
         if(SourceFilter is { } filter)reading=new Reading(reading.Lines.Select(line=>line with {Text=filter(line.Text)}));

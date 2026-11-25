@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-only
 
 namespace GameTranslator.Core;
 
@@ -154,6 +154,8 @@ public static class RegionCropper
 /// <summary>Bir görüntüdeki yazıyı okur (Windows'ta Windows.Media.Ocr).</summary>
 public interface ITextReader
 {
+    /// <summary>Spatial panels retain original glyph positions/colours, rather than white-subtitle preprocessing.</summary>
+    Reading ReadSpatial(Frame image) => ReadLines(image, false);
     string Read(Frame image);
     /// <summary><paramref name="deep"/> false ise boş bölgede büyütülmüş okuma denenmez (işlemciyi çok daha az yorar).</summary>
     string Read(Frame image, bool deep) => Read(image);

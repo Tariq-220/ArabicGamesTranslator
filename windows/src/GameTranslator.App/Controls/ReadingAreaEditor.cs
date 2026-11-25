@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -9,94 +11,78 @@ using System.Windows.Threading;
 using GameTranslator.Core;
 using GameTranslator.Shell;
 using Frame=GameTranslator.Core.Frame;
-using TextBox=System.Windows.Controls.TextBox;
+using InputBox=System.Windows.Controls.TextBox;
 namespace GameTranslator.App.Controls;
 
-/// <summary>Live normalized region editor. Source/output rectangles use the same coordinate space
-/// as captured frames, independent of window size or display scaling. Mouse and touch share gestures.</summary>
+/// <summary>Two-colour source/output editor with numeric geometry and portable layouts.</summary>
 public sealed class ReadingAreaEditor : UserControl
 {
-    private readonly AppController controller;
-    private readonly List<ReadingArea> areas;
-    private readonly ListBox list=new(){MinWidth=180,MaxHeight=210};
-    private readonly Canvas canvas=new(){Width=1280,Height=720,Background=Brushes.Black,ClipToBounds=true};
+    private readonly AppController controller;private readonly List<ReadingArea> areas;
+    private readonly Canvas canvas=new(){Width=1280,Height=720,Background=new SolidColorBrush(Color.FromRgb(34,40,51)),ClipToBounds=true,FlowDirection=FlowDirection.LeftToRight};
     private readonly Image image=new(){Width=1280,Height=720,IsHitTestVisible=false};
-    private readonly TextBox name=new(){MinWidth=180,MinHeight=40};
-    private readonly CheckBox enabled=new(){Content="تفعيل المنطقة",MinHeight=40};
-    private readonly ComboBox mode=new(){MinHeight=40};
-    private readonly Slider font=new(){Minimum=14,Maximum=48,TickFrequency=1,IsSnapToTickEnabled=true};
-    private readonly Slider duration=new(){Minimum=1200,Maximum=30000,TickFrequency=500,IsSnapToTickEnabled=true};
-    private readonly Slider background=new(){Minimum=0,Maximum=100};
-    private readonly TextBlock note=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(8)};
-    private readonly DispatcherTimer timer=new(){Interval=TimeSpan.FromMilliseconds(400)};
-    private readonly DispatcherTimer saveTimer=new(){Interval=TimeSpan.FromMilliseconds(350)};
-    private bool updating,dragging,resize,draw;
-    private Point anchor;
-    private CropRegion original=new();
-    private Frame? last;
+    private readonly ListBox list=new(){MinHeight=44,MaxHeight=135};
+    private readonly InputBox name=Input(),sample=Input();
+    private readonly CheckBox enabled=Check("تفعيل المنطقة"),demo=Check("عرض نص تجريبي"),match=Check("مطابقة حجم نص اللعبة"),outline=Check("ظل / حدود لتحسين الوضوح"),speaker=Check("تلوين اسم الشخصية"),structured=Check("الحفاظ على مواضع الخلايا والألوان"),accent=Check("إطار فايس سيتي · حواف ملوّنة");
+    private readonly ComboBox font=Choice(["Noto Sans Arabic · متوسط مثل اللعبة","Tajawal · واضح","Cairo","Changa","Lalezar"]),back=Choice(["بدون خلفية","مربع اللعبة · مستطيل","مربع مستدير","مربع مستطيل"]),align=Choice(["وسط","يمين","يسار"]),vertical=Choice(["أسفل","وسط","أعلى"]),placement=Choice(["موضع مخصص · مربع الإخراج","فوق نص اللعبة","يغطي نص اللعبة","تحت نص اللعبة"]),palette=Choice(["تلقائي · حسب الشخصية","تركوازي","وردي","أصفر","أبيض"]);
+    private readonly Slider size=Slide(14,48),opacity=Slide(0,100),duration=Slide(1200,30000),fade=Slide(0,300),interval=Slide(250,2000);
+    private readonly Dictionary<string,InputBox[]> coordinates=new();private readonly TextBlock note=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(5)};
+    private readonly DispatcherTimer frames=new(){Interval=TimeSpan.FromMilliseconds(250)},saveTimer=new(){Interval=TimeSpan.FromMilliseconds(450)};
+    private bool updating,dragging,draw,dragOutput;private int handle=-1;private Point anchor;private CropRegion original=new();private Frame? last;
     private ReadingArea? Selected=>list.SelectedIndex>=0&&list.SelectedIndex<areas.Count?areas[list.SelectedIndex]:null;
-    private bool Output=>mode.SelectedIndex==1;
-
+    private static readonly string[] H=["center","right","left"],V=["bottom","center","top"],Colors=["auto","#70DDE7","#F39ABA","#F2D87A","#FFFFFF"];
     public ReadingAreaEditor(AppController controller)
     {
-        this.controller=controller;
-        list.Background=new SolidColorBrush(Color.FromRgb(32,40,59));list.Foreground=Brushes.White;list.BorderBrush=Brushes.Transparent;
-        name.Background=list.Background;name.Foreground=Brushes.White;name.Padding=new Thickness(6);
-        areas=[new("dialogue","الحوار",ReadingAreaKind.Dialogue,controller.Settings.Region,controller.DialogueOutput,FontSize:controller.Settings.Style.FontSize,Background:controller.Settings.Style.Background),..controller.ReadingAreas];
-        var root=new StackPanel{Margin=new Thickness(10)};
-        root.Children.Add(new TextBlock{Text="مناطق القراءة · اسحب داخل المربع لتحريكه، أو الزاوية لتغيير حجمه. يمكنك تعديلها أثناء البث.",TextWrapping=TextWrapping.Wrap,FontSize=17});
-        var preview=new Viewbox{Stretch=Stretch.Uniform,Child=canvas,MaxHeight=440,Margin=new Thickness(0,12,0,8)};root.Children.Add(preview);
-        mode.Items.Add("مربع القراءة من اللعبة");mode.Items.Add("مربع ظهور العربية");mode.SelectedIndex=0;root.Children.Add(mode);
-        root.Children.Add(list);
-        var actions=new WrapPanel();
-        actions.Children.Add(Action("+ رسائل جوال",()=>Add(ReadingArea.Phone())));
-        actions.Children.Add(Action("+ أهداف المهمة",()=>Add(ReadingArea.Instructions())));
-        actions.Children.Add(Action("+ قائمة / نص",()=>Add(ReadingArea.Menu())));
-        actions.Children.Add(Action("رسم مربع جديد",()=>{draw=true;note.Text="اسحب على المعاينة لرسم المربع المحدد.";}));
-        actions.Children.Add(Action("حذف المنطقة",Remove));root.Children.Add(actions);
-        root.Children.Add(name);root.Children.Add(enabled);
-        root.Children.Add(new TextBlock{Text="حجم خط المنطقة"});root.Children.Add(font);
-        root.Children.Add(new TextBlock{Text="خلفية المنطقة · صفر = بدون خلفية"});root.Children.Add(background);
-        root.Children.Add(new TextBlock{Text="مدة بقاء المنطقة الإضافية · حتى 30 ثانية"});root.Children.Add(duration);
-        root.Children.Add(note);Content=root;
-        list.SelectionChanged+=(_,_)=>LoadSelection();mode.SelectionChanged+=(_,_)=>Render();
-        name.TextChanged+=(_,_)=>Edit(a=>a with{Name=name.Text});
+        this.controller=controller;var style=controller.Settings.Style;
+        areas=[new ReadingArea("dialogue","الحوار",ReadingAreaKind.Dialogue,controller.Settings.Region,controller.DialogueOutput,FontSize:style.FontSize,Background:style.Background,Appearance:style.Appearance).Validate(),..controller.ReadingAreas.Select(a=>a.Validate())];
+        var root=new Grid();root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});root.RowDefinitions.Add(new RowDefinition());
+        var top=new WrapPanel();top.Children.Add(Action("+ منطقة قراءة",()=>Add(ReadingArea.Menu())));top.Children.Add(Action("+ جوال اللعبة",()=>Add(ReadingArea.Phone())));top.Children.Add(Action("+ هدف / تنبيه",()=>Add(ReadingArea.Instructions())));top.Children.Add(Action("استيراد تخطيط",Import));top.Children.Add(Action("تصدير ومشاركة",Export));demo.IsChecked=true;top.Children.Add(demo);Grid.SetRow(top,0);root.Children.Add(top);
+        var body=new Grid();body.ColumnDefinitions.Add(new ColumnDefinition());body.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(290)});Grid.SetRow(body,1);root.Children.Add(body);
+        var picture=new DockPanel{Margin=new Thickness(6)};
+        var legend=new TextBlock{Text="أصفر: القراءة · أزرق: ظهور الترجمة · اسحب المربع أو أي زاوية/حافة · النسب لا تتغير بتغيير حجم النافذة",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4)};DockPanel.SetDock(legend,Dock.Top);picture.Children.Add(legend);
+        sample.Text="جيسون: افتح الباب، لوسيا. سنعود إلى المنزل.";DockPanel.SetDock(sample,Dock.Bottom);picture.Children.Add(sample);picture.Children.Add(new Viewbox{Stretch=Stretch.Uniform,Child=canvas});body.Children.Add(picture);
+        var settings=new StackPanel{Margin=new Thickness(6)};Grid.SetColumn(settings,1);var scroll=new ScrollViewer{Content=settings,Tag="setup-scroll",VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly};Grid.SetColumn(scroll,1);body.Children.Add(scroll);
+        settings.Children.Add(list);settings.Children.Add(name);settings.Children.Add(enabled);
+        var actions=new WrapPanel();actions.Children.Add(Action("رسم مربع قراءة",()=>{draw=true;dragOutput=false;note.Text="اسحب لرسم مصدر القراءة.";}));actions.Children.Add(Action("رسم مربع ظهور",()=>{draw=true;dragOutput=true;note.Text="اسحب لرسم موضع العربية.";}));actions.Children.Add(Action("حذف",Remove));settings.Children.Add(actions);
+        Coordinates(settings,"source","منطقة القراءة · %");Coordinates(settings,"output","منطقة الترجمة · %");
+        Section(settings,"موضع وشكل النص",[("موضع العرض",placement),("المحاذاة الأفقية",align),("المحاذاة الرأسية",vertical),("الخط",font),("الخلفية",back)]);
+        settings.Children.Add(match);settings.Children.Add(outline);settings.Children.Add(speaker);settings.Children.Add(palette);settings.Children.Add(structured);settings.Children.Add(accent);
+        AddSlider(settings,"حجم الخط",size,"0");AddSlider(settings,"عتامة الخلفية %",opacity,"0");AddSlider(settings,"تدرج الظهور · ms",fade,"0");AddSlider(settings,"مدة المنطقة · ms",duration,"0");AddSlider(settings,"فاصل قراءة المنطقة · ms",interval,"0");settings.Children.Add(note);
+        Content=root;
+        list.SelectionChanged+=(_,_)=>LoadSelection();name.TextChanged+=(_,_)=>Edit(a=>a with{Name=name.Text});
         enabled.Checked+=(_,_)=>Edit(a=>a with{Enabled=true});enabled.Unchecked+=(_,_)=>Edit(a=>a with{Enabled=false});
-        font.ValueChanged+=(_,_)=>Edit(a=>a with{FontSize=(int)font.Value});
-        duration.ValueChanged+=(_,_)=>Edit(a=>a with{DurationMs=(int)duration.Value});
-        background.ValueChanged+=(_,_)=>Edit(a=>a with{Background=(int)background.Value});
-        canvas.MouseLeftButtonDown+=(_,e)=>{Begin(e.GetPosition(canvas));canvas.CaptureMouse();e.Handled=true;};
-        canvas.MouseMove+=(_,e)=>{if(dragging)Move(e.GetPosition(canvas));};
-        canvas.MouseLeftButtonUp+=(_,e)=>{End();canvas.ReleaseMouseCapture();e.Handled=true;};
-        canvas.TouchDown+=(_,e)=>{Begin(e.GetTouchPoint(canvas).Position);e.TouchDevice.Capture(canvas);e.Handled=true;};
-        canvas.TouchMove+=(_,e)=>{if(dragging)Move(e.GetTouchPoint(canvas).Position);e.Handled=true;};
-        canvas.TouchUp+=(_,e)=>{End();e.TouchDevice.Capture(null);e.Handled=true;};
-        canvas.LostMouseCapture+=(_,_)=>End();
-        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};
-        name.LostKeyboardFocus+=(_,_)=>{var index=list.SelectedIndex;if(index>=0)RebuildList(index);};
-        timer.Tick+=(_,_)=>RefreshFrame();Loaded+=(_,_)=>timer.Start();Unloaded+=(_,_)=>{timer.Stop();if(saveTimer.IsEnabled){saveTimer.Stop();Save();}};
-        // Keep the picture visible while scrolling settings: no giant preview followed by hidden controls.
-        var children=root.Children.Cast<UIElement>().ToList();root.Children.Clear();
-        var editor=new Grid();editor.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});editor.RowDefinitions.Add(new RowDefinition());
-        editor.Children.Add(children[0]);
-        var body=new Grid();body.ColumnDefinitions.Add(new ColumnDefinition());body.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(225)});Grid.SetRow(body,1);editor.Children.Add(body);
-        var picture=new Grid();picture.RowDefinitions.Add(new RowDefinition());picture.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
-        picture.Children.Add(preview);Grid.SetRow(mode,1);picture.Children.Add(mode);body.Children.Add(picture);
-        var settings=new StackPanel{Margin=new Thickness(8)};foreach(var child in children.Skip(3))settings.Children.Add(child);
-        var settingsScroll=new ScrollViewer{Tag="setup-scroll",Content=settings,VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly};Grid.SetColumn(settingsScroll,1);body.Children.Add(settingsScroll);
-        Content=editor;
-        RebuildList(0);
+        foreach(var c in new[]{font,back,align,vertical,placement,palette})c.SelectionChanged+=(_,_)=>AppearanceChanged();
+        foreach(var c in new[]{match,outline,speaker,structured,accent}){c.Checked+=(_,_)=>AppearanceChanged();c.Unchecked+=(_,_)=>AppearanceChanged();}
+        size.ValueChanged+=(_,_)=>Edit(a=>a with{FontSize=(int)size.Value});opacity.ValueChanged+=(_,_)=>Edit(a=>a with{Background=(int)opacity.Value});duration.ValueChanged+=(_,_)=>Edit(a=>a with{DurationMs=(int)duration.Value});interval.ValueChanged+=(_,_)=>Edit(a=>a with{IntervalMs=(int)interval.Value});fade.ValueChanged+=(_,_)=>AppearanceChanged();
+        demo.Checked+=(_,_)=>Render();demo.Unchecked+=(_,_)=>Render();sample.TextChanged+=(_,_)=>Render();
+        canvas.MouseLeftButtonDown+=(_,e)=>{Begin(e.GetPosition(canvas));if(dragging)canvas.CaptureMouse();e.Handled=true;};canvas.MouseMove+=(_,e)=>{if(dragging)Move(e.GetPosition(canvas));};canvas.MouseLeftButtonUp+=(_,e)=>{End();canvas.ReleaseMouseCapture();};canvas.LostMouseCapture+=(_,_)=>End();
+        canvas.TouchDown+=(_,e)=>{Begin(e.GetTouchPoint(canvas).Position);if(dragging)e.TouchDevice.Capture(canvas);e.Handled=true;};canvas.TouchMove+=(_,e)=>{if(dragging)Move(e.GetTouchPoint(canvas).Position);e.Handled=true;};canvas.TouchUp+=(_,e)=>{End();e.TouchDevice.Capture(null);e.Handled=true;};
+        saveTimer.Tick+=(_,_)=>{saveTimer.Stop();Save();};frames.Tick+=(_,_)=>Refresh();Loaded+=(_,_)=>frames.Start();Unloaded+=(_,_)=>{frames.Stop();if(saveTimer.IsEnabled){saveTimer.Stop();Save();}};
+        Rebuild(0);
     }
-    private static Button Action(string title,Action run){var b=new Button{Content=title,MinHeight=44,Margin=new Thickness(4),Padding=new Thickness(10)};b.Click+=(_,_)=>run();return b;}
-    private void Add(ReadingArea area){if(areas.Count>=9){note.Text="الحد الأقصى 8 مناطق إضافية لحماية أداء الجهاز.";return;}areas.Add(area);RebuildList(areas.Count-1);Save();}
-    private void Remove(){if(list.SelectedIndex<=0)return;var i=list.SelectedIndex;areas.RemoveAt(i);RebuildList(Math.Min(i,areas.Count-1));Save();}
-    private void RebuildList(int index){updating=true;list.Items.Clear();foreach(var area in areas)list.Items.Add(area.Name);updating=false;list.SelectedIndex=index;LoadSelection();}
-    private void LoadSelection(){if(updating||Selected is not {} area)return;updating=true;name.Text=area.Name;enabled.IsChecked=area.Enabled;font.Value=area.FontSize;background.Value=area.Background;duration.Value=area.DurationMs;duration.IsEnabled=area.Id!="dialogue";enabled.IsEnabled=area.Id!="dialogue";name.IsEnabled=area.Id!="dialogue";mode.IsEnabled=true;updating=false;Render();}
-    private void Edit(Func<ReadingArea,ReadingArea> change){if(updating||Selected is not {} area)return;areas[list.SelectedIndex]=change(area).Validate();saveTimer.Stop();saveTimer.Start();Render();}
-    private void Save(){controller.DialogueOutput=areas[0].Output;controller.Settings=controller.Settings with{Region=areas[0].Source,Style=controller.Settings.Style with{FontSize=areas[0].FontSize,Background=areas[0].Background,StackPrevious=false}};controller.ReadingAreas=areas.Skip(1).ToArray();note.Text="حُفظت المناطق. الحوار مستقل عن الرسائل والقوائم؛ يمكن إيقاف أي منطقة إضافية.";}
-    private void RefreshFrame(){if(!IsVisible||controller.LastFrame is not {} frame||ReferenceEquals(last,frame))return;last=frame;var bmp=BitmapSource.Create(frame.Width,frame.Height,96,96,PixelFormats.Bgra32,null,frame.Pixels,frame.Stride);bmp.Freeze();image.Source=bmp;Render();}
-    private void Render(){canvas.Children.Clear();canvas.Children.Add(image);foreach(var area in areas){var box=Output?area.Output:area.Source;var selected=Selected?.Id==area.Id;var color=selected?Brushes.HotPink:area.Enabled?Brushes.Turquoise:Brushes.Gray;var rectangle=new Rectangle{Width=(box.Right-box.Left)*1280,Height=(box.Bottom-box.Top)*720,Stroke=color,StrokeThickness=selected?4:2,Fill=new SolidColorBrush(Color.FromArgb(selected?(byte)22:(byte)5,220,80,180)),IsHitTestVisible=false};Canvas.SetLeft(rectangle,box.Left*1280);Canvas.SetTop(rectangle,box.Top*720);canvas.Children.Add(rectangle);var title=new TextBlock{Text=area.Name,Foreground=Brushes.White,Background=Brushes.Black,FontSize=21,IsHitTestVisible=false};Canvas.SetLeft(title,box.Left*1280);Canvas.SetTop(title,Math.Max(0,box.Top*720-30));canvas.Children.Add(title);}}
-    private void Begin(Point p){if(Selected is not {} area)return;anchor=p;original=Output?area.Output:area.Source;var inside=p.X>=original.Left*1280&&p.X<=original.Right*1280&&p.Y>=original.Top*720&&p.Y<=original.Bottom*720;if(!draw&&!inside){foreach(var other in areas.AsEnumerable().Reverse()){var box=Output?other.Output:other.Source;if(p.X>=box.Left*1280&&p.X<=box.Right*1280&&p.Y>=box.Top*720&&p.Y<=box.Bottom*720){list.SelectedIndex=areas.IndexOf(other);area=other;original=box;inside=true;break;}}}if(!draw&&!inside)return;resize=!draw&&Math.Abs(p.X-original.Right*1280)<24&&Math.Abs(p.Y-original.Bottom*720)<24;dragging=true;}
-    private void Move(Point p){if(Selected is not {} area)return;var dx=(p.X-anchor.X)/1280;var dy=(p.Y-anchor.Y)/720;CropRegion box;if(draw)box=new(Math.Min(anchor.Y,p.Y)/720,Math.Max(anchor.Y,p.Y)/720,Math.Min(anchor.X,p.X)/1280,Math.Max(anchor.X,p.X)/1280);else if(resize)box=original with{Right=original.Right+dx,Bottom=original.Bottom+dy};else{dx=Math.Clamp(dx,-original.Left,1-original.Right);dy=Math.Clamp(dy,-original.Top,1-original.Bottom);box=new(original.Top+dy,original.Bottom+dy,original.Left+dx,original.Right+dx);}box=ReadingArea.Bound(box);areas[list.SelectedIndex]=Output?area with{Output=box}:area with{Source=box};Render();}
+    private static InputBox Input()=>new(){MinHeight=34,Margin=new Thickness(2),Background=new SolidColorBrush(Color.FromRgb(28,32,44)),Foreground=Brushes.White,Padding=new Thickness(5)};
+    private static CheckBox Check(string title)=>new(){Content=title,MinHeight=36,Margin=new Thickness(4),Foreground=Brushes.White};
+    private static ComboBox Choice(string[] values){var c=new ComboBox{MinHeight=36,Margin=new Thickness(3)};foreach(var s in values)c.Items.Add(s);return c;}
+    private static Slider Slide(int min,int max)=>new(){Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Margin=new Thickness(5)};
+    private static Button Action(string title,Action action){var b=new Button{Content=title,MinHeight=40,Padding=new Thickness(8),Margin=new Thickness(3)};b.Click+=(_,_)=>action();return b;}
+    private static void Section(StackPanel p,string title,(string,Control)[] controls){var inner=new StackPanel();foreach(var (text,c) in controls){inner.Children.Add(new TextBlock{Text=text,Margin=new Thickness(4)});inner.Children.Add(c);}p.Children.Add(new Expander{Header=title,Content=inner,IsExpanded=true,Foreground=Brushes.White});}
+    private static void AddSlider(StackPanel p,string text,Slider slider,string format){var label=new TextBlock{Margin=new Thickness(4)};void Update()=>label.Text=text+": "+slider.Value.ToString(format,CultureInfo.InvariantCulture);slider.ValueChanged+=(_,_)=>Update();Update();p.Children.Add(label);p.Children.Add(slider);}
+    private void Coordinates(StackPanel panel,string key,string title){var grid=new UniformGrid{Columns=2};var inputs=new List<InputBox>();foreach(var label in new[]{"اليسار","الأعلى","العرض","الارتفاع"}){var cell=new StackPanel();cell.Children.Add(new TextBlock{Text=label,Margin=new Thickness(3)});var input=Input();input.FlowDirection=FlowDirection.LeftToRight;inputs.Add(input);cell.Children.Add(input);grid.Children.Add(cell);input.LostKeyboardFocus+=(_,_)=>ApplyCoordinates(key);input.KeyDown+=(_,e)=>{if(e.Key==Key.Enter){ApplyCoordinates(key);e.Handled=true;}};}coordinates[key]=inputs.ToArray();panel.Children.Add(new Expander{Header=title,Content=grid,IsExpanded=true,Foreground=Brushes.White});}
+    private void ApplyCoordinates(string key){if(updating||Selected is not {} a)return;try{var n=coordinates[key].Select(t=>double.Parse(new string(t.Text.Select(c=>char.IsDigit(c)?(char)('0'+char.GetNumericValue(c)):c).ToArray()).Replace(',','.'),CultureInfo.InvariantCulture)/100).ToArray();if(n.Any(x=>!double.IsFinite(x))||n[2]<.03||n[3]<.03)throw new FormatException();var b=ReadingArea.Bound(new(n[1],n[1]+n[3],n[0],n[0]+n[2]));Edit(x=>key=="source"?x with{Source=b}:x with{Output=b});UpdateCoordinates();}catch(FormatException){note.Text="أدخل نسبًا صحيحة: يسار، أعلى، عرض، ارتفاع. أصغر ضلع 3%.";}}
+    private void UpdateCoordinates(){if(Selected is not {} a)return;bool old=updating;updating=true;foreach(var key in new[]{"source","output"}){var b=key=="source"?a.Source:a.Output;var n=new[]{b.Left,b.Top,b.Right-b.Left,b.Bottom-b.Top};for(int i=0;i<4;i++)coordinates[key][i].Text=(n[i]*100).ToString("0.0",CultureInfo.InvariantCulture);}updating=old;}
+    private void AppearanceChanged(){if(updating)return;Edit(a=>a with{Structured=structured.IsChecked==true,Appearance=new(Font:CaptionAppearance.Fonts[Math.Max(0,font.SelectedIndex)],Backdrop:CaptionAppearance.Backdrops[Math.Max(0,back.SelectedIndex)],Align:H[Math.Max(0,align.SelectedIndex)],Vertical:V[Math.Max(0,vertical.SelectedIndex)],Position:CaptionAppearance.Positions[Math.Max(0,placement.SelectedIndex)],MatchSize:match.IsChecked==true,SpeakerColors:speaker.IsChecked==true,SpeakerColor:Colors[Math.Max(0,palette.SelectedIndex)],Outline:outline.IsChecked==true,FadeMs:(int)fade.Value,Accent:accent.IsChecked==true)});}
+    private void Add(ReadingArea area){if(areas.Count>=9){note.Text="حتى 8 مناطق إضافية لحماية الأداء.";return;}areas.Add(area.Validate());Rebuild(areas.Count-1);Save();}
+    private void Remove(){if(list.SelectedIndex<=0)return;var i=list.SelectedIndex;areas.RemoveAt(i);Rebuild(Math.Min(i,areas.Count-1));Save();}
+    private void Rebuild(int index){updating=true;list.Items.Clear();foreach(var a in areas)list.Items.Add(a.Name);updating=false;list.SelectedIndex=index;LoadSelection();}
+    private void LoadSelection(){if(updating||Selected is not {} a)return;updating=true;name.Text=a.Name;name.IsEnabled=a.Id!="dialogue";enabled.IsChecked=a.Enabled;enabled.IsEnabled=a.Id!="dialogue";size.Value=a.FontSize;opacity.Value=a.Background;duration.Value=a.DurationMs;duration.IsEnabled=a.Id!="dialogue";interval.Value=a.IntervalMs;interval.IsEnabled=a.Id!="dialogue";structured.IsEnabled=a.Id!="dialogue";structured.IsChecked=a.Structured;var s=a.Appearance??new();font.SelectedIndex=Array.IndexOf(CaptionAppearance.Fonts,s.Font);back.SelectedIndex=Array.IndexOf(CaptionAppearance.Backdrops,s.Backdrop);align.SelectedIndex=Array.IndexOf(H,s.Align);vertical.SelectedIndex=Array.IndexOf(V,s.Vertical);placement.SelectedIndex=Array.IndexOf(CaptionAppearance.Positions,s.Position);palette.SelectedIndex=Array.IndexOf(Colors,s.SpeakerColor);match.IsChecked=s.MatchSize;outline.IsChecked=s.Outline;speaker.IsChecked=s.SpeakerColors;fade.Value=s.FadeMs;accent.IsChecked=s.Accent;updating=false;UpdateCoordinates();Render();}
+    private void Edit(Func<ReadingArea,ReadingArea> change){if(updating||Selected is not {} a)return;areas[list.SelectedIndex]=change(a).Validate();saveTimer.Stop();saveTimer.Start();Render();}
+    private void Save(){controller.DialogueOutput=areas[0].Output;controller.Settings=controller.Settings with{Region=areas[0].Source,Style=controller.Settings.Style with{FontSize=areas[0].FontSize,Background=areas[0].Background,Appearance=areas[0].Appearance,StackPrevious=false}};controller.ReadingAreas=areas.Skip(1).ToArray();note.Text="حُفظ التخطيط. تعديل المظهر لا يغير مفتاح المحرك أو النموذج.";}
+    private void Export(){Save();var dialog=new Microsoft.Win32.SaveFileDialog{Filter="ArabicGames layout (*.json)|*.json",FileName="ArabicGames-GTA6-Layout.json"};if(dialog.ShowDialog()==true)System.IO.File.WriteAllText(dialog.FileName,new ReadingLayout(1,areas.ToArray()).Export());}
+    private void Import(){var dialog=new Microsoft.Win32.OpenFileDialog{Filter="ArabicGames layout (*.json)|*.json"};if(dialog.ShowDialog()!=true)return;try{var imported=ReadingLayout.Import(System.IO.File.ReadAllText(dialog.FileName));areas.Clear();var dialogue=imported.Areas.Single(a=>a.Kind==ReadingAreaKind.Dialogue) with{Id="dialogue"};areas.Add(dialogue);areas.AddRange(imported.Areas.Where(a=>a.Kind!=ReadingAreaKind.Dialogue));Rebuild(0);Save();}catch(Exception e)when(e is ArgumentException or System.Text.Json.JsonException or System.IO.IOException){note.Text="لم نستورد الملف: "+e.Message;}}
+    private void Refresh(){if(!IsVisible||controller.LastFrame is not {} f||ReferenceEquals(last,f))return;last=f;var bmp=BitmapSource.Create(f.Width,f.Height,96,96,PixelFormats.Bgra32,null,f.Pixels,f.Stride);bmp.Freeze();image.Source=bmp;Render();}
+    private void Render(){canvas.Children.Clear();canvas.Children.Add(image);foreach(var a in areas){Draw(a,a.Source,false);Draw(a,a.Output,true);}if(demo.IsChecked==true&&Selected is {} selected){var a=selected.Appearance??new();var box=selected.Output;var visual=CaptionVisual.Text(sample.Text,a,selected.FontSize*1280d/1920,selected.Background);visual.MaxWidth=(box.Right-box.Left)*1280;visual.IsHitTestVisible=false;visual.Measure(new Size(visual.MaxWidth,double.PositiveInfinity));double w=visual.DesiredSize.Width,h=visual.DesiredSize.Height;Canvas.SetLeft(visual,box.Left*1280+(a.Align=="right"?(box.Right-box.Left)*1280-w:a.Align=="left"?0:((box.Right-box.Left)*1280-w)/2));Canvas.SetTop(visual,box.Top*720+(a.Vertical=="top"?0:a.Vertical=="center"?((box.Bottom-box.Top)*720-h)/2:(box.Bottom-box.Top)*720-h));canvas.Children.Add(visual);}}
+    private void Draw(ReadingArea a,CropRegion b,bool output){bool selected=Selected?.Id==a.Id;Brush color=!a.Enabled?Brushes.Gray:output?Brushes.DeepSkyBlue:Brushes.Gold;var rect=new Rectangle{Width=(b.Right-b.Left)*1280,Height=(b.Bottom-b.Top)*720,Stroke=color,StrokeThickness=selected?3:1.5,StrokeDashArray=output?new DoubleCollection{4,3}:null,Fill=new SolidColorBrush(Color.FromArgb(selected?(byte)12:(byte)2,0,160,200)),IsHitTestVisible=false};Canvas.SetLeft(rect,b.Left*1280);Canvas.SetTop(rect,b.Top*720);canvas.Children.Add(rect);var label=new TextBlock{Text=(output?"الترجمة · ":"القراءة · ")+a.Name,Foreground=Brushes.Black,Background=color,FontSize=17,IsHitTestVisible=false,FlowDirection=FlowDirection.RightToLeft};Canvas.SetLeft(label,b.Left*1280);Canvas.SetTop(label,Math.Max(0,b.Top*720-25));canvas.Children.Add(label);if(selected)foreach(var p in Handles(b)){var square=new Rectangle{Width=12,Height=12,Fill=color,Stroke=Brushes.Black,IsHitTestVisible=false};Canvas.SetLeft(square,p.X-6);Canvas.SetTop(square,p.Y-6);canvas.Children.Add(square);}}
+    private static Point[] Handles(CropRegion b){double l=b.Left*1280,r=b.Right*1280,t=b.Top*720,d=b.Bottom*720;return [new(l,t),new((l+r)/2,t),new(r,t),new(r,(t+d)/2),new(r,d),new((l+r)/2,d),new(l,d),new(l,(t+d)/2)];}
+    private void Begin(Point p){if(Selected is not {} a)return;anchor=p;handle=-1;if(!draw){bool found=false;foreach(var output in new[]{true,false}){var b=output?a.Output:a.Source;var handles=Handles(b);for(int i=0;i<8;i++)if((handles[i]-p).Length<17){handle=i;found=true;break;}if(found){dragOutput=output;break;}}if(!found){foreach(var area in areas.AsEnumerable().Reverse()){foreach(var output in new[]{true,false}){var b=output?area.Output:area.Source;if(p.X>=b.Left*1280&&p.X<=b.Right*1280&&p.Y>=b.Top*720&&p.Y<=b.Bottom*720){list.SelectedIndex=areas.IndexOf(area);a=area;dragOutput=output;found=true;break;}}if(found)break;}if(!found)return;}}original=dragOutput?a.Output:a.Source;dragging=true;}
+    private void Move(Point p){if(Selected is not {} a)return;double dx=(p.X-anchor.X)/1280,dy=(p.Y-anchor.Y)/720;CropRegion b;if(draw)b=new(Math.Min(anchor.Y,p.Y)/720,Math.Max(anchor.Y,p.Y)/720,Math.Min(anchor.X,p.X)/1280,Math.Max(anchor.X,p.X)/1280);else if(handle>=0){b=original;if(handle is 0 or 6 or 7)b=b with{Left=original.Left+dx};if(handle is 2 or 3 or 4)b=b with{Right=original.Right+dx};if(handle is 0 or 1 or 2)b=b with{Top=original.Top+dy};if(handle is 4 or 5 or 6)b=b with{Bottom=original.Bottom+dy};}else{dx=Math.Clamp(dx,-original.Left,1-original.Right);dy=Math.Clamp(dy,-original.Top,1-original.Bottom);b=new(original.Top+dy,original.Bottom+dy,original.Left+dx,original.Right+dx);}b=ReadingArea.Bound(b);areas[list.SelectedIndex]=dragOutput?a with{Output=b}:a with{Source=b};UpdateCoordinates();Render();}
     private void End(){if(!dragging)return;dragging=false;draw=false;Save();}
 }

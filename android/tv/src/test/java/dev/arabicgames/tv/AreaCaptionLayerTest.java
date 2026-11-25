@@ -26,4 +26,13 @@ public class AreaCaptionLayerTest {
   AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.layout(0,0,1280,720);layer.apply(caption("phone",20,"سابق"));layer.clearAll();layer.apply(caption("phone",1,"جلسة جديدة"));
   assertEquals(1,layer.getChildCount());assertEquals("جلسة جديدة",((TextView)layer.getChildAt(0)).getText().toString());
  }
+
+ @Test public void PhoneCellsKeepTheirOwnPositionsAndDoNotReplaceDialogueChannel()throws Exception{
+  AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.layout(0,0,1920,1080);
+  JSONObject data=caption("phone",1,"رسالتان");
+  data.put("panel",new JSONObject("{\"kind\":\"phone\",\"width\":300,\"height\":600,\"cells\":[{\"text\":\"رسالة واردة\",\"foreground\":\"#20232A\",\"background\":\"#FFFFFF\",\"box\":{\"left\":0.1,\"top\":0.2,\"right\":0.9,\"bottom\":0.4}},{\"text\":\"رد صادر\",\"foreground\":\"#FFFFFF\",\"background\":\"#2858E8\",\"box\":{\"left\":0.3,\"top\":0.6,\"right\":0.9,\"bottom\":0.8}}]}"));
+  layer.apply(data);android.widget.FrameLayout outer=(android.widget.FrameLayout)layer.getChildAt(0);android.widget.FrameLayout canvas=(android.widget.FrameLayout)outer.getChildAt(0);
+  assertEquals(2,canvas.getChildCount());TextView incoming=(TextView)canvas.getChildAt(0),outgoing=(TextView)canvas.getChildAt(1);assertEquals("رسالة واردة",incoming.getText().toString());assertNotEquals(incoming.getCurrentTextColor(),outgoing.getCurrentTextColor());
+  assertTrue(((android.widget.FrameLayout.LayoutParams)incoming.getLayoutParams()).topMargin<((android.widget.FrameLayout.LayoutParams)outgoing.getLayoutParams()).topMargin);
+ }
 }

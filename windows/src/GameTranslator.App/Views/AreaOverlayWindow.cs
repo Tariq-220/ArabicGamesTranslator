@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using GameTranslator.Core;
+using GameTranslator.App.Controls;
 namespace GameTranslator.App.Views;
 
 /// <summary>Non-activating, click-through regional output; lifecycle independent of dialogue.</summary>
@@ -35,8 +36,10 @@ internal sealed class AreaOverlayWindow : Window
         var bounds=DesktopSubtitleOverlay.CaptionBounds;var box=value.Output;
         window.Left=bounds.Left+bounds.Width*box.Left;window.Top=bounds.Top+bounds.Height*box.Top;
         window.Width=Math.Max(60,bounds.Width*(box.Right-box.Left));window.Height=Math.Max(30,bounds.Height*(box.Bottom-box.Top));
-        window.caption.Text=value.Text;window.caption.FontSize=value.FontSize;
-        window.border.Background=new SolidColorBrush(Color.FromArgb((byte)(Math.Clamp(value.Background,0,100)*255/100),0,0,0));
+        if(value.Panel is {} panel)window.border.Child=CaptionVisual.Panel(panel,new ReadingArea(value.Id,value.Id,ReadingAreaKind.Menu,new(),value.Output,FontSize:value.FontSize,Background:value.Background,Appearance:value.Appearance));
+        else window.border.Child=CaptionVisual.Text(value.Text,value.Appearance,value.FontSize*bounds.Width/1920,value.Background);
+        window.border.Padding=new Thickness(0);
+        window.border.Background=Brushes.Transparent;
         window.Show();window.expiry.Interval=TimeSpan.FromMilliseconds(value.DurationMs);window.expiry.Start();
     }
     public static void ClearAll(){foreach(var window in windows.Values){window.expiry.Stop();window.Close();}windows.Clear();}

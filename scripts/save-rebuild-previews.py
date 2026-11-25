@@ -11,6 +11,7 @@ def api(method,path,data=None):
     return json.loads(p.stdout)
 root=Path(os.environ['RUNNER_TEMP'])/'rebuild-screens'
 files=list(root.glob('arabic-*.png'));assert len(files)==10
+files+=list(root.glob("presentation-*.png"))
 entries=[]
 for path in files:
     assert path.stat().st_size<2_000_000

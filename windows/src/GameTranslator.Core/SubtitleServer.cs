@@ -39,7 +39,7 @@ public sealed record SubtitleStyle(
     bool Bold = false,
     SubtitleTextColor TextColor = SubtitleTextColor.White,
     TvDisplayMode DisplayMode = TvDisplayMode.InApp,
-    bool StackPrevious = true);
+    bool StackPrevious = true, CaptionAppearance? Appearance=null);
 
 /// <summary>
 /// Android TV'de PS5 görüntüsünün nasıl gösterildiği. Yalnız Android TV uygulaması kullanır; diğer TV'ler ve OBS
@@ -101,6 +101,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     {
         // Türkçe harfler ı gibi kaçışlarla değil olduğu gibi gönderilir.
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
     /// <summary>
@@ -193,14 +194,14 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
     public TextBox? DialogueOutput {get;set;}
     public void SendSubtitle(string text, int durationMs = 15000, TextBox? box = null, bool paragraphs = false, bool replaces = false)
     {
-        if(DialogueOutput is {} output){box=output;}
+        if(DialogueOutput is {} output && (lastStyle?.Appearance?.Position??"custom")=="custom"){box=output;}
         var json = new SortedDictionary<string, object>
         {
             ["at"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             ["duration"] = durationMs,
             ["text"] = text,
         };
-        if(DialogueOutput is not null)json["customPlacement"]=true;
+        if(DialogueOutput is not null&&(lastStyle?.Appearance?.Position??"custom")=="custom")json["customPlacement"]=true;
         if (paragraphs) json["paragraphs"] = true;
         if (replaces) json["replace"] = true;
         if (box is { } b) json["box"] = BoxJson(b);
@@ -241,7 +242,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
 
     /// <summary>TV'deki "ekranı çevir" çevirilerini kaldırır (altyazıya dokunmaz).</summary>
     /// <summary>Independent caption channel; never clears/replaces the dialogue channel.</summary>
-    private static string AreaFrame(AreaCaption caption) => Frame("area", new SortedDictionary<string,object> { ["id"]=caption.Id, ["revision"]=caption.Revision, ["text"]=caption.Text, ["clear"]=caption.Clear, ["duration"]=caption.DurationMs, ["fontSize"]=caption.FontSize, ["background"]=caption.Background, ["output"]=new { left=caption.Output.Left, top=caption.Output.Top, right=caption.Output.Right, bottom=caption.Output.Bottom } });
+    private static string AreaFrame(AreaCaption caption) => Frame("area", new SortedDictionary<string,object> { ["id"]=caption.Id, ["revision"]=caption.Revision, ["text"]=caption.Text, ["clear"]=caption.Clear, ["duration"]=caption.DurationMs, ["fontSize"]=caption.FontSize, ["background"]=caption.Background, ["appearance"]=(caption.Appearance??new()).Validate(), ["panel"]=caption.Panel!, ["output"]=new { left=caption.Output.Left, top=caption.Output.Top, right=caption.Output.Right, bottom=caption.Output.Bottom } });
 
     public void SendArea(AreaCaption caption)
     {
@@ -503,6 +504,7 @@ public sealed class SubtitleServer(int port = 8787, TimeSpan? pingInterval = nul
             ["fontSize"] = style.FontSize,
             ["placement"] = style.Placement.ToString().ToLowerInvariant(),
             ["stackPrevious"] = style.StackPrevious,
+            ["appearance"] = (style.Appearance??new()).Validate(),
             ["textColor"] = style.TextColor.ToString().ToLowerInvariant(),
         });
 

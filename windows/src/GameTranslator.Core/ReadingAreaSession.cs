@@ -13,6 +13,7 @@ public sealed class ReadingAreaSession : IDisposable
         public string Candidate="", Sent="", LastResult="";
         public long Since, Seen, ReadAt=long.MinValue/2, Revision;
         public bool Busy, Visible;
+        public PanelLayout? Panel;
         public readonly Dictionary<string,string> Cache=new(StringComparer.Ordinal);
     }
     private readonly object gate=new();
@@ -54,16 +55,18 @@ public sealed class ReadingAreaSession : IDisposable
             var source=s.Area.Source;
             var crop=frame.Crop((int)(source.Left*frame.Width),(int)(source.Top*frame.Height),
                 Math.Max(1,(int)((source.Right-source.Left)*frame.Width)),Math.Max(1,(int)((source.Bottom-source.Top)*frame.Height)));
-            var reading=await Task.Run(()=>s.Reader.ReadLines(crop,deep:false),lifetime.Token).ConfigureAwait(false);
+            if(s.Area.Kind==ReadingAreaKind.Phone&&SpatialText.FindPhone(crop) is {} phone)crop=RegionCropper.Crop(crop,phone);
+            var reading=await Task.Run(()=>s.Reader.ReadSpatial(crop),lifetime.Token).ConfigureAwait(false);
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
-            Observe(s,s.Area.Kind==ReadingAreaKind.Phone?string.Join("\n",RegionTranslation.Paragraphs(reading)):reading.Text.Trim());
+            var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind):null;
+            Observe(s,reading.Text.Trim(),panel);
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke("ocr",error.GetType().Name);}
         finally { Volatile.Write(ref processing,0); }
     }
 
-    private void Observe(State s,string text)
+    private void Observe(State s,string text,PanelLayout? panel)
     {
         AreaCaption? clear=null;bool start=false;
         lock(gate)
@@ -76,7 +79,7 @@ public sealed class ReadingAreaSession : IDisposable
             }
             else
             {
-                s.Seen=at;
+                s.Seen=at;s.Panel=panel;
                 if(!TextMatch.IsSimilar(TextMatch.Normalize(text),TextMatch.Normalize(s.Candidate),.94))
                 {s.Candidate=text;s.Since=at;}
                 if(at-s.Since>=120&&s.Candidate!=s.Sent&&!s.Busy){s.Busy=true;start=true;}
@@ -88,19 +91,32 @@ public sealed class ReadingAreaSession : IDisposable
 
     private async Task Translate(State s)
     {
-        string source;long revision;
-        lock(gate){if(disposed){s.Busy=false;return;}source=s.Candidate;revision=++s.Revision;}
+        string source;long revision;PanelLayout? panel;
+        lock(gate){if(disposed){s.Busy=false;return;}source=s.Candidate;panel=s.Panel;revision=++s.Revision;}
         try
         {
+            async Task<string> Piece(string text){
+                string? hit;lock(gate)s.Cache.TryGetValue(text,out hit);if(hit is not null)return hit;
+                var translated=await translator.TranslateAsync(text,lifetime.Token).ConfigureAwait(false);
+                lock(gate){if(s.Cache.Count>=128)s.Cache.Clear();s.Cache[text]=translated;}return translated;
+            }
             string result;
-            lock(gate)s.Cache.TryGetValue(source,out result!);
-            result??=await translator.TranslateAsync(source,lifetime.Token).ConfigureAwait(false);
+            if(panel is {Cells.Count:>0}){
+                var cells=new List<PanelCell>();
+                foreach(var cell in panel.Cells){
+                    lifetime.Token.ThrowIfCancellationRequested();
+                    lock(gate){if(disposed||s.Candidate!=source)return;}
+                    try{cells.Add(cell with{Text=await Piece(cell.Source).ConfigureAwait(false)});}
+                    catch(TranslatorException error){Failed?.Invoke(s.Area.Id,error.GetType().Name);cells.Add(cell);}
+                }
+                panel=panel with{Cells=cells};result=string.Join("\n",cells.Select(c=>c.Text));
+            }else result=await Piece(source).ConfigureAwait(false);
             AreaCaption? caption=null;
             lock(gate)
             {
                 if(disposed||s.Revision!=revision||s.Candidate!=source||now()-s.Seen>1000)return;
-                if(s.Cache.Count>=64)s.Cache.Clear();s.Cache[source]=result;
-                s.Sent=source;s.LastResult=result;s.Visible=true;caption=Make(s,result);
+                if(s.Cache.Count>=128)s.Cache.Clear();s.Cache[source]=result;
+                s.Sent=source;s.LastResult=result;s.Visible=true;caption=Make(s,result) with{Panel=panel};
             }
             Caption?.Invoke(caption);
         }
@@ -109,6 +125,6 @@ public sealed class ReadingAreaSession : IDisposable
         finally {lock(gate)s.Busy=false;}
     }
     private static AreaCaption Make(State s,string text,bool clear=false)=>new(s.Area.Id,s.Revision,text,s.Area.Output,
-        s.Area.FontSize,s.Area.Background,s.Area.DurationMs,clear);
+        s.Area.FontSize,s.Area.Background,s.Area.DurationMs,clear,s.Area.Appearance);
     public void Dispose(){lock(gate){if(disposed)return;disposed=true;}lifetime.Cancel();}
 }
