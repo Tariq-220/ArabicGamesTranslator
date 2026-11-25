@@ -19,8 +19,7 @@ public static class CaptionVisual
         var label=new TextBlock{FlowDirection=FlowDirection.RightToLeft,FontFamily=Font(a.Font),FontSize=size,FontWeight=bold?FontWeights.Bold:FontWeights.Medium,
             TextWrapping=TextWrapping.Wrap,TextAlignment=a.Align switch{"left"=>TextAlignment.Right,"right"=>TextAlignment.Left,_=>TextAlignment.Center},Foreground=Brushes.White,
             LineHeight=size*1.42,LineStackingStrategy=LineStackingStrategy.BlockLineHeight};
-        if(split.Name.Length>0)label.Inlines.Add(new Run(split.Name+" "){Foreground=Brush(CaptionAppearance.SpeakerAccent(text,a))});
-        label.Inlines.Add(new Run(split.Body));
+        bool first=true;foreach(var row in text.Split('\n')){if(!first)label.Inlines.Add(new LineBreak());first=false;var part=CaptionAppearance.SplitSpeaker(row);if(part.Name.Length>0)label.Inlines.Add(new Run(part.Name+" "){Foreground=Brush(CaptionAppearance.SpeakerAccent(row,a))});label.Inlines.Add(new Run(part.Body));}
         if(a.Outline)label.Effect=new DropShadowEffect{Color=Colors.Black,ShadowDepth=1.3,BlurRadius=3.5,Opacity=1};
         var alpha=a.Backdrop=="none"?0:Math.Clamp(opacity,0,100)*255/100;
         var result=new Border{Child=label,Padding=new Thickness(size*.45,size*.12,size*.45,size*.18),CornerRadius=new CornerRadius(a.Backdrop is "game" or "rectangle"?0:6),

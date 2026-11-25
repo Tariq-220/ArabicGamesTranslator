@@ -1036,6 +1036,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         set { var unique=ReadingArea.Unique(value).Take(8).ToList();if(ReadingAreas.SequenceEqual(unique))return;store.Save("reading-areas-v1", unique); if(isRunning)MakeAreaSession(); Changed(nameof(ReadingAreas)); }
     }
     public event Action<AreaCaption>? AreaCaptionShown;
+    public event Action<AreaTrace>? AreaTraceObserved;
+    public bool ArabicPacksEnabled {get=>store.Load<bool?>("arabic-ready-packs")??true;set{store.Save("arabic-ready-packs",value);ArabicGamePackStore.Shared.Enabled=value;}}
     private void MakeAreaSession()
     {
         areaSession?.Dispose();areaSession=null;
@@ -1044,7 +1046,8 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         if(enabled.Count==0)return;
         areaStatus.Clear();
         var current=new ReadingAreaSession(enabled,()=>services.MakeReader(settings.SourceLanguage) ?? throw new InvalidOperationException("OCR unavailable"),
-            new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false),reviewedLookup:text=>CommunityCorrections.Find(DialogueGame,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,DialogueGame):null));
+            new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false),reviewedLookup:text=>CommunityCorrections.Find(DialogueGame,text)??ArabicGamePackStore.Shared.Find(DialogueGame,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,DialogueGame):null));
+        current.Trace+=entry=>{if(ReferenceEquals(areaSession,current))post(()=>AreaTraceObserved?.Invoke(entry));};
         current.Status+=(id,status)=>{if(ReferenceEquals(areaSession,current))areaStatus[id]=status;};
         current.Caption+=caption=>{if(!ReferenceEquals(areaSession,current))return;server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
         areaSession=current;current.SetTiming(Timing);
@@ -1064,12 +1067,13 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         translationQueue?.Dispose();translationQueue=new TranslationWorkQueue(MakeTranslator());
         var built = new SubtitlePipeline(reader, new ProfileTranslator(translationQueue.Dialogue,DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
+        built.CaptionCleared+=()=>post(()=>SubtitlesCleared?.Invoke());
         var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode,FasterPresentation);
         var presentation=settings.Style.Appearance??new();built.ReviewedOnly=presentation.ReviewedOnly;built.StackUp=presentation.StackUp;built.CenterOnly=presentation.CenterOnly;
         built.GuardDamagedRereads=settings.SourceLanguage=="en";
         if(settings.TargetLanguage=="ar")built.ReviewedLookup=text=>{
-            var reviewed=CommunityCorrections.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
+            var reviewed=CommunityCorrections.Find(gameProfile,text)??ArabicGamePackStore.Shared.Find(gameProfile,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,gameProfile):null);
             return reviewed is not null&&ArabicOutputQuality.Accepts(text,reviewed)?ArabicGameNames.Localize(text,reviewed):null;
         };
 
@@ -1080,7 +1084,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         {
             var outputArea=DialogueOutput;
             TextBox? box = (settings.Style.Appearance?.Position??"custom")=="custom"?new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom):settings.Style.Appearance?.Ride==false?new TextBox(settings.Region.Left,settings.Region.Top,settings.Region.Right,settings.Region.Bottom):built.LastBox;
-            var ms = RegionTranslation.DisplayMilliseconds(translation);
+            var ms = built.DisplayDurationMs;var display=built.DisplayText;
             post(() =>
             {
                 LastSource = source;LastCaptionLineHeight=CaptionSizing.LineHeight(source,built.LastBox);
@@ -1089,7 +1093,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 var targetBox = box ?? lastSubtitleBox ?? (settings.Region is { } r
                     ? new TextBox(r.Left, r.Top, r.Right, r.Bottom)
                     : null);
-                LiveSubtitleShown?.Invoke(translation, ms, targetBox);
+                LiveSubtitleShown?.Invoke(display, ms, targetBox);
             });
         };
         // Model bu arada inmiş olabilir; her çeviri sonucu durumu günceller.

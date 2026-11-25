@@ -11,6 +11,17 @@ public sealed record PanelLayout(int Width,int Height,string Kind,string? Image,
 /// <summary>Keep OCR geometry and measured colours. Never flatten unrelated messages into one sentence.</summary>
 public static class SpatialText
 {
+    public static bool IsConversation(Reading reading)
+    {
+        var lines=reading.Lines.Where(l=>l.Box is not null&&!string.IsNullOrWhiteSpace(l.Text)).ToArray();
+        if(lines.Length<2)return false;
+        bool Header(string text)=>System.Text.RegularExpressions.Regex.IsMatch(text,@"\b(?:MAP|BRIEF|PROGRESS|RECENTER|WAYPOINT|ADD MARKER|FEATURES|SETTINGS)\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if(lines.Any(l=>Header(l.Text)))return false;
+        // A light strip of map or pavement is not a phone. Require a header and message/list content.
+        var top=lines.Where(l=>l.Box!.Value.Top<.22).ToArray();
+        var body=lines.Where(l=>l.Box!.Value.Top>=.12&&l.Text.Split(' ',StringSplitOptions.RemoveEmptyEntries).Length>=2&&l.Text.Any(char.IsLower)).ToArray();
+        return top.Any(l=>l.Text.Length<=65)&&body.Length>=1&&lines.Length>=2;
+    }
     public static PanelLayout Build(Frame frame,Reading reading,ReadingAreaKind kind,bool includeImage=true)
     {
         bool plainMenu=kind==ReadingAreaKind.Menu&&!MenuReading.SettingsPage(reading);
@@ -42,7 +53,7 @@ public static class SpatialText
             // Grow only into the surrounding margin, never into the neighbouring message.
             var pad=Math.Min(.012,medianH*.22);var box=new TextBox(Math.Max(0,b.Left-pad),Math.Max(0,b.Top-pad),Math.Min(1,b.Right+pad),Math.Min(1,b.Bottom+pad));
             if(phoneLike)box=BubbleBounds(frame,box,color);
-            var background=Hex(color);var foreground=color.Sum(x=>(int)x)>390&&!blue?"#20232A":"#FFFFFF";
+            var background=Hex(color);var foreground=Ink(frame,b,color);
             var title=phoneLike&&b.Top<.12&&g.Count==1;
             if(plainMenu){double width=Math.Min(.35,Math.Max(.14,box.Right-box.Left));double left=box.Right<.65?Math.Min(1-width,box.Right+.015):Math.Max(0,box.Left-width-.015);box=box with{Left=left,Right=left+width};foreground="#FFFFFF";}
             cells.Add(new(text,"",box,background,foreground,medianH,phoneLike&&!title,title));
@@ -50,6 +61,28 @@ public static class SpatialText
         }
         var image=kind==ReadingAreaKind.Notification&&clean is not null?Png(clean):null;
         return new(frame.Width,frame.Height,kind==ReadingAreaKind.Phone?"phone":kind==ReadingAreaKind.Notification?"notification":plainMenu?"menu":kind==ReadingAreaKind.Menu?"settings":"spatial",image,cells);
+    }
+    public static PanelLayout ReflowPhone(PanelLayout panel)
+    {
+        if(panel.Kind!="phone"||panel.Cells.Count==0)return panel;
+        double width=panel.Width,originalHeight=panel.Height,cursor=0;
+        var placed=new List<(PanelCell Cell,double Top,double Height)>();
+        foreach(var cell in panel.Cells.OrderBy(c=>c.Box.Top)){
+            var font=Math.Max(width*.042,cell.LineHeight*originalHeight*.9);
+            var chars=Math.Max(8,(cell.Box.Right-cell.Box.Left)*width/(font*.52));
+            var rows=Math.Max(1,Math.Ceiling(cell.Text.Length/chars));
+            var height=Math.Max((cell.Box.Bottom-cell.Box.Top)*originalHeight,rows*font*1.55+font*.45);
+            var top=Math.Max(cell.Box.Top*originalHeight,cursor);placed.Add((cell,top,height));cursor=top+height+font*.38;
+        }
+        var total=Math.Max(originalHeight,cursor);
+        return panel with{Height=(int)Math.Ceiling(total),Cells=placed.Select(p=>p.Cell with{Box=p.Cell.Box with{Top=p.Top/total,Bottom=(p.Top+p.Height)/total},LineHeight=Math.Max(width*.042,p.Cell.LineHeight*originalHeight*.9)/total}).ToArray()};
+    }
+    private static string Ink(Frame frame,TextBox b,byte[] background)
+    {
+        int light=0,dark=0;
+        for(int y=(int)(b.Top*frame.Height);y<Math.Min(frame.Height,(int)Math.Ceiling(b.Bottom*frame.Height));y+=2)
+        for(int x=(int)(b.Left*frame.Width);x<Math.Min(frame.Width,(int)Math.Ceiling(b.Right*frame.Width));x+=2){var c=Pixel(frame,x,y);if(ColorDistance(c,background)<60)continue;if(c.Sum(v=>(int)v)>570)light++;else if(c.Sum(v=>(int)v)<340)dark++;}
+        return light>dark?"#FFFFFF":light+dark>0?"#20232A":background.Sum(v=>(int)v)>470?"#20232A":"#FFFFFF";
     }
     // Phone screen search is confined to the selected ROI. Scenery outside it cannot become a phone.
     public static PanelLayout WithImage(Frame frame,PanelLayout panel){

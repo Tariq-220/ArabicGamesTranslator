@@ -43,11 +43,12 @@ final class CaptionVisual {
   android.graphics.drawable.LayerDrawable result=new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{outer,inner});int inset=Math.max(2,Math.round(size/16));result.setLayerInset(1,inset,inset,inset,inset);return result;
  }
  static CharSequence speaker(String text,JSONObject a){
-  int end=text.indexOf(':');if(end<1||end>45||text.substring(0,end).contains("\n"))return text;
+  SpannableString s=new SpannableString(text);int offset=0;for(String row:text.split("\n",-1)){
+  int end=row.indexOf(':');if(end<1||end>45){offset+=row.length()+1;continue;}
   String value=a==null?"auto":a.optString("speakerColor","auto");int color=Color.WHITE;
   if(a==null||a.optBoolean("speakerColors",true)){
-   if("auto".equals(value)){String name=text.substring(0,end).trim();color=name.equals("جيسون")||name.equals("جايسون")?0xfff2d87a:name.equals("لوسيا")?0xfff39aba:0xff70dde7;}else color=color(value,Color.WHITE);
+   if("auto".equals(value)){String name=row.substring(0,end).trim();color=name.equals("جيسون")||name.equals("جايسون")?0xfff2d87a:name.equals("لوسيا")?0xfff39aba:0xff70dde7;}else color=color(value,Color.WHITE);
   }
-  SpannableString s=new SpannableString(text);s.setSpan(new ForegroundColorSpan(color),0,end+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);return s;
+  s.setSpan(new ForegroundColorSpan(color),offset,offset+end+1,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);offset+=row.length()+1;}return s;
  }
 }

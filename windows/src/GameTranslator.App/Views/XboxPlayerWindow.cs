@@ -54,7 +54,7 @@ public sealed class XboxPlayerWindow : Window
                 auth.NewWindowRequested+=(_,navigation)=>navigation.Handled=true;
                 auth.WindowCloseRequested+=(_,_)=>popup.Close();
                 e.NewWindow=auth;
-            }catch{popup.Close();message.Text="تعذر فتح نافذة Microsoft. أغلق تسجيل الدخول وأعد المحاولة.";}
+            }catch{popup.Close();message.Visibility=Visibility.Visible;message.Text="تعذر فتح نافذة Microsoft. أغلق تسجيل الدخول وأعد المحاولة.";}
             finally{deferral.Complete();}
         };
         web.PermissionRequested+=(_,e)=>{
@@ -70,7 +70,8 @@ public sealed class XboxPlayerWindow : Window
         }catch(e){}})();
         """);
         web.Navigate("https://play.xbox.com/remoteplay");
-        message.Text="سجّل الدخول في صفحة Microsoft الرسمية. اترك نافذة البث مفتوحة أثناء ضبط المناطق؛ صوت اللعب يبقى من التلفزيون.";
+        // Keep setup chrome out of the captured game client: it was translated as a permanent HUD label.
+        message.Visibility=Visibility.Collapsed;
         web.IsMuted=true;
     }
 }

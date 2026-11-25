@@ -107,7 +107,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
         var text = TextMatch.Normalize(rawText);
         Note = null;
         // 3 karakterden kısa okumalar (gürültü, tek simge) boş kare sayılır.
-        if (text.Length < 3)
+        if (text.Length < 3 && !(text.Length==2&&ShortWords.Contains(text)))
         {
             DropGarbled();
             candidate = "";
@@ -144,7 +144,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
             : candidateCount >= stableFrames || (EndsSentence(rawText) && (!cleanFastPathOnly || LooksClean(rawText)));
         ready = ready && time-candidateSince>=MinimumStableMs;
         // Gönderilenin gürültülü yeniden okuması yeni satır değildir; TV'de aynı cümle iki kez görünmesin.
-        if (IsSame(text, sent)) return StabilizerAction.None;
+        if (!TextMatch.DifferentSpeakers(rawText,sentRaw)&&IsSame(text, sent)) return StabilizerAction.None;
         if (!ready)
         {
             if (garbled) garbledPending = rawText.Trim();

@@ -8,6 +8,7 @@ namespace GameTranslator.Core;
 /// <summary>OCR çıktılarını karşılaştırmak için sadeleştirme ve gürültüye dayanıklı benzerlik.</summary>
 public static class TextMatch
 {
+    public static bool DifferentSpeakers(string a,string b){var x=CaptionAppearance.SplitSpeaker(a).Name;var y=CaptionAppearance.SplitSpeaker(b).Name;return x.Length>0&&y.Length>0&&!x.Equals(y,StringComparison.OrdinalIgnoreCase);}
     /// <summary>Küçük harf, yalnız harf/rakam, tek boşluk.</summary>
     public static string Normalize(string s)
     {
@@ -49,6 +50,7 @@ public static class TextMatch
     /// </summary>
     public static bool IsSameSubtitle(string reread, string sent)
     {
+        if(DifferentSpeakers(reread,sent))return false;
         var rows = sent.Split('\n');
         var flat = string.Join(' ', rows);
         var x = CleanWords(reread);
@@ -80,6 +82,7 @@ public static class TextMatch
     /// </summary>
     public static bool IsRevision(string newText, string oldText)
     {
+        if(DifferentSpeakers(newText,oldText))return false;
         var x = Normalize(newText);
         var y = Normalize(oldText);
         if (x.Length == 0 || y.Length == 0) return false;
@@ -106,6 +109,7 @@ public static class TextMatch
     /// </summary>
     public static bool IsWorseReread(string reread, string sent)
     {
+        if(DifferentSpeakers(reread,sent))return false;
         var a = Normalize(reread);
         var b = Normalize(sent);
         var x = CleanWords(a);

@@ -81,3 +81,7 @@ Text recognition (Vision) and translation (Translation framework) are provided b
 
 GameTranslator is not affiliated with or endorsed by Sony Interactive Entertainment. "PlayStation" and "PS5"
 are trademarks of Sony Interactive Entertainment Inc. LG and webOS are trademarks of LG Electronics Inc.
+
+## GameTranslator Arabic GTA VI memory (optional runtime download)
+
+The public GameTranslator pack service by Sefflex provides the Arabic GTA VI pack directly to users. Protocol/key canonicalization derives from GameTranslator (AGPL-3.0-only, Sinan Yorulmaz / Sefflex). Source: https://gitlab.com/sefflex/GameTranslator/-/tree/oyun-profilleri . Service: https://gametranslator-packs.gametranslator-pool.workers.dev/v1/packs . Pack bytes are not embedded or mirrored in our distribution. The pack is community machine-translated content; entry count is not a guarantee of complete coverage or accuracy. Arabic-only exact matches are validated before display.

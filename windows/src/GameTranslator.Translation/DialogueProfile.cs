@@ -8,10 +8,11 @@ public static class DialogueProfile {
   ||(!Regex.IsMatch(text,@"[.!?]")&&Regex.IsMatch(text,@"^PHOTO\b",RegexOptions.IgnoreCase)&&Regex.IsMatch(text,@"\b(?:SELECT|BACK|BACH|MODE)\b",RegexOptions.IgnoreCase))
   ||Regex.IsMatch(text,@"^(?:[O0]\s+)?(?:RETRY\s*CHECKPOINT|CANCEL MISSION)(?:\s+[O0])?(?:\s+CANCEL MISSION\s*[O0]?)?$",RegexOptions.IgnoreCase);
 
+ public static bool IsCaptureChrome(string text)=>text.Contains("سجّل الدخول في صفحة Microsoft",StringComparison.OrdinalIgnoreCase)||text.Contains("اترك نافذة البث مفتوحة",StringComparison.OrdinalIgnoreCase)||text.StartsWith("Sign in to your Microsoft account",StringComparison.OrdinalIgnoreCase);
  private static bool KnownHud(string text)=>Regex.IsMatch(text.Trim(),@"^(?:PHOTO (?:STUDIO|MODE)(?: [A-Z])? SELECT.*|(?:PRESS\s*[A-Z]|HOLD(?: [A-Z])? AND PRESS\s*[A-Z])\s*TO (?:FIGHT|HEAL)|GIRARDI ES9|MILITARY PISTOL|DAMAGE|ACCURACY|HANDLING|RANGE|HAT|W-14 RIFLE|LT|RT|[!|0-9 ]+)$",RegexOptions.IgnoreCase);
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
  public static Reading DialogueOnly(Reading reading,TextBox area,string game){
-  reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)&&!KnownHud(line.Text)));
+  reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)&&!IsCaptureChrome(line.Text)&&!KnownHud(line.Text)));
   if(!Rdr2(game))return reading;
   return new Reading(reading.Lines.Where(line=>{
    if(line.Box is not {} relative)return true;

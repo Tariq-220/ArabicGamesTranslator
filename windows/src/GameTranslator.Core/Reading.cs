@@ -110,7 +110,11 @@ public sealed class Reading
             var box = reading.Box!.Value.PlacedIn(area);
             return Math.Abs(((box.Left + box.Right) / 2) - 0.5) <= 0.12;
         }).ToList();
-        if (centered.Count > 0) return centered.MaxBy(reading => reading.Box!.Value.Bottom)!;
+        if (centered.Count > 0){
+            var bottom=centered.MaxBy(reading=>reading.Box!.Value.Bottom)!;
+            var adjacent=centered.Where(r=>r!=bottom&&r.Lines.Any(l=>CaptionAppearance.SplitSpeaker(l.Text).Name.Length>0)&&bottom.Lines.Any(l=>CaptionAppearance.SplitSpeaker(l.Text).Name.Length>0)&&bottom.Box!.Value.Top-r.Box!.Value.Bottom>=0&&bottom.Box.Value.Top-r.Box.Value.Bottom<=Math.Max(bottom.Box.Value.Bottom-bottom.Box.Value.Top,r.Box.Value.Bottom-r.Box.Value.Top)*1.8).MaxBy(r=>r.Box!.Value.Bottom);
+            return adjacent is null?bottom:new Reading(adjacent.Lines.Concat(bottom.Lines));
+        }
         return candidates.Where(reading => WordCount(reading.Text) >= 3).MaxBy(reading => reading.Box!.Value.Bottom) ?? Empty;
     }
 

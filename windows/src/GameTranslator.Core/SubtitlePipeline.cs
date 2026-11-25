@@ -23,6 +23,11 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public bool StackUp {get;set;}
     public bool CenterOnly {get;set;}
     public int MinimumDisplayMs {get;set;}
+    public bool KeepRapidReplies {get;set;}
+    public bool ExpireWhenSourceGone {get;set;}
+    public string DisplayText {get;private set;}="";
+    public int DisplayDurationMs {get;private set;}
+    public event Action? CaptionCleared;
     private long lastPresentedAt=long.MinValue/2;
     public int MissingTextMs {get=>stabilizer.MissingTextMs;set=>stabilizer.MissingTextMs=Math.Clamp(value,50,5000);}
     public int MinimumStableMs {get=>stabilizer.MinimumStableMs;set=>stabilizer.MinimumStableMs=Math.Max(0,value); }
@@ -328,7 +333,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             {
                 case StabilizerKind.Clear:
                     LineLeft();
-                    sender.Clear();
+                    if(ExpireWhenSourceGone){foreach(var request in Requests)request.Superseded=true;this.waiting.Clear();inFlightCancel?.Cancel();}
+                    ClearCaption();
                     break;
                 case StabilizerKind.Translate:
                     LineLeft();
@@ -545,6 +551,17 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     /// <summary>Satır az önce gösterilenin uzamış ya da düzelmiş okuması mı (TV yerine koyar, üstüne yığmaz).</summary>
     private bool RevisesShown(string source) => LastPair is { } shown && TextMatch.IsRevision(source, shown.Source);
 
+    private void ClearCaption(){DisplayText="";sender.Clear();CaptionCleared?.Invoke();}
+    private void Present(string source,string translated,TextBox? box,int duration)
+    {
+        var replaces=RevisesShown(source);
+        // Keep at most the preceding reply. Never hold up inference to make a caption readable.
+        DisplayText=KeepRapidReplies&&!replaces&&DisplayText.Length>0&&LastPair is {} previous&&now()-lastPresentedAt<MinimumDisplayMs
+            ?previous.Translation+"\n"+translated:translated;
+        DisplayDurationMs=duration;lastPresentedAt=now();
+        sender.SendSubtitleWithLineHeight(DisplayText,duration,box,CaptionSizing.LineHeight(source,box),replaces:replaces);
+    }
+
     /// <summary>Paketteki Türkçe hemen gösterilir; süren çevirinin sonucu (eski satır) artık gösterilmez.</summary>
     private Action? ShowPacked(Request request, PackMatch packed)
     {
@@ -563,7 +580,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         }
         Write(request, $"{SubtitleLog.Excerpt(source)} → {pack}");
         lastShown = request.Number;
-        sender.SendSubtitleWithLineHeight(translated, 15000, request.Box,CaptionSizing.LineHeight(source,request.Box), replaces: RevisesShown(source));
+        Present(source,translated,request.Box,15000);
         LastPair = (source, translated);
         LastBox = request.Box;
         LastOrigin = "paket";
@@ -602,7 +619,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                     Write($"#{number} geri geldi (yarım okuması): {SubtitleLog.Excerpt(source)}");
                     if (translation is not null)
                     {
-                        sender.SendSubtitleWithLineHeight(translation, 15000, box,CaptionSizing.LineHeight(source,box), replaces: true);
+                        Present(last.Source,translation,box,15000);
                         LastPair = (last.Source, translation);
                         LastBox = box;
                     }
@@ -617,7 +634,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             lineOnScreen = number;
             Write($"#{number} geri geldi: {SubtitleLog.Excerpt(source)}");
             if (translation is null) return null;
-            sender.SendSubtitleWithLineHeight(translation, 15000, box,CaptionSizing.LineHeight(source,box), replaces: RevisesShown(source));
+            Present(source,translation,box,15000);
             LastPair = (source, translation);
             LastBox = box;
             return null;
@@ -713,11 +730,6 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         }
 
         var finished = now();
-        // A single caption must remain readable. OCR continues while presentation waits;
-        // do not flush several completed requests as a burst of one-frame captions.
-        int presentationWait;
-        lock(gate)presentationWait=(int)Math.Max(0,MinimumDisplayMs-(now()-lastPresentedAt));
-        if(presentationWait>0)await Task.Delay(presentationWait,token).ConfigureAwait(false);
         var result = $"{probe.Outcome()} {now() - started} ms";
         lock (gate)
         {
@@ -755,9 +767,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             }
             Write(request, $"{result}, gösterildi{(onScreen ? "" : " (satır kalkmıştı)")}");
             lastShown = request.Number;
-            lastPresentedAt=now();
             // Satır hâlâ ekrandaysa kalkınca silinir; kalktıysa okunacak kadar gösterilir.
-            sender.SendSubtitleWithLineHeight(translated, onScreen ? 15000 : ReadingTime(translated), request.Box,CaptionSizing.LineHeight(source,request.Box), replaces: RevisesShown(source));
+            Present(source,translated,request.Box,onScreen?15000:Math.Min(ReadingTime(translated),ExpireWhenSourceGone?Math.Max(700,MinimumDisplayMs):8000));
             LastPair = (source, translated);
             LastBox = request.Box;
             LastOrigin = "motor";
@@ -798,7 +809,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             lastReadMs = null;
             currentRead = null;
             schedule.Reset();rereadGuard.Reset();
-            if (stabilizer.Reset() == StabilizerAction.Clear) sender.Clear();
+            if (stabilizer.Reset() == StabilizerAction.Clear||DisplayText.Length>0) ClearCaption();
         }
     }
 }

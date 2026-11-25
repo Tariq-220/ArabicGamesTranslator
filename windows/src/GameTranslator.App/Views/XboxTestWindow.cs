@@ -237,8 +237,18 @@ public sealed class XboxTestWindow : Window
         AddTab("④ الشاشة والربط",screenAt,styleAt);
         var appearance=new StackPanel{FlowDirection=FlowDirection.RightToLeft,Margin=new Thickness(12)};
         appearance.Children.Add(Label("الخط والخلفية والموقع تُعدّل لكل مربع من «مناطق القراءة». الحوار مستقل عن القوائم والرسائل.",18));
+        var packStatus=Label(ArabicGamePackStore.Shared.Status,14);
+        ArabicGamePackStore.Shared.Enabled=controller.ArabicPacksEnabled;
+        var packEnabled=new CheckBox{Content="حزمة GTA 6 العربية الجاهزة — Sefflex (قبل المحرك)",IsChecked=controller.ArabicPacksEnabled,MinHeight=44};
+        packEnabled.Checked+=(_,_)=>{controller.ArabicPacksEnabled=true;_=ArabicGamePackStore.Shared.EnsureAsync();};packEnabled.Unchecked+=(_,_)=>controller.ArabicPacksEnabled=false;
+        Action packChanged=()=>Dispatcher.BeginInvoke(()=>packStatus.Text=ArabicGamePackStore.Shared.Status);
+        if(!preview){ArabicGamePackStore.Shared.Changed+=packChanged;Loaded+=(_,_)=>_=ArabicGamePackStore.Shared.EnsureAsync();Closed+=(_,_)=>ArabicGamePackStore.Shared.Changed-=packChanged;}
+        appearance.Children.Add(packEnabled);appearance.Children.Add(packStatus);
+        appearance.Children.Add(Button("فحص / تحديث الحزمة العربية",()=>_=ArabicGamePackStore.Shared.EnsureAsync(force:true)));
+        appearance.Children.Add(Label("تُنزل مباشرة من خادم GameTranslator العام (نحو 20 MB أول مرة). المطابقة التامة قبل المحرك؛ النصوص غير الموجودة تستخدم QuickMT أو DeepL. لا يعني عدد المداخل ضمان دقة كل جملة.",13));
         appearance.Children.Add(recordComparison);appearance.Children.Add(logState);
         appearance.Children.Add(Button("تصدير سجل المقارنة",()=>ComparisonExportDialog.Save(this,comparison.FilePath,text=>logState.Text=text)));
+        appearance.Children.Add(Button("سجل النصوص المباشر — بحث ونسخ",()=>new LiveTranslationLogWindow(comparison.FilePath){Owner=this}.Show()));
         appearance.Children.Add(Button("التصحيحات والسجل",()=>new TranslationHistoryWindow(comparison.FilePath){Owner=this}.ShowDialog()));
         appearance.Children.Add(updateLabel);appearance.Children.Add(automaticUpdates);
         tabs.Items.Add(new TabItem{Header="⑤ السجل والتحديث",Padding=new Thickness(12),MinHeight=52,Content=new ScrollViewer{Tag="setup-scroll",Content=appearance,VerticalScrollBarVisibility=ScrollBarVisibility.Visible}});
@@ -254,11 +264,12 @@ public sealed class XboxTestWindow : Window
         if(!preview)DesktopSubtitleOverlay.Initialize();
         Action<string,string> rejected=(english,arabic)=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,arabic,null,controller.Settings.Region,comparisonLatest,"rejected_untranslated",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,"untranslated_output",CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));logState.Text="المحرك أعاد جملة إنجليزية بدل العربية؛ لم نعرضها. سُجلت للتشخيص، وافحص لغة القراءة والمحرك.";};
         Action<string,string> discarded=(english,reason)=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,english,"",null,controller.Settings.Region,comparisonLatest,"discarded",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,reason,CommunityCorrections.CurrentRevision,CommunityCorrections.PublicEnabled));};
-        controller.TranslationRejected+=rejected;controller.LineDiscarded+=discarded;Closed+=(_,_)=>{controller.TranslationRejected-=rejected;controller.LineDiscarded-=discarded;};
+        Action<AreaTrace> areaTrace=entry=>{if(recordComparison.IsChecked==true)comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,entry.Source,entry.Translation,null,controller.ReadingAreas.FirstOrDefault(a=>a.Id==entry.AreaId)?.Source??new(),comparisonLatest,entry.Stage,ArabicRelease.Version,Error:entry.Error,AreaId:entry.AreaId,AreaName:entry.AreaName,ElapsedMs:entry.ElapsedMs));};
+        controller.TranslationRejected+=rejected;controller.LineDiscarded+=discarded;controller.AreaTraceObserved+=areaTrace;Closed+=(_,_)=>{controller.TranslationRejected-=rejected;controller.LineDiscarded-=discarded;controller.AreaTraceObserved-=areaTrace;};
         overlay = (text, ms, box) => {
             DesktopSubtitleOverlay.Display(text, ms, controller.Settings.Style with{StackPrevious=false}, box,controller.LastCaptionLineHeight);
-            if(recordComparison.IsChecked==true && controller.IsRunning && text==controller.LastTranslation && !string.IsNullOrWhiteSpace(controller.LastSource)) {
-                var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,text,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest,controller.LastLineMetrics?.Origin==LineOrigin.Pack?"reviewed_dictionary":"engine_or_cache",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,RulesRevision:CommunityCorrections.CurrentRevision,PublicCorrections:CommunityCorrections.PublicEnabled));
+            if(recordComparison.IsChecked==true && controller.IsRunning && !string.IsNullOrWhiteSpace(controller.LastTranslation) && !string.IsNullOrWhiteSpace(controller.LastSource)) {
+                var queued=comparison.Add(new ComparisonEntry(DateTimeOffset.UtcNow,comparisonSession,comparisonGame,comparisonEngine,controller.LastSource,controller.LastTranslation,controller.LastLineMetrics,controller.Settings.Region,comparisonLatest,controller.LastLineMetrics?.Origin==LineOrigin.Pack?"reviewed_dictionary":"engine_or_cache",ArabicRelease.Version,DesktopCaptureStreamSession.SamplingIntervalMs,controller.PreferPlayStation?"PS5":"Xbox",WindowsOcrReader.SelectedLanguage,RulesRevision:CommunityCorrections.CurrentRevision,PublicCorrections:CommunityCorrections.PublicEnabled));
                 logState.Text=comparison.Error ?? (queued?"السجل مفعّل — يحفظ السطور المعروضة وأوقاتها محليًا. لا يشمل زمن البث والتلفزيون.":"ازدحم السجل؛ لم يُحفظ هذا السطر.");
             }
         };
