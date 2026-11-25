@@ -94,7 +94,8 @@ public sealed class ReadingAreaSession : IDisposable
                 s.Seen=at;s.Panel=panel;s.PanelFrame=frame;
                 if(!TextMatch.IsSimilar(TextMatch.Normalize(text),TextMatch.Normalize(s.Candidate),.94))
                 {s.Candidate=text;s.Since=at;s.RetryAt=0;s.Failures=0;}
-                if((at-s.Since>=120||(panel is {Cells.Count:>0}?panel.Cells.All(c=>s.Cache.ContainsKey(c.Source)):s.Cache.ContainsKey(text)))&&s.Candidate!=s.Sent&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
+                var cellsChanged=panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>c.Source).SequenceEqual(s.LastPanel.Cells.Select(c=>c.Source));
+                if((at-s.Since>=120||(panel is {Cells.Count:>0}?panel.Cells.All(c=>s.Cache.ContainsKey(c.Source)):s.Cache.ContainsKey(text)))&&(s.Candidate!=s.Sent||cellsChanged)&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
                 else if(s.Area.Kind==ReadingAreaKind.Phone&&s.Visible&&s.Sent==s.Candidate&&s.LastPanel is not null&&at-s.LastEmit>=s.Area.DurationMs/2){s.LastEmit=at;s.Revision++;renewed=Make(s,s.LastResult) with{Panel=s.LastPanel};}
             }
         }
@@ -129,8 +130,9 @@ public sealed class ReadingAreaSession : IDisposable
                 }
                 panel=panel with{Cells=cells};result=string.Join("\n",cells.Select(c=>c.Text));
             }else result=await Piece(source).ConfigureAwait(false);
+            bool reconciled=false;
             if(panel is not null){
-                lock(gate){if(s.Candidate!=source){panel=s.Panel;frame=s.PanelFrame;if(panel is null)return;panel=panel with{Cells=panel.Cells.Select(c=>c with{Text=s.Cache.GetValueOrDefault(c.Source,"")}).ToArray()};source=s.Candidate;}}
+                lock(gate){if(s.Candidate!=source||s.Panel is {} latest&&!latest.Cells.Select(c=>c.Source).SequenceEqual(panel.Cells.Select(c=>c.Source))){reconciled=true;panel=s.Panel;frame=s.PanelFrame;if(panel is null)return;panel=panel with{Cells=panel.Cells.Select(c=>c with{Text=s.Cache.GetValueOrDefault(c.Source,"")}).ToArray()};source=s.Candidate;}}
                 if(frame is not null&&panel.Kind is "phone" or "notification")panel=SpatialText.WithImage(frame,panel);
                 result=string.Join("\n",panel.Cells.Select(c=>c.Text));
             }
@@ -140,8 +142,8 @@ public sealed class ReadingAreaSession : IDisposable
                 if(disposed||s.Revision!=revision||s.Candidate!=source||now()-s.Seen>Math.Max(1500,s.Area.IntervalMs*3))return;
                 if(s.Cache.Count>=128)s.Cache.Clear();if(panel is null&&!string.IsNullOrWhiteSpace(result))s.Cache[source]=result;
                 var partial=panel is not null&&panel.Cells.Any(c=>string.IsNullOrWhiteSpace(c.Text));
-                if(partial&&s.Failures++<2){s.Sent="";s.RetryAt=now()+2500;}else s.Sent=source;
-                if(!string.IsNullOrWhiteSpace(result)&&result!=s.LastResult){s.LastResult=result;s.LastPanel=panel;s.LastEmit=now();s.Visible=true;caption=Make(s,result) with{Panel=panel};}
+                if(partial&&reconciled){s.Sent="";s.RetryAt=0;}else if(partial&&s.Failures++<2){s.Sent="";s.RetryAt=now()+2500;}else s.Sent=source;
+                if(!string.IsNullOrWhiteSpace(result)&&(result!=s.LastResult||panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>c.Source).SequenceEqual(s.LastPanel.Cells.Select(c=>c.Source)))){s.LastResult=result;s.LastPanel=panel;s.LastEmit=now();s.Visible=true;caption=Make(s,result) with{Panel=panel};}
             }
             if(caption is not null){Status?.Invoke(s.Area.Id,$"تُعرض الترجمة · {panel?.Cells.Count(c=>!string.IsNullOrWhiteSpace(c.Text))??1} أجزاء");Caption?.Invoke(caption);}
         }
