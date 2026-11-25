@@ -447,6 +447,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     /// </summary>
     private bool IsRereadOf(string newer, string older)
     {
+        if(TextMatch.DifferentSpeakers(newer,older))return false;
         // Harf harf çok benzeyen, aynı sayıda sözcüklü okuma aynı satırın gürültülü hâlidir ("Yeah? Damme" /
         // "Yeäh? Damn." / "Yeah? Damn."): sözlük büyük harfli bozuk sözcüğü özel ad sanabiliyor.
         var normNewer = TextMatch.Normalize(newer);

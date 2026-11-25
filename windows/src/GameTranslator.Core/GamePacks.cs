@@ -126,7 +126,7 @@ public sealed class GamePack(string id, string title, IReadOnlyDictionary<ulong,
 
     /// <param name="name">Dosya adı uzantısız ("mafia-the-old-country"); düz biçimde kimlik ve başlık olur.</param>
     /// <exception cref="InvalidDataException">Dosya paket değil ya da bozuk.</exception>
-    public static GamePack Decode(byte[] data, string name)
+    public static GamePack Decode(byte[] data, string name,bool includeIndex=true)
     {
         var json = data.Length >= 2 && data[0] == 0x1f && data[1] == 0x8b ? Decompress(data) : data;
         JsonDocument document;
@@ -160,7 +160,7 @@ public sealed class GamePack(string id, string title, IReadOnlyDictionary<ulong,
                 foreach (var entry in element.EnumerateObject())
                 {
                     if (entry.Value.ValueKind != JsonValueKind.String || PackKey.Number(entry.Name.ToLowerInvariant()) is not { } number) continue;
-                    order.Add(number);
+                    if(includeIndex)order.Add(number);
                     var text = Cleaned(entry.Value.GetString() ?? "");
                     if (text.Length > 0) result[number] = text;
                 }
@@ -170,7 +170,7 @@ public sealed class GamePack(string id, string title, IReadOnlyDictionary<ulong,
             var segments = rawSegments is { } segmentsElement ? Read(segmentsElement) : [];
             if (entries.Count == 0) throw new InvalidDataException("Pakette satır yok");
             List<ulong> keys = [.. order.Order()];
-            var fuzzy = root.TryGetProperty("fuzzy", out var fuzzyJson) ? PackFuzzyIndex.Decode(fuzzyJson, keys) : null;
+            var fuzzy = includeIndex&&root.TryGetProperty("fuzzy", out var fuzzyJson) ? PackFuzzyIndex.Decode(fuzzyJson, keys) : null;
             return new GamePack(id, title, entries, segments, keys, fuzzy);
         }
     }

@@ -14,6 +14,12 @@ import java.time.Duration;
 import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class) @Config(sdk=34)
 public class AreaCaptionLayerTest {
+ @Test public void ConsecutiveRepliesKeepBothSpeakerColours()throws Exception{
+  String text="جيسون: افتح الباب.\nلوسيا: أنا قادمة.";
+  android.text.Spanned styled=(android.text.Spanned)CaptionVisual.speaker(text,new JSONObject());
+  android.text.style.ForegroundColorSpan[] spans=styled.getSpans(0,styled.length(),android.text.style.ForegroundColorSpan.class);
+  assertEquals(2,spans.length);assertNotEquals(spans[0].getForegroundColor(),spans[1].getForegroundColor());assertTrue(styled.getSpanStart(spans[1])>text.indexOf('\n'));
+ }
  private JSONObject caption(String id,int revision,String text)throws Exception{return new JSONObject("{\"id\":\""+id+"\",\"revision\":"+revision+",\"text\":\""+text+"\",\"duration\":2000,\"output\":{\"left\":0.1,\"top\":0.2,\"right\":0.5,\"bottom\":0.6}}");}
  @Test public void IndependentAreasRejectLateRevisionAndExpireSeparately()throws Exception{
   AreaCaptionLayer layer=new AreaCaptionLayer(RuntimeEnvironment.getApplication());layer.layout(0,0,1920,1080);

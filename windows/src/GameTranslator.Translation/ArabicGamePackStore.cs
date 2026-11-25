@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Public GameTranslator pack protocol and canonical keys by Sefflex / Sinan Yorulmaz (AGPL-3.0).
 using System.IO.Compression;
+using System.Collections.Frozen;
 using System.Security.Cryptography;
 using System.Text.Json;
 using GameTranslator.Core;
@@ -62,7 +63,8 @@ public sealed class ArabicGamePackStore(string directory,HttpClient? client=null
             // Bound inflated JSON as well as transport; a corrupt gzip must not exhaust memory.
             using var input=new MemoryStream(data);using var zip=new GZipStream(input,CompressionMode.Decompress);using var output=new MemoryStream();var buffer=new byte[65536];int count;while((count=zip.Read(buffer))>0){token.ThrowIfCancellationRequested();if(output.Length+count>180_000_000)throw new InvalidDataException("Inflated pack too large");output.Write(buffer,0,count);}
             using(var doc=JsonDocument.Parse(output.GetBuffer().AsMemory(0,(int)output.Length)))if(doc.RootElement.GetProperty("id").GetString()!="gta-6-ar"||doc.RootElement.GetProperty("lang").GetString()!="ar")throw new InvalidDataException("Wrong pack language");
-            return GamePack.Decode(output.ToArray(),"gta-6-ar");
+            var decoded=GamePack.Decode(output.ToArray(),"gta-6-ar",includeIndex:false);
+            return new GamePack(decoded.Id,decoded.Title,decoded.Entries.ToFrozenDictionary(),decoded.Segments.ToFrozenDictionary(),keys:[]);
         },token).ConfigureAwait(false);Volatile.Write(ref loaded,pack);Status=$"الحزمة العربية جاهزة · {pack.Entries.Count:N0} مدخل";
     }
     private async Task<HttpResponseMessage> Get(string path,CancellationToken token){using var request=new HttpRequestMessage(HttpMethod.Get,Host+path);request.Headers.UserAgent.ParseAdd("ArabicGames/0.5.5");var response=await(client??Http).SendAsync(request,HttpCompletionOption.ResponseHeadersRead,token).ConfigureAwait(false);try{response.EnsureSuccessStatusCode();return response;}catch{response.Dispose();throw;}}
