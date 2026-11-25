@@ -2,6 +2,7 @@ using GameTranslator.Core;
 namespace GameTranslator.Core.Tests;
 public class ReadingAreaTests_Recovery
 {
+    [Fact]public void MapPinMessagesRemainValidPhoneContentButStreetNamesDoNot(){Assert.True(SpatialText.IsConversation(new([new("Kenton",new(.3,.03,.6,.08)),new("Map Pin Unavailable",new(.1,.3,.9,.4))])));Assert.False(SpatialText.IsConversation(new([new("Little Village",new(.3,.03,.6,.08)),new("Moonstone Boutique",new(.1,.3,.9,.4))])));Assert.False(SpatialText.IsConversation(new([new("MAP BRIEF PROGRESS",new(.2,.03,.8,.08)),new("A mission description.",new(.1,.3,.9,.4))])));}
     private sealed class Reader:ITextReader{public string Read(Frame f)=>"";public Reading ReadSpatial(Frame f)=>new(Enumerable.Range(0,9).Select(i=>new TextLine("Message number "+i,new(.1,.05+i*.1,.8,.09+i*.1))));}
     private sealed class BatchEngine:ITextTranslator{
         public int PreferredBatchSize=>4;public int Calls;public TaskCompletionSource Second=new(TaskCreationOptions.RunContinuationsAsynchronously),Release=new(TaskCreationOptions.RunContinuationsAsynchronously);

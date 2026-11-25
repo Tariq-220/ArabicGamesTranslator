@@ -15,11 +15,12 @@ public static class SpatialText
     {
         var lines=reading.Lines.Where(l=>l.Box is not null&&!string.IsNullOrWhiteSpace(l.Text)).ToArray();
         if(lines.Length<2)return false;
-        bool Header(string text)=>System.Text.RegularExpressions.Regex.IsMatch(text,@"\b(?:MAP|BRIEF|PROGRESS|RECENTER|WAYPOINT|ADD MARKER|FEATURES|SETTINGS)\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        if(lines.Any(l=>Header(l.Text)))return false;
+        var nav=string.Join(" ",lines.Where(l=>l.Box!.Value.Top<.16).Select(l=>l.Text));
+        if(System.Text.RegularExpressions.Regex.IsMatch(nav,@"\bMAP\b.*\b(?:BRIEF|PROGRESS)\b|\bBRIEF\b.*\bPROGRESS\b|^(?:SETTINGS|GRAPHICS|CONTROLS|FEATURES)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase))return false;
         // A light strip of map or pavement is not a phone. Require a header and message/list content.
         var top=lines.Where(l=>l.Box!.Value.Top<.22).ToArray();
-        var body=lines.Where(l=>l.Box!.Value.Top>=.12&&l.Text.Split(' ',StringSplitOptions.RemoveEmptyEntries).Length>=2&&l.Text.Any(char.IsLower)).ToArray();
+        bool Message(string text){var words=text.Split(' ',StringSplitOptions.RemoveEmptyEntries);return words.Skip(1).Any(w=>w.Length>0&&char.IsLower(w[0]))||text.IndexOfAny(['!','?',',','…'])>=0||System.Text.RegularExpressions.Regex.IsMatch(text,@"^(?:Map Pin (?:Unavailable|Expired)|New messages?)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);}
+        var body=lines.Where(l=>l.Box!.Value.Top>=.12&&Message(l.Text)).ToArray();
         return top.Any(l=>l.Text.Length<=65)&&body.Length>=1&&lines.Length>=2;
     }
     public static PanelLayout Build(Frame frame,Reading reading,ReadingAreaKind kind,bool includeImage=true)
