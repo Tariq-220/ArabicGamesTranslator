@@ -248,7 +248,7 @@ public final class MainActivity extends Activity {
   boolean local=getPreferences(0).getBoolean("localCaptionStyle",false);
   int opacity=local?getPreferences(0).getInt("subtitleOpacity",70):remoteStyle.optInt("background",72);
   float size=local?getPreferences(0).getInt("subtitleSize",20)*getResources().getDisplayMetrics().scaledDensity:remoteStyle.optInt("fontSize",32)*getResources().getDisplayMetrics().widthPixels/1920f;
-  if(!local&&appearance.optBoolean("matchSize",true)&&Double.isFinite(currentLineHeight)&&currentLineHeight>0&&currentLineHeight<.2){View parent=(View)subtitle.getParent();int height=parent==null?getResources().getDisplayMetrics().heightPixels:parent.getHeight();size=Math.min(size,(float)(currentLineHeight*height*1.1));}
+  if(!local&&appearance.optBoolean("matchSize",true)&&Double.isFinite(currentLineHeight)&&currentLineHeight>0&&currentLineHeight<.2){View parent=(View)subtitle.getParent();int height=parent==null?getResources().getDisplayMetrics().heightPixels:parent.getHeight();size=Math.max(Math.min(24,size*.75f),Math.min(size,(float)(currentLineHeight*height*1.1)));}
   CaptionVisual.apply(subtitle,appearance,opacity,Math.max(14,Math.min(80,size)));layoutCaption();
  }
  private void subtitleSettings(){

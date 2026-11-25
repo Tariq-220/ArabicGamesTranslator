@@ -40,5 +40,12 @@ public class CaptionPresentationTests
  [Fact] public void NotificationFindsOnlyTheCompactBoundedCard(){var f=Frame.Blank(480,360);Fill(f,130,180,270,110,230,230,230);var box=SpatialText.FindMessage(f);Assert.NotNull(box);Assert.InRange(box!.Left,.26,.29);Assert.InRange(box.Right,.82,.85);Assert.InRange(box.Bottom-box.Top,.28,.34);}
  [Fact] public void PhonePresetIncludesBothSidesAndKeepsOutputIndependent(){var a=ReadingArea.Phone();Assert.True(a.Source.Left<.1&&a.Source.Right>.9);Assert.NotEqual(a.Source,a.Output);}
  [Fact] public void ViceCityOpacityAndStrengthAreIndependentAndBounded(){var a=new CaptionAppearance(Accent:true,AccentOpacity:45,AccentStrength:70).Validate();Assert.Equal(45,a.AccentOpacity);Assert.Equal(70,a.AccentStrength);Assert.Equal(0,(a with{AccentOpacity=-2}).Validate().AccentOpacity);}
+ [Fact] public async Task NotificationOutputDoesNotEnlargeIntoAScenerySizedRectangle(){
+  long now=0;var f=Frame.Blank(1280,720);Fill(f,900,510,300,115,232,232,232);
+  using var session=new ReadingAreaSession([ReadingArea.Notification()],()=>new CountReader(),new CountEngine(),()=>now);
+  var shown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);session.Caption+=c=>shown.TrySetResult(c);
+  await session.ProcessAsync(f);now=500;await session.ProcessAsync(f);var c=await shown.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.InRange(c.Output.Right-c.Output.Left,.22,.25);Assert.InRange(c.Output.Bottom-c.Output.Top,.14,.18);Assert.NotNull(c.Panel);
+ }
+ [Fact] public void SmallOcrBoxCannotShrinkDialogueBelowReadableConfiguredFloor(){Assert.Equal(24,CaptionSizing.FontPixels(32,1920,1080,true,.006));}
  private static void Fill(Frame f,int x,int y,int width,int height,byte r,byte g,byte b){for(int yy=y;yy<y+height;yy++)for(int xx=x;xx<x+width;xx++){int i=yy*f.Stride+xx*4;f.Pixels[i]=b;f.Pixels[i+1]=g;f.Pixels[i+2]=r;f.Pixels[i+3]=255;}}
 }

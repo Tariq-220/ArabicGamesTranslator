@@ -36,7 +36,7 @@ internal sealed class AreaOverlayWindow : Window
         var bounds=DesktopSubtitleOverlay.CaptionBounds;var box=value.Output;
         window.Left=bounds.Left+bounds.Width*box.Left;window.Top=bounds.Top+bounds.Height*box.Top;
         window.Width=Math.Max(60,bounds.Width*(box.Right-box.Left));window.Height=Math.Max(30,bounds.Height*(box.Bottom-box.Top));
-        if(value.Panel is {} panel)window.border.Child=CaptionVisual.Panel(panel,new ReadingArea(value.Id,value.Id,ReadingAreaKind.Menu,new(),value.Output,FontSize:value.FontSize,Background:value.Background,Appearance:value.Appearance));
+        if(value.Panel is {} panel)window.border.Child=CaptionVisual.Panel(panel,new ReadingArea(value.Id,value.Id,ReadingAreaKind.Menu,new(),value.Output,FontSize:value.FontSize,Background:value.Background,Appearance:value.Appearance),bounds.Width,bounds.Height);
         else window.border.Child=CaptionVisual.Text(value.Text,value.Appearance,value.FontSize*bounds.Width/1920,value.Background);
         window.border.Padding=new Thickness(0);
         window.border.Background=Brushes.Transparent;

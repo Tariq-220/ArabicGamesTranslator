@@ -39,9 +39,10 @@ public static class CaptionVisual
         foreach(var stop in gradient.GradientStops){var c=stop.Color;byte gray=(byte)((c.R+c.G+c.B)/3);double k=a.AccentStrength/100d;stop.Color=Color.FromRgb((byte)(gray+(c.R-gray)*k),(byte)(gray+(c.G-gray)*k),(byte)(gray+(c.B-gray)*k));}
         border.BorderBrush=gradient;if(a.Backdrop=="none")border.Background=new SolidColorBrush(Color.FromArgb((byte)(Math.Clamp(opacity,0,100)*255/100),10,6,20));
     }
-    public static FrameworkElement Panel(PanelLayout panel,ReadingArea area)
+    public static FrameworkElement Panel(PanelLayout panel,ReadingArea area,double targetWidth=1920,double targetHeight=1080)
     {
         bool phone=panel.Kind is "phone" or "notification";
+        var o=area.PresentationOutput();double scale=Math.Max(.01,Math.Min((o.Right-o.Left)*targetWidth/panel.Width,(o.Bottom-o.Top)*targetHeight/panel.Height));
         var canvas=new Canvas{Width=panel.Width,Height=panel.Height,ClipToBounds=true,Background=phone?Brushes.White:Brushes.Transparent};
         if(panel.Image is {Length:>0 and <1600000} encoded){try{using var stream=new MemoryStream(Convert.FromBase64String(encoded));var bmp=new BitmapImage();bmp.BeginInit();bmp.CacheOption=BitmapCacheOption.OnLoad;bmp.StreamSource=stream;bmp.EndInit();bmp.Freeze();canvas.Children.Add(new Image{Source=bmp,Width=panel.Width,Height=panel.Height,Stretch=Stretch.Fill});}catch(FormatException){}}
         foreach(var cell in panel.Cells)
@@ -50,7 +51,7 @@ public static class CaptionVisual
             double w=Math.Max(8,(box.Right-box.Left)*panel.Width),h=Math.Max(8,(box.Bottom-box.Top)*panel.Height);
             double max=area.Appearance?.MatchSize!=false?Math.Max(8,cell.LineHeight*panel.Height*.95):area.FontSize;
             var label=new TextBlock{Width=w,HorizontalAlignment=HorizontalAlignment.Stretch,Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?FlowDirection.RightToLeft:FlowDirection.LeftToRight,TextWrapping=TextWrapping.Wrap,
-                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Right:TextAlignment.Left,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize,Padding=new Thickness(3,0,3,0)};
+                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:area.Appearance?.Align=="center"?TextAlignment.Center:area.Appearance?.Align=="left"?TextAlignment.Right:TextAlignment.Left,VerticalAlignment=area.Appearance?.Vertical=="center"?VerticalAlignment.Center:area.Appearance?.Vertical=="bottom"?VerticalAlignment.Bottom:VerticalAlignment.Top,Foreground=phone?Brush(cell.Foreground):Brushes.White,FontSize=area.Appearance?.MatchSize!=false?max:area.FontSize*targetWidth/1920/scale,Padding=new Thickness(3,0,3,0)};
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
             var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
