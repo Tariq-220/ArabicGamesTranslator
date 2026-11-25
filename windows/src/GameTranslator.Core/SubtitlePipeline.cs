@@ -24,6 +24,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public bool CenterOnly {get;set;}
     public int MinimumDisplayMs {get;set;}
     private long lastPresentedAt=long.MinValue/2;
+    public int MissingTextMs {get=>stabilizer.MissingTextMs;set=>stabilizer.MissingTextMs=Math.Clamp(value,50,5000);}
     public int MinimumStableMs {get=>stabilizer.MinimumStableMs;set=>stabilizer.MinimumStableMs=Math.Max(0,value); }
     /// <summary>
     /// Paketler açıkken bozuk okunan (OCR izi taşıyan) ve pakette bulunmayan satır en çok bu kadar bekletilir: aynı

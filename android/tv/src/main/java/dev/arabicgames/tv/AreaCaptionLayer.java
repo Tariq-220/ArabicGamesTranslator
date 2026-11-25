@@ -56,6 +56,7 @@ public final class AreaCaptionLayer extends FrameLayout {
  private static boolean hasCells(JSONObject panel){if(panel==null||panel.optJSONArray("cells")==null)return false;org.json.JSONArray cells=panel.optJSONArray("cells");for(int i=0;i<Math.min(24,cells.length());i++){JSONObject c=cells.optJSONObject(i);if(c==null||c.optString("text","").trim().isEmpty())continue;JSONObject b=c.optJSONObject("box");if(b!=null&&b.optDouble("right")>b.optDouble("left")&&b.optDouble("bottom")>b.optDouble("top"))return true;}return false;}
  @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){super.onSizeChanged(w,h,oldw,oldh);if(w>0&&h>0&&!pending.isEmpty()){java.util.List<JSONObject> values=new java.util.ArrayList<>(pending.values());pending.clear();for(JSONObject value:values)apply(value);}}
  private View panel(JSONObject panel,JSONObject appearance,int width,int height,int fontSize,int opacity){
+  if("menu".equals(panel.optString("kind"))){try{appearance=appearance==null?new JSONObject():new JSONObject(appearance.toString());appearance.put("backdrop","none");appearance.put("outline",true);}catch(org.json.JSONException ignored){}}
   FrameLayout outer=new FrameLayout(getContext());outer.setClipChildren(true);
   int pw=Math.max(1,Math.min(4096,panel.optInt("width",360))),ph=Math.max(1,Math.min(4096,panel.optInt("height",700)));
   float scale=Math.min((float)width/pw,(float)height/ph);int w=Math.max(1,(int)(pw*scale)),h=Math.max(1,(int)(ph*scale));

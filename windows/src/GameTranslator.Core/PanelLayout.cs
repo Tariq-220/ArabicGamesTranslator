@@ -13,6 +13,7 @@ public static class SpatialText
 {
     public static PanelLayout Build(Frame frame,Reading reading,ReadingAreaKind kind,bool includeImage=true)
     {
+        bool plainMenu=kind==ReadingAreaKind.Menu&&!MenuReading.SettingsPage(reading);
         bool phoneLike=kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification;
         var lines=reading.Lines.Where(l=>!string.IsNullOrWhiteSpace(l.Text)&&l.Box is not null)
             .OrderBy(l=>l.Box!.Value.Top).ThenBy(l=>l.Box!.Value.Left).Take(64).ToList();
@@ -43,14 +44,16 @@ public static class SpatialText
             if(phoneLike)box=BubbleBounds(frame,box,color);
             var background=Hex(color);var foreground=color.Sum(x=>(int)x)>390&&!blue?"#20232A":"#FFFFFF";
             var title=phoneLike&&b.Top<.12&&g.Count==1;
+            if(plainMenu){double width=Math.Min(.35,Math.Max(.14,box.Right-box.Left));double left=box.Right<.65?Math.Min(1-width,box.Right+.015):Math.Max(0,box.Left-width-.015);box=box with{Left=left,Right=left+width};foreground="#FFFFFF";}
             cells.Add(new(text,"",box,background,foreground,medianH,phoneLike&&!title,title));
             if(clean is not null)Fill(clean,box,color); // Preserve avatars, dividers, badges and the phone's original panel; remove English ink.
         }
-        var image=phoneLike&&clean is not null?Png(clean):null;
-        return new(frame.Width,frame.Height,kind==ReadingAreaKind.Phone?"phone":kind==ReadingAreaKind.Notification?"notification":"spatial",image,cells);
+        var image=kind==ReadingAreaKind.Notification&&clean is not null?Png(clean):null;
+        return new(frame.Width,frame.Height,kind==ReadingAreaKind.Phone?"phone":kind==ReadingAreaKind.Notification?"notification":plainMenu?"menu":kind==ReadingAreaKind.Menu?"settings":"spatial",image,cells);
     }
     // Phone screen search is confined to the selected ROI. Scenery outside it cannot become a phone.
     public static PanelLayout WithImage(Frame frame,PanelLayout panel){
+        if(panel.Kind=="phone")return panel with{Image=null};
         var clean=new Frame((byte[])frame.Pixels.Clone(),frame.Width,frame.Height,frame.Stride);
         foreach(var c in panel.Cells.Where(c=>!string.IsNullOrWhiteSpace(c.Text))){var color=c.Background;Fill(clean,c.Box,[(byte)Convert.ToInt32(color[1..3],16),(byte)Convert.ToInt32(color[3..5],16),(byte)Convert.ToInt32(color[5..7],16)]);}
         return panel with{Image=Png(clean)};

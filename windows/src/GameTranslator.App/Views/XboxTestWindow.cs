@@ -114,11 +114,20 @@ public sealed class XboxTestWindow : Window
         latest.Checked+=(_,_)=>controller.PreferLatestDialogue=true;
         latest.Unchecked+=(_,_)=>controller.PreferLatestDialogue=false;
         root.Children.Add(latest);
-        var fastCapture=new CheckBox{IsChecked=controller.FastCaptureEnabled,Content="التقاط أسرع (40ms) — حمل أعلى",MaxWidth=300,Tag="fast-capture",Foreground=Brushes.White,MinHeight=44,Margin=new Thickness(4)};
-        fastCapture.Checked+=(_,_)=>{controller.FastCaptureEnabled=true;DesktopCaptureStreamSession.SamplingIntervalMs=40;};
-        fastCapture.Unchecked+=(_,_)=>{controller.FastCaptureEnabled=false;DesktopCaptureStreamSession.SamplingIntervalMs=80;};
-        DesktopCaptureStreamSession.SamplingIntervalMs=controller.FastCaptureEnabled?40:80;
-        root.Children.Add(fastCapture);
+        var timingOptions=new StackPanel();
+        void TimingSlider(string caption,int min,int max,int current,Action<int> update){var label=Label(caption+": "+current);var slider=new Slider{Minimum=min,Maximum=max,Value=current,IsSnapToTickEnabled=true,TickFrequency=1,Margin=new Thickness(8)};slider.ValueChanged+=(_,_)=>{int n=(int)slider.Value;label.Text=caption+": "+n;update(n);};timingOptions.Children.Add(label);timingOptions.Children.Add(slider);}
+        void ApplyTiming(ReadingTiming value){controller.Timing=value;DesktopCaptureStreamSession.SamplingIntervalMs=(int)Math.Round(1000d/Math.Max(value.CaptureFps,value.PreviewFps));}
+        ApplyTiming(controller.Timing);
+        TimingSlider("إطارات القراءة في الثانية",1,60,controller.Timing.CaptureFps,n=>ApplyTiming(controller.Timing with{CaptureFps=n}));
+        TimingSlider("إطارات المعاينة في الثانية",1,60,controller.Timing.PreviewFps,n=>ApplyTiming(controller.Timing with{PreviewFps=n}));
+        TimingSlider("فاصل جميع المناطق · ms",16,2000,controller.Timing.AreaReadMs??450,n=>ApplyTiming(controller.Timing with{AreaReadMs=n}));
+        TimingSlider("انتظار استقرار النص · ms",0,1000,controller.Timing.SettleMs,n=>ApplyTiming(controller.Timing with{SettleMs=n}));
+        TimingSlider("أقل مدة للحوار قبل استبداله · ms",0,3000,controller.Timing.MinimumDisplayMs,n=>ApplyTiming(controller.Timing with{MinimumDisplayMs=n}));
+        TimingSlider("اعتبار المصدر اختفى بعد · ms",50,5000,controller.Timing.GoneMs,n=>ApplyTiming(controller.Timing with{GoneMs=n}));
+        var fullPreview=new CheckBox{Content="معاينة بدقة المصدر · حتى 4K إذا وفرها المصدر",IsChecked=controller.Timing.FullResolutionPreview,Foreground=Brushes.White,MinHeight=40};fullPreview.Checked+=(_,_)=>ApplyTiming(controller.Timing with{FullResolutionPreview=true});fullPreview.Unchecked+=(_,_)=>ApplyTiming(controller.Timing with{FullResolutionPreview=false});timingOptions.Children.Add(fullPreview);
+        timingOptions.Children.Add(Label("المعاينة مستقلة عن OCR. رفع المعدل يزيد الحمل؛ الأرقام حد أقصى، ولا ترفع دقة بث Remote Play نفسه. فاصل المنطقة الخاص يعمل عند إلغاء الفاصل العام."));
+        timingOptions.Children.Add(Button("استخدام فواصل البطاقات الخاصة",()=>ApplyTiming(controller.Timing with{AreaReadMs=null})));
+        var timingExpander=new Expander{Header="التوقيت والأداء · القراءة والمعاينة",IsExpanded=true,Content=timingOptions,Foreground=Brushes.White};
         root.Children.Add(Button("إصلاح قراءة الإنجليزية — إعدادات لغة Windows",()=>System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:regionlanguage"){UseShellExecute=true})));
         root.Children.Add(Label("هذا يغيّر فاصل قراءة الإطارات فقط، ولا يسرّع Remote Play أو محرك الترجمة. اتركه مطفأً إذا ارتفع الحمل."));
         root.Children.Add(recordComparison);root.Children.Add(logState);
@@ -176,9 +185,9 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Label("القياس من وصول الإطار للبرنامج إلى تجهيز الترجمة؛ لا يشمل تأخر بث Xbox أو زمن عرض التلفزيون."));
         root.Children.Add(Label("PS5: اختر نافذة PS Remote Play أو chiaki-ng. اتصال حساب Microsoft/Sony يتم في التطبيق الرسمي؛ لا ندعي اختبار جهاز PS5 فعلي هنا."));
         // Keep the session controls visible while setup options live in four calm cards.
-        root.Children.Remove(latest);root.Children.Remove(fastCapture);root.Children.Remove(dialogueOnly);
+        root.Children.Remove(latest);root.Children.Remove(dialogueOnly);
         var quickReading=new StackPanel();quickReading.Children.Add(Label("قراءة الحوار والسرعة",17));
-        var quickRow=new WrapPanel();quickRow.Children.Add(latest);quickRow.Children.Add(fastCapture);quickReading.Children.Add(quickRow);quickReading.Children.Add(dialogueOnly);
+        var quickRow=new WrapPanel();quickRow.Children.Add(latest);quickReading.Children.Add(quickRow);quickReading.Children.Add(dialogueOnly);
         var faster=new CheckBox{Content="أسرع · انتظار أقل لاستقرار وعرض النص (قد يزيد تبدّل السطر)",IsChecked=controller.FasterPresentation,Foreground=Brushes.White,MinHeight=40};faster.Checked+=(_,_)=>controller.FasterPresentation=true;faster.Unchecked+=(_,_)=>controller.FasterPresentation=false;quickReading.Children.Add(faster);
         var readingMode=new ComboBox{Tag="reading-mode",MinHeight=48,MinWidth=260,Margin=new Thickness(4)};foreach(var label in new[]{"حوار اللعبة — أسفل الصورة","قوائم وخريطة — كامل الصورة","رسائل هاتف اللعبة — يمين","رسائل هاتف اللعبة — يسار"})readingMode.Items.Add(label);var modes=new[]{"dialogue","menus","phone-right","phone-left"};readingMode.SelectedIndex=Math.Max(0,Array.IndexOf(modes,controller.ReadingContentMode));readingMode.SelectionChanged+=(_,_)=>{controller.Stop();string mode=modes[Math.Max(0,readingMode.SelectedIndex)];controller.ReadingContentMode=mode;var r=mode=="dialogue"?controller.DialogueCaptureRegion:ReadingModes.Region(mode);top.Value=r.Top*100;readLeft.Value=r.Left*100;readRight.Value=r.Right*100;ApplyCrop();status.Text="تم تغيير منطقة القراءة. افتح الحوار أو قائمة الرسائل، ثم اضغط بدء الترجمة. ارجع إلى نمط الحوار عند الانتهاء.";};quickReading.Children.Add(Label("ماذا تريد ترجمته؟",16));quickReading.Children.Add(readingMode);dialogueOnly.Click+=(_,_)=>readingMode.SelectedIndex=0;quickReading.Children.Add(Label("القوائم والرسائل تظهر مترجمة في شريط النص؛ إذا اختلف مكان الهاتف اختر الجهة أو عدّل المنطقة يدويًا.",13));
         root.Children.Insert(root.Children.IndexOf(pick)+1,Card(quickReading));
@@ -218,6 +227,7 @@ public sealed class XboxTestWindow : Window
                 if(items[n] is Border oldMode && ReferenceEquals(oldMode.Child,quickReading))continue;
                 if(items[n]!=controls&&items[n]!=testEngine)content.Children.Add(items[n]);
             }
+            if(title.StartsWith("①"))content.Children.Add(timingExpander);
             if(title.StartsWith("②")){quickReading.Children.Remove(faster);content.Children.Add(faster);}
             var scroll=new ScrollViewer{Tag="setup-scroll",Content=content,VerticalScrollBarVisibility=ScrollBarVisibility.Visible,PanningMode=PanningMode.VerticalOnly,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};var hint=Label("↓ مرّر لعرض بقية الخيارات",13);var next=Button("بقية الخيارات ↓",()=>scroll.ScrollToVerticalOffset(scroll.VerticalOffset+Math.Max(150,scroll.ViewportHeight*.75)));void UpdateHint(){bool more=scroll.ScrollableHeight>1&&scroll.VerticalOffset<scroll.ScrollableHeight-2;hint.Text=more?"↓ توجد خيارات إضافية بالأسفل — مرّر أو اضغط السهم":"✓ كل الخيارات ظاهرة أو وصلت إلى نهايتها";next.IsEnabled=more;}scroll.ScrollChanged+=(_,_)=>UpdateHint();scroll.Loaded+=(_,_)=>UpdateHint();var hintRow=new DockPanel();DockPanel.SetDock(next,Dock.Left);hintRow.Children.Add(next);hintRow.Children.Add(hint);var area=new DockPanel();DockPanel.SetDock(hintRow,Dock.Bottom);area.Children.Add(hintRow);area.Children.Add(scroll);tabs.Items.Add(new TabItem{Header=title,MinHeight=44,Padding=new Thickness(10,8,10,8),Content=area});
         }

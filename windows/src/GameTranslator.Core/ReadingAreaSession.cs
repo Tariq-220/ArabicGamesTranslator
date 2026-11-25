@@ -12,7 +12,7 @@ public sealed class ReadingAreaSession : IDisposable
         public readonly ITextReader Reader=reader;
         public string Candidate="", Sent="", LastResult="";
         public long Since, Seen, ReadAt=long.MinValue/2, Revision;
-        public bool Busy, Visible;public long RetryAt;public int Failures;
+        public int Misses;public long MissingSince;public bool Busy, Visible;public long RetryAt;public int Failures;
         public CropRegion? Output;public PanelLayout? Panel,LastPanel;public Frame? PanelFrame;public long LastEmit;
         public readonly Dictionary<string,string> Cache=new(StringComparer.Ordinal);
     }
@@ -24,6 +24,8 @@ public sealed class ReadingAreaSession : IDisposable
     private readonly CancellationTokenSource lifetime=new();
     private int cursor, processing;
     private bool disposed;
+    private ReadingTiming timing=new();
+    public void SetTiming(ReadingTiming value){lock(gate)timing=value.Validate();}
     public event Action<AreaCaption>? Caption;
     public event Action<string,string>? Failed;
     public event Action<string,string>? Status;
@@ -52,7 +54,7 @@ public sealed class ReadingAreaSession : IDisposable
                 for(var n=0;n<states.Count;n++)
                 {
                     var possible=states[cursor++%states.Count];
-                    if(now()-possible.ReadAt<possible.Area.IntervalMs)continue;
+                    if(now()-possible.ReadAt<(timing.AreaReadMs??possible.Area.IntervalMs))continue;
                     possible.ReadAt=now();state=possible;break;
                 }
             }
@@ -67,8 +69,9 @@ public sealed class ReadingAreaSession : IDisposable
                 var o=s.Area.PresentationOutput();var scale=Math.Min(1,Math.Min((o.Right-o.Left)*frame.Width/crop.Width,(o.Bottom-o.Top)*frame.Height/crop.Height));
                 s.Output=new(o.Top,o.Top+crop.Height*scale/frame.Height,o.Right-crop.Width*scale/frame.Width,o.Right);
             }
-            lifetime.Token.ThrowIfCancellationRequested();var reading=s.Reader.ReadSpatial(crop);if(s.Area.Kind==ReadingAreaKind.Menu&&s.Area.AutoDetect)reading=MenuReading.Select(crop,reading);
+            lifetime.Token.ThrowIfCancellationRequested();var reading=s.Reader.ReadSpatial(crop);if(s.Area.Kind==ReadingAreaKind.Menu&&s.Area.AutoDetect)reading=MenuReading.Select(crop,reading,!states.Any(x=>x.Area.Kind==ReadingAreaKind.MapCard));
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
+            if(s.Area.Kind==ReadingAreaKind.MapCard)reading=new Reading(reading.Lines.Where(l=>l.Box is {} b&&SpatialText.HasDarkBackground(crop,b)));
             var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind,includeImage:false):null;
             Status?.Invoke(s.Area.Id,string.IsNullOrWhiteSpace(reading.Text)?"اللوحة موجودة، لكن OCR لم يقرأ نصًا.":$"قُرئت {reading.Lines.Count} أسطر · الترجمة قيد المعالجة");
             Observe(s,reading.Text.Trim(),panel is {Cells.Count:0}?null:panel,crop);
@@ -87,16 +90,17 @@ public sealed class ReadingAreaSession : IDisposable
             var at=now();
             if(text.Length<2)
             {
-                if((s.Visible||s.Candidate.Length>0)&&at-s.Seen>=700){s.Visible=false;s.Sent="";s.Candidate="";s.LastResult="";s.LastPanel=null;s.PanelFrame=null;s.Revision++;clear=Make(s,"",true);}
+                if(s.Misses==0)s.MissingSince=at;
+                if((s.Visible||s.Candidate.Length>0)&&++s.Misses>=2&&at-s.MissingSince>=timing.GoneMs){s.Visible=false;s.Sent="";s.Candidate="";s.LastResult="";s.LastPanel=null;s.PanelFrame=null;s.Revision++;clear=Make(s,"",true);}
             }
             else
             {
-                s.Seen=at;s.Panel=panel;s.PanelFrame=frame;
+                s.Misses=0;s.Seen=at;s.Panel=panel;s.PanelFrame=frame;
                 if(!TextMatch.IsSimilar(TextMatch.Normalize(text),TextMatch.Normalize(s.Candidate),.94))
                 {s.Candidate=text;s.Since=at;s.RetryAt=0;s.Failures=0;}
                 var cellsChanged=panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>c.Source).SequenceEqual(s.LastPanel.Cells.Select(c=>c.Source));
-                if((at-s.Since>=120||(panel is {Cells.Count:>0}?panel.Cells.All(c=>s.Cache.ContainsKey(c.Source)):s.Cache.ContainsKey(text)))&&(s.Candidate!=s.Sent||cellsChanged)&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
-                else if(s.Area.Kind==ReadingAreaKind.Phone&&s.Visible&&s.Sent==s.Candidate&&s.LastPanel is not null&&at-s.LastEmit>=s.Area.DurationMs/2){s.LastEmit=at;s.Revision++;renewed=Make(s,s.LastResult) with{Panel=s.LastPanel};}
+                if((at-s.Since>=timing.SettleMs||(panel is {Cells.Count:>0}?panel.Cells.All(c=>s.Cache.ContainsKey(c.Source)):s.Cache.ContainsKey(text)))&&(s.Candidate!=s.Sent||cellsChanged)&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
+                else if(s.Area.Kind!=ReadingAreaKind.Notification&&s.Visible&&s.Sent==s.Candidate&&s.LastResult.Length>0&&at-s.LastEmit>=s.Area.DurationMs/2){s.LastEmit=at;s.Revision++;renewed=Make(s,s.LastResult) with{Panel=s.LastPanel};}
             }
         }
         if(clear is not null)Caption?.Invoke(clear);if(renewed is not null)Caption?.Invoke(renewed);

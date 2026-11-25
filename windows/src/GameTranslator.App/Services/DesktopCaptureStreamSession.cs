@@ -12,7 +12,7 @@ namespace GameTranslator.App.Services;
 public sealed class DesktopCaptureStreamSession : IStreamSession
 {
     private static int samplingInterval=80;
-    public static int SamplingIntervalMs {get=>Volatile.Read(ref samplingInterval);set=>Volatile.Write(ref samplingInterval,Math.Clamp(value,40,160));}
+    public static int SamplingIntervalMs {get=>Volatile.Read(ref samplingInterval);set=>Volatile.Write(ref samplingInterval,Math.Clamp(value,16,1000));}
     public event Action<Frame>? FrameReceived;
     public event Action<SessionState>? StateChanged;
 #pragma warning disable CS0067

@@ -988,7 +988,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
 
     /// <summary>Okuma hattını güncel dillerle (yeniden) kurar.</summary>
     public bool PreferLatestDialogue {get=>store.Load<bool?>("PreferLatestDialogue")??true;set=>store.Save("PreferLatestDialogue",value);}
-    public bool FasterPresentation {get=>store.Load<bool>("FasterPresentation");set{store.Save("FasterPresentation",value);if(pipeline is not null)DialogueReadingPolicy.Configure(pipeline,PreferLatestDialogue,ReadingContentMode,value);}}
+    private ReadingTiming? readingTiming;
+    public ReadingTiming Timing {get=>readingTiming??= (store.Load<ReadingTiming>("reading-timing-v1")??new(SettleMs:FasterPresentation?80:120)).Validate();set{readingTiming=value.Validate();store.Save("reading-timing-v1",readingTiming);ApplyTiming();Changed(nameof(Timing));}}
+    private void ApplyTiming(){if(pipeline is not null){pipeline.MinimumStableMs=Timing.SettleMs;pipeline.MissingTextMs=Timing.GoneMs;pipeline.MinimumDisplayMs=Timing.MinimumDisplayMs;}areaSession?.SetTiming(Timing);}
+    public bool FasterPresentation {get=>store.Load<bool>("FasterPresentation");set{store.Save("FasterPresentation",value);if(pipeline is not null)DialogueReadingPolicy.Configure(pipeline,PreferLatestDialogue,ReadingContentMode,value);Timing=Timing with{SettleMs=value?80:120,MinimumDisplayMs=value?450:700};}}
+
     public bool FastCaptureEnabled {get=>store.Load<bool>("FastCaptureEnabled");set=>store.Save("FastCaptureEnabled",value);}
     public bool AutoMinimizeAfterStart{get=>store.Load<bool>("AutoMinimizeAfterStart");set=>store.Save("AutoMinimizeAfterStart",value);}
     private SubtitleStyle PresentationStyle => settings.Style with {StackPrevious=false};
@@ -1043,7 +1047,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             new ProfileTranslator(translationQueue?.Areas??MakeTranslator(),DialogueGame,validateArabic:settings.TargetLanguage=="ar",joinLines:false),reviewedLookup:text=>CommunityCorrections.Find(DialogueGame,text)??(CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(text,DialogueGame):null));
         current.Status+=(id,status)=>{if(ReferenceEquals(areaSession,current))areaStatus[id]=status;};
         current.Caption+=caption=>{if(!ReferenceEquals(areaSession,current))return;server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
-        areaSession=current;
+        areaSession=current;current.SetTiming(Timing);
     }
 
     private void MakePipeline()
@@ -1091,7 +1095,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         // Model bu arada inmiş olabilir; her çeviri sonucu durumu günceller.
         built.TranslationResult += error => post(() => TranslatorStatus = error ?? TranslatorStatus.Ready);
         built.SpeechReady += lines => post(() => Speak(lines));
-        pipeline = built;
+        pipeline = built;ApplyTiming();
         if(isRunning)MakeAreaSession();
     }
 
@@ -1251,9 +1255,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public void FeedFrame(Frame frame) => HandleFrame(frame);
     public void ClearLastFrame() => post(() => LastFrame = null);
 
+    private long sampleAt=long.MinValue/2;
     private async void HandleFrame(Frame frame)
     {
         PublishPreview(frame);
+        var at=Environment.TickCount64;var previous=Interlocked.Read(ref sampleAt);if(at-previous<1000d/Timing.CaptureFps||Interlocked.CompareExchange(ref sampleAt,at,previous)!=previous)return;
         var areas=areaSession;
         if(areas is not null)_=areas.ProcessAsync(frame);
         // Duraklatıldıysa kare yalnız ek bölgeler ve serbest alan için saklanır; altyazı okunmaz.

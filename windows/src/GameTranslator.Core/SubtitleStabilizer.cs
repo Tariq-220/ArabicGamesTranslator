@@ -52,6 +52,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
     /// </summary>
     public const int GarbledStableMs = 700;
     public int MinimumStableMs { get; set; }
+    public int MissingTextMs {get;set;}=clearAfterMs;
     private const int HistorySize = 5;
 
     private readonly Func<long> now = clock ?? (() => Environment.TickCount64);
@@ -112,7 +113,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
             candidate = "";
             candidateCount = 0;
             emptySince ??= time;
-            if (sent.Length > 0 && time - emptySince >= clearAfterMs)
+            if (sent.Length > 0 && time - emptySince >= MissingTextMs)
             {
                 LeaveScreen(time);
                 return StabilizerAction.Clear;

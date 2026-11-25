@@ -41,6 +41,7 @@ public static class CaptionVisual
     }
     public static FrameworkElement Panel(PanelLayout panel,ReadingArea area,double targetWidth=1920,double targetHeight=1080)
     {
+        if(panel.Kind=="menu")area=area with{Appearance=(area.Appearance??new()) with{Backdrop="none",Outline=true}};
         bool phone=panel.Kind is "phone" or "notification";
         var o=area.PresentationOutput();double scale=Math.Max(.01,Math.Min((o.Right-o.Left)*targetWidth/panel.Width,(o.Bottom-o.Top)*targetHeight/panel.Height));
         var canvas=new Canvas{Width=panel.Width,Height=panel.Height,ClipToBounds=true,Background=phone?Brushes.White:Brushes.Transparent};

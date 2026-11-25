@@ -122,13 +122,16 @@ public sealed partial class GameDisplayWindow : Window
         }
     }
 
-    private void UpdateFrame(Frame frame)
+    private long previewAt=long.MinValue/2;
+    private async void UpdateFrame(Frame frame)
     {
+        var at=Environment.TickCount64;if(at-previewAt<1000d/controller.Timing.PreviewFps)return;previewAt=at;
         // Donmayı engellemek için önceki kare henüz işleniyorsa bu kareyi atla (Frame Throttling)
         if (Interlocked.CompareExchange(ref isRenderingFrame, 1, 0) != 0) return;
 
         try
         {
+            if(!controller.Timing.FullResolutionPreview)frame=await Task.Run(()=>frame.Fit(1280));
             if (writeableBitmap == null ||
                 writeableBitmap.PixelWidth != frame.Width ||
                 writeableBitmap.PixelHeight != frame.Height)
