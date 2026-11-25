@@ -20,7 +20,7 @@ public class RebuildPreviewTests
     {
         var store=new MemoryStore();store.Save("sentinel-api-key","retained");
         using var controller=AppControllerTests.Make(store:store);
-        controller.PrepareRebuildAreas();Assert.Equal(new CropRegion(.80,.918,.10,.90),controller.Settings.Region);
+        controller.PrepareRebuildAreas();Assert.Equal(new CropRegion(.80,.97,.10,.90),controller.Settings.Region);
         controller.Settings=controller.Settings with{Region=new(.4,.6,.2,.8)};
         controller.PrepareRebuildAreas();Assert.Equal(new CropRegion(.4,.6,.2,.8),controller.Settings.Region);Assert.Equal("retained",store.Load<string>("sentinel-api-key"));
     }

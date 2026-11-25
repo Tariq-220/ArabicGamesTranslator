@@ -24,7 +24,7 @@ final class CaptionVisual {
  }
  static int color(String value,int fallback){return value!=null&&value.matches("#[0-9a-fA-F]{6}")?Color.parseColor(value):fallback;}
  static void apply(TextView view,JSONObject a,int opacity,float size){
-  if(a==null)a=new JSONObject();view.setTypeface(Typeface.create(font(view.getContext(),a.optString("font","noto")),500,false));
+  if(a==null)a=new JSONObject();Typeface base=font(view.getContext(),a.optString("font","noto"));view.setTypeface(android.os.Build.VERSION.SDK_INT>=28?Typeface.create(base,500,false):Typeface.create(base,Typeface.NORMAL));
   view.setTextSize(TypedValue.COMPLEX_UNIT_PX,size);view.setTextDirection(View.TEXT_DIRECTION_RTL);view.setTextColor(Color.WHITE);
   String align=a.optString("align","center");view.setGravity(("right".equals(align)?Gravity.RIGHT:"left".equals(align)?Gravity.LEFT:Gravity.CENTER_HORIZONTAL)|Gravity.CENTER_VERTICAL);
   String back=a.optString("backdrop","game");GradientDrawable bg=new GradientDrawable();bg.setColor("none".equals(back)?Color.TRANSPARENT:(Math.max(0,Math.min(100,opacity))*255/100<<24)|0x080a10);bg.setCornerRadius("rounded".equals(back)?size*.22f:0);view.setBackground(background(a,bg,opacity,size));

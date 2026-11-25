@@ -47,8 +47,8 @@ public static class CaptionVisual
             if(string.IsNullOrWhiteSpace(cell.Text))continue;var box=cell.Box;
             double w=Math.Max(8,(box.Right-box.Left)*panel.Width),h=Math.Max(8,(box.Bottom-box.Top)*panel.Height);
             double max=area.Appearance?.MatchSize!=false?Math.Max(8,cell.LineHeight*panel.Height*.95):area.FontSize;
-            var label=new TextBlock{Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=FlowDirection.RightToLeft,TextWrapping=TextWrapping.Wrap,
-                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=TextAlignment.Right,Foreground=Brush(cell.Foreground),FontSize=Math.Min(max,area.FontSize),Padding=new Thickness(3,0,3,0)};
+            var label=new TextBlock{Width=w,HorizontalAlignment=HorizontalAlignment.Stretch,Text=cell.Text,FontFamily=Font(area.Appearance?.Font),FlowDirection=cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?FlowDirection.RightToLeft:FlowDirection.LeftToRight,TextWrapping=TextWrapping.Wrap,
+                FontWeight=cell.Heading?FontWeights.Bold:FontWeights.Medium,TextAlignment=cell.Heading&&box.Right-box.Left<.55?TextAlignment.Center:cell.Text.Any(c=>c>='\u0620'&&c<='\u06ff')?TextAlignment.Right:TextAlignment.Left,Foreground=Brush(cell.Foreground),FontSize=Math.Min(max,area.FontSize),Padding=new Thickness(3,0,3,0)};
             // Fit within the source cell. A long translation must not escape over a neighbouring message.
             for(int i=0;i<16;i++){label.Measure(new Size(w,double.PositiveInfinity));if(label.DesiredSize.Height<=h||label.FontSize<=8)break;label.FontSize=Math.Max(8,label.FontSize-1);}
             var block=new Border{Width=w,Height=h,ClipToBounds=true,CornerRadius=new CornerRadius(cell.Bubble?Math.Min(10,h*.15):0),Background=phone?Brush(cell.Background):area.Appearance?.Backdrop=="none"?Brushes.Transparent:new SolidColorBrush(Color.FromArgb((byte)(area.Background*255/100),0,0,0)),Child=label};
