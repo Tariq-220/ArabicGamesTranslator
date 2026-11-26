@@ -84,6 +84,11 @@ public sealed class ReadingAreaSession : IDisposable
             if(s.Area.Kind==ReadingAreaKind.MapCard)reading=new Reading(reading.Lines.Where(l=>l.Box is {} b&&SpatialText.HasDarkBackground(crop,b)));
             var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind,includeImage:false):null;
             if(s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&panel is not null){panel=s.Phone.Observe(panel,now());if(panel is null){Status?.Invoke(s.Area.Id,"بانتظار نص محادثة كامل؛ لن تُعرض لوحة باسم فقط.");Observe(s,"",null,crop);return;}}
+            if(s.Area.Kind==ReadingAreaKind.Notification&&panel is not null){
+                var content=Key(string.Join(" ",panel.Cells.Select(c=>c.Source)));bool duplicate;
+                lock(gate)duplicate=states.TakeWhile(other=>other!=s).Any(other=>other.Area.Kind==ReadingAreaKind.Notification&&other.PhoneBounds is {} b&&now()-other.PhoneVerifiedAt<=1800&&other.Panel is {} existing&&Key(string.Join(" ",existing.Cells.Select(c=>c.Source)))==content&&Intersection(actualSource,b)>.65);
+                if(duplicate){ClearConflicting(s);Status?.Invoke(s.Area.Id,"التنبيه نفسه تقرؤه بطاقة أخرى؛ أُوقف العرض المكرر.");return;}
+            }
             if(s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&panel is not null){lock(gate){s.PhoneBounds=actualSource;s.PhoneVerifiedAt=now();}}
             Status?.Invoke(s.Area.Id,string.IsNullOrWhiteSpace(reading.Text)?"اللوحة موجودة، لكن OCR لم يقرأ نصًا.":$"قُرئت {reading.Lines.Count} أسطر · الترجمة قيد المعالجة");
             Observe(s,panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>c.Source)):reading.Text.Trim(),panel is {Cells.Count:0}?null:panel,crop);
@@ -93,6 +98,7 @@ public sealed class ReadingAreaSession : IDisposable
         finally { Volatile.Write(ref processing,0); }
     }
 
+    private static double Intersection(TextBox a,TextBox b){var overlap=Math.Max(0,Math.Min(a.Right,b.Right)-Math.Max(a.Left,b.Left))*Math.Max(0,Math.Min(a.Bottom,b.Bottom)-Math.Max(a.Top,b.Top));var smaller=Math.Max(.000001,Math.Min((a.Right-a.Left)*(a.Bottom-a.Top),(b.Right-b.Left)*(b.Bottom-b.Top)));return overlap/smaller;}
     public Reading WithoutPhoneText(Reading input,TextBox dialogueArea)=>WithoutMessageText(input,dialogueArea);
     public Reading WithoutMessageText(Reading input,TextBox dialogueArea)
     {
