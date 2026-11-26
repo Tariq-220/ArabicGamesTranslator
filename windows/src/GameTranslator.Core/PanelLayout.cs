@@ -72,9 +72,9 @@ public static class SpatialText
         var placed=new List<(PanelCell Cell,double Top,double Height)>();
         foreach(var cell in panel.Cells.OrderBy(c=>c.Box.Top)){
             var font=cell.Heading?Math.Max(bodyFont,cell.LineHeight*originalHeight*.98):bodyFont;
-            var chars=Math.Max(8,(cell.Box.Right-cell.Box.Left)*width/(font*.52));
+            var chars=Math.Max(3,(cell.Box.Right-cell.Box.Left)*width/(font*.52));
             // Reserve the English message's space before translation so incremental results do not resize the page.
-            var rows=Math.Max(1,Math.Ceiling(Math.Max(cell.Text.Length,cell.Source.Length*.85)/chars));
+            var rows=Math.Max(1,Math.Ceiling(Math.Max(cell.Text.Length,cell.Source.Length*(cell.Box.Right-cell.Box.Left<.35?1.8:.85))/chars));
             var height=Math.Max((cell.Box.Bottom-cell.Box.Top)*originalHeight,rows*font*1.55+font*.45);
             var top=Math.Max(cell.Box.Top*originalHeight,cursor);placed.Add((cell,top,height));cursor=top+height+font*.38;
         }

@@ -36,7 +36,7 @@ public sealed class PhonePanelTracker
     private static bool Overlap(TextBox a,TextBox b)=>Math.Min(a.Right,b.Right)-Math.Max(a.Left,b.Left)>.05&&Math.Min(a.Bottom,b.Bottom)-Math.Max(a.Top,b.Top)>.008;
     public PanelLayout? Observe(PanelLayout next,long at)
     {
-        bool Content(PanelCell c)=>next.Kind=="notification"||Body(c);
+        bool Content(PanelCell c)=>next.Kind=="notification"?(!next.Cells.Any(x=>!x.Heading)||!c.Heading):Body(c);
         if(!next.Cells.Any(Content))return null;
         if(current is null){current=next;foreach(var c in next.Cells)seen[Key(c)]=at;return next;}
         var shared=next.Cells.Count(n=>Content(n)&&current.Cells.Any(p=>Same(p,n)&&Shift(p.Box,n.Box)<.06));
