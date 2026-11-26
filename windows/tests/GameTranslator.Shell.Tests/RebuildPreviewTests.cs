@@ -8,17 +8,23 @@ public class RebuildPreviewTests
     [Theory][InlineData(false)][InlineData(true)]
     public async Task SpatialOcrReachesVisiblePhoneAndMissionThroughTheActualLocalOrDeepLQueue(bool deepL)
     {
-        var services=new FakeServices{ReaderLines=new Reading([new("Jason",new(.35,.04,.65,.08)),new("Hello from home.",new(.1,.2,.8,.3))])};
+        var services=new FakeServices{ReaderFactory=()=>new IndependentRegions()};
         using var controller=AppControllerTests.Make(services);controller.Settings=controller.Settings with{VideoSource=GameTranslator.Shell.VideoSourceType.DesktopScreen,SourceLanguage="en",TargetLanguage="ar"};
         using var http=new HttpClient(new ArabicService());controller.SessionTranslator=deepL?new GameTranslator.Translation.DeepLTranslator("test:fx",null,http,validateArabic:true):new GameTranslator.Translation.LocalBridgeTranslator("quickmt","test",http);
-        var phone=ReadingArea.Phone() with{AutoDetect=false,Source=new(0,1,0,1)};var mission=ReadingArea.Instructions() with{Source=new(0,1,0,1)};controller.ReadingAreas=[phone,mission];controller.Timing=new(60,10,16,0,100);
+        var phone=ReadingArea.Phone() with{AutoDetect=false,Source=new(.1,.9,.6,.95)};var mission=ReadingArea.Instructions();controller.ReadingAreas=[phone,mission];controller.Timing=new(60,10,16,0,100);
         var visible=new System.Collections.Concurrent.ConcurrentDictionary<string,AreaCaption>();var traces=new System.Collections.Concurrent.ConcurrentBag<AreaTrace>();controller.AreaCaptionShown+=c=>{if(!c.Clear)visible[c.Id]=c;};controller.AreaTraceObserved+=traces.Add;
         await controller.StartAsync();for(int n=0;n<50&&visible.Count<2;n++){services.Streams.Single().Emit(Frame.Blank(300,600));await Task.Delay(40);}
-        Assert.True(visible.ContainsKey(phone.Id));Assert.True(visible.ContainsKey(mission.Id));Assert.Equal("phone",visible[phone.Id].Panel!.Kind);Assert.Contains("مرحبًا",visible[mission.Id].Text);Assert.Contains(traces,t=>t.Stage=="shown");controller.Stop();
+        Assert.True(visible.ContainsKey(phone.Id));Assert.True(visible.ContainsKey(mission.Id));Assert.Equal("phone",visible[phone.Id].Panel!.Kind);Assert.Contains("اتبع",visible[mission.Id].Text);Assert.DoesNotContain(traces,t=>t.AreaId==mission.Id&&t.Source.Contains("Hello from home"));Assert.Contains(traces,t=>t.Stage=="shown");controller.Stop();
+    }
+    private sealed class IndependentRegions:ITextReader
+    {
+        public string Read(Frame f)=>ReadSpatial(f).Text;
+        public Reading ReadLines(Frame f,bool deep)=>ReadSpatial(f);
+        public Reading ReadSpatial(Frame f)=>f.Height>f.Width?new([new("Jason",new(.35,.04,.65,.08)),new("Hello from home.",new(.1,.2,.8,.3))]):f.Height<f.Width*.3?new([new("Follow the marked road.",new(.1,.1,.9,.8))]):Reading.Empty;
     }
     private sealed class ArabicService:System.Net.Http.HttpMessageHandler
     {
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token){using var doc=System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));int count=doc.RootElement.GetProperty("text").GetArrayLength();return new(System.Net.HttpStatusCode.OK){Content=new StringContent(System.Text.Json.JsonSerializer.Serialize(new{translations=Enumerable.Range(0,count).Select(_=>new{text="مرحبًا من المنزل."})}))};}
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token){using var doc=System.Text.Json.JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));var inputs=doc.RootElement.GetProperty("text").EnumerateArray().Select(x=>x.GetString()).ToArray();return new(System.Net.HttpStatusCode.OK){Content=new StringContent(System.Text.Json.JsonSerializer.Serialize(new{translations=inputs.Select(x=>new{text=x=="Follow the marked road."?"اتبع الطريق المحدد.":"مرحبًا من المنزل."})}))};}
     }
     [Fact]public void PreviewCoalescesFramesAndDoesNotStartTranslation()
     {

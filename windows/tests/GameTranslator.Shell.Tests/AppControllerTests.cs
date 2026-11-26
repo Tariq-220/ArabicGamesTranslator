@@ -96,6 +96,7 @@ internal sealed class FakeServices : IAppServices
     public List<string> ReaderLanguages { get; } = [];
     /// <summary>Okuyucunun her karede bulduğu satırlar (verilmezse karede yazı yoktur).</summary>
     public Reading? ReaderLines { get; set; }
+    public Func<ITextReader>? ReaderFactory { get; set; }
     public bool HasOcr { get; set; } = true;
     public bool HasOcrPack { get; set; } = true;
     public bool HasOcrLanguage(string language) => HasOcrPack;
@@ -206,7 +207,7 @@ internal sealed class FakeServices : IAppServices
     public ITextReader? MakeReader(string language)
     {
         ReaderLanguages.Add(language);
-        return HasOcr ? new FakeReader(ReaderLines) : null;
+        return HasOcr ? ReaderFactory?.Invoke() ?? new FakeReader(ReaderLines) : null;
     }
 }
 
