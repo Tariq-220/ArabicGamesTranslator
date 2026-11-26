@@ -10,7 +10,7 @@ public static partial class ArabicRegister
     {
         text=Profanity().Replace(text,m=>(m.Groups[1].Success?"ال":"")+"عاهرة");
         text=PluralProfanity().Replace(text,m=>(m.Groups[1].Success?"ال":"")+"عاهرات");
-        text=Variants().Replace(text,m=>m.Value switch{"هذي" or "هاذي"=>"هذه","هاذا"=>"هذا","يلا" or "يلّا"=>"هيا",_=>m.Value});
+        text=Variants().Replace(text,m=>m.Value switch{"هذي" or "هاذي"=>"هذه","هاذا"=>"هذا","هذول" or "هذولا" or "هاذول"=>"هؤلاء","إيش" or "ايش" or "وش"=>"ماذا","تبغى" or "تبي"=>"تريد","يبغى"=>"يريد","أبغى" or "ابغى"=>"أريد","يلا" or "يلّا"=>"هيا",_=>m.Value});
         return text;
     }
     public static bool NeedsRephrase(string source,string translated)
@@ -25,7 +25,7 @@ public static partial class ArabicRegister
     private static partial Regex Profanity();
     [GeneratedRegex(@"(?<![\p{L}])(ال)?(?:قحاب|شراميط)(?![\p{L}])")]
     private static partial Regex PluralProfanity();
-    [GeneratedRegex(@"(?<![\p{L}])(?:هذي|هاذي|هاذا|يلا|يلّا)(?![\p{L}])")]
+    [GeneratedRegex(@"(?<![\p{L}])(?:هذي|هاذي|هاذا|هذول|هذولا|هاذول|إيش|ايش|وش|تبغى|تبي|يبغى|أبغى|ابغى|يلا|يلّا)(?![\p{L}])")]
     private static partial Regex Variants();
     [GeneratedRegex(@"(?<![\p{L}])(?:إيش|ايش|وش|شلون|شحال|تبغى|يبغى|أبغى|ابغى|عايز|عاوز|عايزة|عاوزة|عشان|علشان|اللي|مو|مش|لسه|لسّا|هالشي|هالشيء|هالأمر|هاذول|هذول|هذولا|دحين|دلوقتي|حأعمل|تبي)(?![\p{L}])")]
     private static partial Regex Dialect();

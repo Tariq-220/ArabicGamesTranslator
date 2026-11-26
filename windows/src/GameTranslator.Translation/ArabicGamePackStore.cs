@@ -29,7 +29,7 @@ public sealed class ArabicGamePackStore(string directory,HttpClient? client=null
         var joined=ArabicOutputQuality.DialogueInput(source);var result=Piece(joined);
         if(result is null&&joined.Contains('\n')){var rows=joined.Split('\n',StringSplitOptions.RemoveEmptyEntries).Select(Piece).ToArray();if(rows.All(v=>v is not null))result=string.Join('\n',rows!);}
         if(result is not null)result=ArabicRegister.Normalize(result);
-        return result is not null&&ArabicOutputQuality.Accepts(source,result)?ArabicGameNames.Localize(source,result):null;
+        return result is not null&&!ArabicRegister.NeedsRephrase(source,result)&&ArabicOutputQuality.Accepts(source,result)?ArabicGameNames.Localize(source,result):null;
     }
     public async Task EnsureAsync(bool force=false,CancellationToken token=default)
     {

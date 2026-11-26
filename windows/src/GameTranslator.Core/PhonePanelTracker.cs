@@ -25,6 +25,9 @@ public sealed class PhonePanelTracker
     private static bool Same(PanelCell a,PanelCell b)
     {
         if(Key(a)==Key(b))return true;
+        if(a.Heading&&b.Heading&&TextMatch.IsSimilar(TextMatch.Normalize(a.Source),TextMatch.Normalize(b.Source),.72))return true;
+        var oldText=TextMatch.Normalize(a.Source);var newText=TextMatch.Normalize(b.Source);
+        if(newText.Split(' ').Length>=3&&newText.Length>=oldText.Length*.45&&(oldText.StartsWith(newText+" ",StringComparison.Ordinal)||oldText.EndsWith(" "+newText,StringComparison.Ordinal)))return true;
         var x=TextMatch.Normalize(a.Source);var y=TextMatch.Normalize(b.Source);
         return x.Split(' ').Length>=3&&x.Split(' ').Length==y.Split(' ').Length&&Negation(a.Source)==Negation(b.Source)
             &&string.Concat(a.Source.Where(char.IsDigit))==string.Concat(b.Source.Where(char.IsDigit))&&TextMatch.IsSimilar(x,y,.96);
@@ -33,14 +36,15 @@ public sealed class PhonePanelTracker
     private static bool Overlap(TextBox a,TextBox b)=>Math.Min(a.Right,b.Right)-Math.Max(a.Left,b.Left)>.05&&Math.Min(a.Bottom,b.Bottom)-Math.Max(a.Top,b.Top)>.008;
     public PanelLayout? Observe(PanelLayout next,long at)
     {
-        if(!next.Cells.Any(Body))return null;
+        bool Content(PanelCell c)=>next.Kind=="notification"||Body(c);
+        if(!next.Cells.Any(Content))return null;
         if(current is null){current=next;foreach(var c in next.Cells)seen[Key(c)]=at;return next;}
-        var shared=next.Cells.Count(n=>Body(n)&&current.Cells.Any(p=>Same(p,n)&&Shift(p.Box,n.Box)<.06));
-        bool headerChanged=current.Cells.FirstOrDefault(c=>c.Heading) is {} oldHeader&&next.Cells.FirstOrDefault(c=>c.Heading) is {} newHeader&&!Same(oldHeader,newHeader);
+        var shared=next.Cells.Count(n=>Content(n)&&current.Cells.Any(p=>Same(p,n)&&Shift(p.Box,n.Box)<.06));
+        bool headerChanged=current.Cells.FirstOrDefault(c=>c.Heading) is {} oldHeader&&next.Cells.FirstOrDefault(c=>c.Heading) is {} newHeader&&!Same(oldHeader,newHeader)&&!TextMatch.IsSimilar(TextMatch.Normalize(oldHeader.Source),TextMatch.Normalize(newHeader.Source),.72);
         bool newPage=headerChanged||shared==0;
         if(newPage){
             if(pending is null)newPageAt=at;
-            var samePending=pending is not null&&pending.Cells.Select(Key).SequenceEqual(next.Cells.Select(Key));
+            var samePending=pending is not null&&pending.Cells.Where(Content).Any(p=>next.Cells.Any(n=>Content(n)&&Same(p,n)&&Shift(p.Box,n.Box)<.06));
             if(!samePending){pending=next;pendingAt=at;confirmations=1;return at-newPageAt>600?null:current;}
             if(++confirmations<2||at-pendingAt<60)return at-newPageAt>600?null:current;
             current=next;pending=null;seen.Clear();foreach(var c in next.Cells)seen[Key(c)]=at;return next;
@@ -53,6 +57,6 @@ public sealed class PhonePanelTracker
             cells.Add(cell);seen[Key(cell)]=at;
         }
         foreach(var p in current.Cells.Where(p=>!cells.Any(n=>Same(p,n))))if(at-seen.GetValueOrDefault(Key(p),at)<=4000&&!cells.Any(n=>Overlap(p.Box,n.Box)))cells.Add(p);
-        current=next with{Cells=cells.OrderBy(c=>c.Box.Top).ToArray()};return current;
+        current=current with{Cells=cells.OrderBy(c=>c.Box.Top).ToArray()};return current;
     }
 }

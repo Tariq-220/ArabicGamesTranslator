@@ -1023,6 +1023,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     }
     public void PrepareRebuildAreas()
     {
+        if(!store.Load<bool>("dialogue-and-message-isolation-v1")){
+            Settings=settings with{Style=settings.Style with{Appearance=(settings.Style.Appearance??new()) with{MatchSize=false}}};
+            ReadingAreas=ReadingAreas.Select(a=>a.Kind is ReadingAreaKind.Menu or ReadingAreaKind.MapCard?a with{Enabled=false}:a).ToList();
+            store.Save("dialogue-and-message-isolation-v1",true);
+        }
         if(!store.Load<bool>("readable-message-fonts-v1")){
             ReadingAreas=ReadingAreas.Select(a=>a.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification && a.Appearance?.Font is null or "noto"?a with{FontSize=Math.Max(28,a.FontSize),Appearance=(a.Appearance??ReadingArea.DefaultAppearance(a.Kind)) with{Font="tajawal"}}:a).ToList();
             store.Save("readable-message-fonts-v1",true);
@@ -1044,7 +1049,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<AreaCaption>? AreaCaptionShown;
     public event Action<AreaTrace>? AreaTraceObserved;
     public bool ArabicPacksEnabled {get=>store.Load<bool?>("arabic-ready-packs")??true;set{store.Save("arabic-ready-packs",value);ArabicGamePackStore.Shared.Enabled=value;}}
-    private static string? ReadyArabic(string game,string source){foreach(var candidate in new[]{CommunityCorrections.Find(game,source),ArabicGamePackStore.Shared.Find(game,source),CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null}){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(ArabicOutputQuality.Accepts(source,value))return value;}return null;}
+    private static string? ReadyArabic(string game,string source){foreach(var candidate in new[]{CommunityCorrections.Find(game,source),ArabicGamePackStore.Shared.Find(game,source),CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null}){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(!ArabicRegister.NeedsRephrase(source,value)&&ArabicOutputQuality.Accepts(source,value))return value;}return null;}
     private void MakeAreaSession()
     {
         areaSession?.Dispose();areaSession=null;
@@ -1075,7 +1080,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         var built = new SubtitlePipeline(reader, new ProfileTranslator(translationQueue.Dialogue,DialogueGame,(source,arabic)=>post(()=>TranslationRejected?.Invoke(source,arabic)),validateArabic:settings.TargetLanguage=="ar"), server, new ReadScheduler(changeThreshold: 8, maxReuse: 1));
         built.LineDiscarded+=(source,reason)=>post(()=>LineDiscarded?.Invoke(source,reason));
         built.CaptionCleared+=()=>post(()=>SubtitlesCleared?.Invoke());
-        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>{var result=ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;return ReadingModes.DialogueOnly(ReadingContentMode)?areaSession?.WithoutPhoneText(result,area)??result:result;};built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
+        var gameProfile=DialogueGame;built.ReadingFilter=(reading,area)=>{var result=ReadingModes.DialogueOnly(ReadingContentMode)?DialogueProfile.DialogueOnly(reading,area,gameProfile):reading;return ReadingModes.DialogueOnly(ReadingContentMode)?areaSession?.WithoutMessageText(result,area)??result:result;};built.SourceFilter=text=>DialogueProfile.English(text,gameProfile);
         DialogueReadingPolicy.Configure(built,PreferLatestDialogue,ReadingContentMode,FasterPresentation);
         var presentation=settings.Style.Appearance??new();built.ReviewedOnly=presentation.ReviewedOnly;built.StackUp=presentation.StackUp;built.CenterOnly=presentation.CenterOnly;
         built.GuardDamagedRereads=settings.SourceLanguage=="en";

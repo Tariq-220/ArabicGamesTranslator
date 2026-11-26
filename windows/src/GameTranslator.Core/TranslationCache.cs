@@ -67,7 +67,7 @@ public sealed class TranslationCache
         lock (_gate)
         {
             LoadIfNeeded();
-            if (_entries.TryGetValue(key, out var entry) && (targetLanguage!="ar" || ArabicOutputQuality.Accepts(key,entry.Value)))
+            if (_entries.TryGetValue(key, out var entry) && (targetLanguage!="ar" || ArabicOutputQuality.Accepts(key,entry.Value)&&!ArabicRegister.NeedsRephrase(key,entry.Value)))
             {
                 _entries[key] = (entry.Value, ++_tick);
                 value = targetLanguage=="ar"?ArabicRegister.Normalize(entry.Value):entry.Value;
