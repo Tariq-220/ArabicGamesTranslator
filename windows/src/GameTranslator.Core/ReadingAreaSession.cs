@@ -161,7 +161,8 @@ public sealed class ReadingAreaSession : IDisposable
             }
             if(!string.IsNullOrWhiteSpace(result)&&(result!=s.LastResult||panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>Key(c.Source)).SequenceEqual(s.LastPanel.Cells.Select(c=>Key(c.Source))))){
                 if(panel is {Kind:"notification"}){
-                    if(panel.Cells.Any(c=>string.IsNullOrWhiteSpace(c.Text)))return;
+                    var body=panel.Cells.Where(c=>!c.Heading).ToArray();if(body.Length==0)body=panel.Cells.ToArray();
+                    if(body.Any(c=>string.IsNullOrWhiteSpace(c.Text)))return;
                     var o=s.Area.PresentationOutput();var scale=Math.Min(1,Math.Min((o.Right-o.Left)*s.FullWidth/panel.Width,(o.Bottom-o.Top)*s.FullHeight/panel.Height));
                     s.Output=new(o.Top,o.Top+panel.Height*scale/s.FullHeight,o.Right-panel.Width*scale/s.FullWidth,o.Right);
                     if(frame is not null)panel=SpatialText.WithImage(frame,panel);
