@@ -31,3 +31,18 @@
 المصدر التنفيذي النهائي `2dc285b711325434c5f196105b9dcf72db0fde37`، وCI45897976471 ناجح:173Core+9Shell+146Translation=328Windows. نجحت50Android في45896840974 ولم يتغير كودAndroid بعدها. راجعت15صورةWPF؛ وضعاالجوال، لونالفقاعات، التنبيه وخطالحوار سليمون فيالعينات الاصطناعية. قرأWindowsOCR النصالكامل فيالخلفيةالشفافةوالمعتمةوالشريطالأزرق. هذه اختباراتانحدار، وليستضمانًا لكلقراءةمناللعبة.
 
 بُنيTV0.4.8/code36 مرةواحدة:1123882بايت،SHA256 `7cfc854a03fd21cb4fc01f245322fbfb9110f5e41b3732c6f9083f926aeaebf9`. توقيعV1/V2/V3 صحيحوبالشهادةالسابقة،غيرdebuggableوفحصZIPسليم. التالي تغليفWindowsنهائيواحدوإرفاقAPKإلىمسودةمطابقةللمصدر،ثمفحصالملفاتوالروابط. لا إعادةتحليلللسجلأوتنزيلللنماذج.
+
+## التسليم المكتمل
+
+نجح تغليف Windows في `45898756851` على مصدر `e5505f78f108135115c17b3e93fe33cb4b55f0ba`، المطابق تنفيذيًا للمصدر المعتمد 2dc285b. العدد النهائي 410 اختبارات Windows، مع نجاح تثبيت التحديث ورفض البصمة الخاطئة وفحص الاعتماديات. اكتمل نقل APK الموقّع في `45899126864`، دون بناء إضافي.
+
+- `ArabicGames-Arabic-Guide.zip`: 1021791 بايت؛ `sha256:2af2296c882c0cfb3718859ddcd502119f8f2bb42fc89af1fbfa41429426804f`.
+- `ArabicGames-Enable-AutoUpdate.zip`: 2129 بايت؛ `sha256:a0417fac781029616bbd66bb02948fe7dab8443232c0364ac599532048041293`.
+- `ArabicGames-Source-0.5.8.zip`: 42381692 بايت؛ `sha256:dddf5704bf79f72886e278a8fa2fffb8a5b11d3f03c947e7ed09b3c3c842c070`.
+- `ArabicGames-TV-0.4.8.apk`: 1123882 بايت؛ `sha256:7cfc854a03fd21cb4fc01f245322fbfb9110f5e41b3732c6f9083f926aeaebf9`.
+- `ArabicGames-Windows-0.5.8-Full-Install.zip`: 194219702 بايت؛ `sha256:0c183f6e99c1545ba40abdb363127b862b0d2f6319e3ec0bc9c607f16712645d`.
+- `ArabicGames-Windows-0.5.8-Update.zip`: 33306606 بايت؛ `sha256:009e25f5cf367f5a38082f8c345d6e13ccdae7556dcce47f31a42564d4e86ea6`.
+- `SHA256SUMS-Android.txt`: 91 بايت؛ `sha256:86e7216a355736ea6907ecfc91eb2893fc53597b1f4aa089baa503963781637e`.
+- `SHA256SUMS.txt`: 507 بايت؛ `sha256:eea019302f8c90c9dab51d61e1968c1ed274aa3bec333f64f334dcbc6afedea5`.
+
+[رابط ملفات التجربة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/untagged-11cbd6a635bb85fc4f70)، مسودة خاصة رقم 459924319. ثمانية ملفات مكتملة، ولم تُنشر للعامة. تحديث الكمبيوتر عبر Update.zip ثم Reading-Fix.cmd والشاشة عبر APK 0.4.8. إعدادات المستخدم محفوظة.
