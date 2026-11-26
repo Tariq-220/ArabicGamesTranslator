@@ -46,5 +46,7 @@ public class DialogueProfileTests
         Assert.Equal("low",json.RootElement.GetProperty("generationConfig").GetProperty("thinkingConfig").GetProperty("thinkingLevel").GetString());
         Assert.DoesNotContain("test-key",text);Assert.Contains("Red Dead Redemption 2",text);Assert.Contains("Arabic",text);
     }
+ [Fact]public void GtaCornerMessagesCannotFallBackToTheDialogueChannel(){var source=new Reading([new("Jason: Go!",new(.43,.75,.57,.79)),new("Meet me at the shop.",new(.78,.8,.98,.9)),new("Another message near the map.",new(.02,.8,.22,.9))]);var filtered=DialogueProfile.DialogueOnly(source,new(0,0,1,1),"Grand Theft Auto VI");Assert.Equal("Jason: Go!",filtered.Text);Assert.Equal(3,DialogueProfile.DialogueOnly(source,new(0,0,1,1),"Other game").Lines.Count);}
+
  [Fact]public void KnownCombatButtonsCannotBecomeDialogue(){var input=new Reading(new[]{new TextLine("Press X to fight",null),new TextLine("Get down!",null),new TextLine("PHOTO STUDIO X SELECT",null)});var output=DialogueProfile.DialogueOnly(input,new GameTranslator.Core.TextBox(0,0,1,1),"GTA6");Assert.Equal("Get down!",output.Text);}
 }

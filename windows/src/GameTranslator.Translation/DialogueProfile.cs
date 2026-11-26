@@ -13,6 +13,8 @@ public static class DialogueProfile {
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
  public static Reading DialogueOnly(Reading reading,TextBox area,string game){
   reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)&&!IsCaptureChrome(line.Text)&&!KnownHud(line.Text)));
+  if(Regex.IsMatch(game.Trim(),@"^(?:GTA\s*(?:6|VI)|Grand Theft Auto VI)$",RegexOptions.IgnoreCase))
+   reading=new Reading(reading.Lines.Where(line=>{if(line.Box is not {} local)return true;var box=local.PlacedIn(area);return (box.Left+box.Right)/2 is >=.24 and <=.76;}));
   if(!Rdr2(game))return reading;
   return new Reading(reading.Lines.Where(line=>{
    if(line.Box is not {} relative)return true;

@@ -34,6 +34,7 @@ public sealed class PhonePanelTracker
     }
     private static double Shift(TextBox a,TextBox b)=>Math.Max(Math.Max(Math.Abs(a.Left-b.Left),Math.Abs(a.Top-b.Top)),Math.Max(Math.Abs(a.Right-b.Right),Math.Abs(a.Bottom-b.Bottom)));
     private static bool Overlap(TextBox a,TextBox b)=>Math.Min(a.Right,b.Right)-Math.Max(a.Left,b.Left)>.05&&Math.Min(a.Bottom,b.Bottom)-Math.Max(a.Top,b.Top)>.008;
+    public bool MatchesCurrentPage(PanelLayout next)=>current is not null&&next.Cells.Any(n=>Body(n)&&current.Cells.Any(p=>Body(p)&&Same(p,n)&&Shift(p.Box,n.Box)<.06));
     public PanelLayout? Observe(PanelLayout next,long at)
     {
         bool Content(PanelCell c)=>next.Kind=="notification"?(!next.Cells.Any(x=>!x.Heading)||!c.Heading):Body(c);
