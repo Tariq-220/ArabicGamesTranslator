@@ -55,7 +55,7 @@ public static class SpatialText
             var pad=Math.Min(.012,medianH*.22);var box=new TextBox(Math.Max(0,b.Left-pad),Math.Max(0,b.Top-pad),Math.Min(1,b.Right+pad),Math.Min(1,b.Bottom+pad));
             if(phoneLike)box=BubbleBounds(frame,box,color);
             var background=Hex(color);var foreground=Ink(frame,b,color);
-            var title=phoneLike&&b.Top<.12&&g.Count==1;
+            var title=phoneLike&&b.Top<.12&&g.Count==1&&!PhonePanelTracker.Body(new(text,"",box,background,foreground,medianH));
             if(plainMenu){double width=Math.Min(.35,Math.Max(.14,box.Right-box.Left));double left=box.Right<.65?Math.Min(1-width,box.Right+.015):Math.Max(0,box.Left-width-.015);box=box with{Left=left,Right=left+width};foreground="#FFFFFF";}
             cells.Add(new(text,"",box,background,foreground,medianH,phoneLike&&!title,title));
             if(clean is not null)Fill(clean,box,color); // Preserve avatars, dividers, badges and the phone's original panel; remove English ink.

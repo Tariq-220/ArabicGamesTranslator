@@ -42,4 +42,10 @@ public class ReadingAreaTests_057
         Assert.False(SpeakerMerge.HasBody(new([new("Billy")])));Assert.True(SpeakerMerge.HasBody(new([new("Billy!")])));
         Assert.False(ArabicOutputQuality.Accepts("Billy: Now, you couldn't pay me to go.","بيلي:"));Assert.True(ArabicOutputQuality.Accepts("Billy","بيلي"));
     }
+    [Fact]
+    public void ClippedTopMessageIsNotMistakenForASecondContactName()
+    {
+        var panel=SpatialText.Build(Frame.Blank(400,700),new([new("Lucia",new(.35,.02,.65,.05)),new("with it.",new(.3,.09,.8,.115))]),ReadingAreaKind.Phone);
+        Assert.Single(panel.Cells,c=>c.Heading);Assert.True(panel.Cells.Single(c=>c.Source=="with it.").Bubble);
+    }
 }
