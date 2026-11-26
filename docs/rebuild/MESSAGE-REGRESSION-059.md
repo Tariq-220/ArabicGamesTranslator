@@ -34,3 +34,18 @@
 نجح CI النهائي `45908291273` على المصدر التنفيذي `035d911a86f3bdbfe58590858af3106f1e6f45d9`: 183 Core و9 Shell و148 Translation، مجموعها 340 اختبار Windows. نجح مسارا التكامل المستقلان للمحلي وDeepL، وفحص مصدر OCR بالشريط الأزرق والشفافية. راجعت 17 صورة، منها جزئية جوال وتنبيه دون اسم. لا تغيير لكود TV 0.4.8، واختباراته الخمسون وتوقيعه معتمدة من التسليم السابق.
 
 APK الموجود بصمته `7cfc854a03fd21cb4fc01f245322fbfb9110f5e41b3732c6f9083f926aeaebf9`، ولم يُعد بناؤه. التالي تغليف Windows النهائي مرة واحدة، وإرفاق APK نفسه اختياريًا في المسودة المتوافقة، ثم التحقق من الملفات.
+
+## التسليم المكتمل
+
+نجح التغليف الوحيد `45908574899` على مصدر `a60142c0bce270749a6d098fb6b12ec70682e767` المطابق تنفيذيًا للمصدر المعتمد 035d911. نجحت 422 حالة Windows (213 Core و148 Translation و51 RemotePlay و10 Shell)، وفحص التثبيت ورفض البصمة الخاطئة وفحص الاعتماديات. اكتمل إرفاق APK الموجود دون إعادة بنائه في `45908962921`.
+
+- `ArabicGames-Arabic-Guide.zip`: 1148950 بايت؛ `sha256:f9fcafa10f693b883fe85ffedfc4f2da4e69abbc7a4a3e8a1a8d29432dd41381`.
+- `ArabicGames-Enable-AutoUpdate.zip`: 2129 بايت؛ `sha256:218640f691107761128cda2b05757cf442c9a9e185c446f40cb92982d85c9457`.
+- `ArabicGames-Source-0.5.9.zip`: 42516488 بايت؛ `sha256:08201d932685f6e8424416083d1675156773d6d885251c6364887d39b8966f5f`.
+- `ArabicGames-TV-0.4.8.apk`: 1123882 بايت؛ `sha256:7cfc854a03fd21cb4fc01f245322fbfb9110f5e41b3732c6f9083f926aeaebf9`.
+- `ArabicGames-Windows-0.5.9-Full-Install.zip`: 194355151 بايت؛ `sha256:1c0dc7d6a10df4395cbba35c078256d2425c814ee19587d37c752bfe8c8a6ec2`.
+- `ArabicGames-Windows-0.5.9-Update.zip`: 33307828 بايت؛ `sha256:77eb6e3bf6c8f32d646f8a4f516d388d16a6f6d264b2073f0e67fefeb41df305`.
+- `SHA256SUMS-Android.txt`: 91 بايت؛ `sha256:86e7216a355736ea6907ecfc91eb2893fc53597b1f4aa089baa503963781637e`.
+- `SHA256SUMS.txt`: 507 بايت؛ `sha256:e574d7c97e43a4bd10395500baa8632d7e81f0647d41d15c2563c7585fce1f01`.
+
+[ملفات التجربة](https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/untagged-5df58d68bae0dea525b7)، المسودة الخاصة `preview-0.5.9` رقم 459983883؛ ثمانية ملفات مكتملة ومطابقة للمصدر. لم تُنشر للعامة. تحديث الكمبيوتر فقط مطلوب فوق 0.5.8، عبر Update.zip ثم Reading-Fix.cmd. TV 0.4.8 لا يحتاج إعادة تثبيت. لا تغيير للمفاتيح أو النماذج أو المربعات.
