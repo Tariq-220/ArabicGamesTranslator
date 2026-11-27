@@ -33,8 +33,10 @@ public static class PhoneReadingEvidence
         if(SpatialText.IsConversation(reading))return true;
         if(knownPage&&SpatialText.PhoneSurfacePresent(crop,new(0,1,0,1)))return true;
         var cells=reading.Lines.Where(l=>l.Box is not null).ToArray();
-        if(cells.Length!=1||!PhonePanelTracker.Body(new(cells[0].Text,"",cells[0].Box!.Value,"#FFFFFF","#20232A",.03)))return false;
+        var bodies=cells.Where(c=>PhonePanelTracker.Body(new(c.Text,"",c.Box!.Value,"#FFFFFF","#20232A",.03))).ToArray();
+        if(bodies.Length==0)return false;
         var precise=(source.Right-source.Left)*(source.Bottom-source.Top)<=.45||crop.Height>=crop.Width*1.2;
-        return (located||precise)&&SpatialText.HasMessageSurface(crop,cells[0].Box!.Value);
+        if(cells.Length==1)return (located||precise)&&SpatialText.HasMessageSurface(crop,cells[0].Box!.Value);
+        return (located||precise&&crop.Height>=crop.Width*.9)&&bodies.All(c=>SpatialText.HasMessageSurface(crop,c.Box!.Value));
     }
 }

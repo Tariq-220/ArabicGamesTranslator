@@ -27,6 +27,11 @@ public class ReadingAreaTests_060
         using var s=new ReadingAreaSession([ReadingArea.Phone() with{AutoDetect=false,Source=new(.15,.9,.55,.85)}],()=>new Reader(lines),new Arabic(),()=>now);
         var shown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);s.Caption+=c=>{if(!c.Clear)shown.TrySetResult(c);};await s.ProcessAsync(Light(900,600));now=500;await s.ProcessAsync(Light(900,600));Assert.Equal("phone",(await shown.Task.WaitAsync(TimeSpan.FromSeconds(2))).Panel!.Kind);
     }
+    [Fact]public async Task ManualChatCropWithoutAContactHeaderStillShowsMultipleBubbles()
+    {
+        long now=0;var reading=new Reading([new("Meet me at home.",new(.1,.3,.9,.4)),new("I am on my way.",new(.3,.6,.9,.7))]);using var s=new ReadingAreaSession([ReadingArea.Phone() with{AutoDetect=false,Source=new(.1,.9,.6,.95)}],()=>new Reader(reading),new Arabic(),()=>now);
+        var shown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);s.Caption+=c=>{if(!c.Clear)shown.TrySetResult(c);};await s.ProcessAsync(Light(900,600));now=500;await s.ProcessAsync(Light(900,600));Assert.Equal("phone",(await shown.Task.WaitAsync(TimeSpan.FromSeconds(2))).Panel!.Kind);
+    }
     [Fact]public void CarPhoneCanBeSelectedSharedAndRestoredIndependently()
     {
         var phone=ReadingArea.Phone();var car=ReadingArea.CarPhone();Assert.False(phone.SamePreset(car));Assert.NotEqual(phone.Source,car.Source);Assert.NotEqual(phone.Output,car.Output);
