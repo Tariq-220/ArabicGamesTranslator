@@ -11,6 +11,17 @@ namespace GameTranslator.Translation.Tests;
 
 public class DeepLTranslatorTests
 {
+    [Fact]
+    public void OnlyCloudWithoutSharedLocalFallbackAllowsConcurrentAreas()
+    {
+        var cloud=new DeepLTranslator("test",null);
+        Assert.True(cloud.SupportsConcurrentAreas);
+        Assert.True(cloud.ForIndependentArea().SupportsConcurrentAreas);
+        Assert.NotSame(cloud,cloud.ForIndependentArea());
+        var fallback=new DeepLTranslator("test",new FakeLocal());
+        Assert.False(fallback.SupportsConcurrentAreas);
+        Assert.False(fallback.ForIndependentArea().SupportsConcurrentAreas);
+    }
     /// <summary>DeepL yerine geçen sahte sunucu: gelen istekleri saklar, verilen yanıtı döner.</summary>
     private sealed class FakeDeepL(Func<HttpRequestMessage, string, HttpResponseMessage> reply) : HttpMessageHandler
     {

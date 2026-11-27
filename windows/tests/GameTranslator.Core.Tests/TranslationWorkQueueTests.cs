@@ -3,6 +3,37 @@ using GameTranslator.Core;
 namespace GameTranslator.Core.Tests;
 public class TranslationWorkQueueTests
 {
+    private sealed class CloudProvider(Provider areas):ITextTranslator
+    {
+        public bool SupportsConcurrentAreas=>true;
+        public ITextTranslator ForIndependentArea()=>areas;
+        public Task<string> TranslateAsync(string text,CancellationToken token=default)=>Task.FromResult("حوار "+text);
+    }
+    [Fact] public async Task IndependentCloudDialogueDoesNotWaitForActivePhoneRequest()
+    {
+        var areas=new Provider();using var queue=new TranslationWorkQueue(new CloudProvider(areas));
+        var phone=queue.Areas.TranslateAsync("menu1");
+        await areas.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        try
+        {
+            var nextPhone=queue.Areas.TranslateAsync("menu2");
+            Assert.Equal("حوار reply",await queue.Dialogue.TranslateAsync("reply").WaitAsync(TimeSpan.FromSeconds(3)));
+            Assert.False(phone.IsCompleted);Assert.False(nextPhone.IsCompleted);
+            areas.Release.TrySetResult();
+            await Task.WhenAll(phone,nextPhone).WaitAsync(TimeSpan.FromSeconds(3));
+            Assert.Equal(["menu1","menu2"],areas.Called);
+        }
+        finally {areas.Release.TrySetResult();}
+    }
+    [Fact] public async Task DisposeCancelsBothCloudLanesAndPendingAreaRequests()
+    {
+        var areas=new Provider();var queue=new TranslationWorkQueue(new CloudProvider(areas));
+        var phone=queue.Areas.TranslateAsync("menu1");
+        await areas.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        var pending=queue.Areas.TranslateAsync("menu2");queue.Dispose();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>phone.WaitAsync(TimeSpan.FromSeconds(3)));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>pending.WaitAsync(TimeSpan.FromSeconds(3)));
+    }
     private sealed class Provider:ITextTranslator
     {
         public readonly TaskCompletionSource Entered=new(TaskCreationOptions.RunContinuationsAsynchronously);

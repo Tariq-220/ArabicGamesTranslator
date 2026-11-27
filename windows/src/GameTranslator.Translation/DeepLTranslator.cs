@@ -142,6 +142,8 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         }
     }
 
+    public bool SupportsConcurrentAreas => _fallback is null;
+
     public ITextTranslator ForIndependentArea() => new DeepLTranslator(_key,_fallback,_http,cache:new TranslationCache(targetLanguage:validateArabic?"ar":null),
         modelType:_modelType,game:_game,rememberDialogue:false,validateArabic:validateArabic,clock:now);
 

@@ -16,6 +16,9 @@ public interface ITextTranslator
     /// <summary>Independent conversational context for menus/phone; stateless engines may share themselves.</summary>
     ITextTranslator ForIndependentArea() => this;
 
+    /// <summary>Allows one independent area request alongside dialogue. False for shared local inference or fallbacks.</summary>
+    bool SupportsConcurrentAreas => false;
+
     /// <summary>Son çevrilen altyazının seslendirilecek cümleleri (konuşmacısıyla); dublaj için.</summary>
     IReadOnlyList<SpokenLine> SpokenLines(string text) => [];
 
