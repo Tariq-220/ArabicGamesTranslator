@@ -53,5 +53,7 @@ public class DialogueProfileTests
  [Theory][InlineData("Local: Stop!","Local: توقف!","أحد السكان: توقف!")][InlineData("Locals: Stop!","Locals: توقف!","السكان: توقف!")][InlineData("Driver: Stop!","Driver: توقف!","السائق: توقف!")][InlineData("A local shop.","local متجر.","local متجر.")]
  public void SpeakerRolesAreLocalizedWithoutReplacingAnAdjective(string source,string result,string expected)=>Assert.Equal(expected,ArabicGameNames.Localize(source,result));
 
+ [Fact]public void RecordedMixedDialogueDoesNotKeepTheOcrAccentInTheLocalRole(){var source="Tourist: You're going to get someone killed, you know!\nSomeone is going to die because of you!\nLöcal: Die, ho!";var fixedSource=DialogueProfile.English(source,"Grand Theft Auto VI");Assert.EndsWith("Local: Die, ho!",fixedSource);Assert.Contains("Someone is going to die because of you!",fixedSource);Assert.DoesNotContain("Löcal",fixedSource);var detached=DialogueProfile.DialogueOnly(new([new("Löcal:",new(.14,.75,.23,.79)),new("Get down!",new(.25,.75,.75,.79))]),new(0,0,1,1),"GTA6");Assert.Equal("Local: Get down!",detached.Text);}
+
  [Fact]public void KnownCombatButtonsCannotBecomeDialogue(){var input=new Reading(new[]{new TextLine("Press X to fight",null),new TextLine("Get down!",null),new TextLine("PHOTO STUDIO X SELECT",null)});var output=DialogueProfile.DialogueOnly(input,new GameTranslator.Core.TextBox(0,0,1,1),"GTA6");Assert.Equal("Get down!",output.Text);}
 }

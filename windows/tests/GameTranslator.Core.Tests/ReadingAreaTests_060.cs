@@ -69,6 +69,16 @@ public class ReadingAreaTests_060
         await s.ProcessAsync(Frame.Blank(1280,720));now=500;await s.ProcessAsync(Frame.Blank(1280,720));await Task.Delay(60);Assert.Empty(captions);Assert.Single(s.WithoutMessageText(new([line]),new(0,0,1,1)).Lines);
     }
     [Fact]public void AContactNameAloneCannotBecomeANotificationCard(){var t=new PhonePanelTracker();Assert.Null(t.Observe(new(300,100,"notification",null,[new("Santiago","",new(.1,.02,.8,.1),"#FFFFFF","#20232A",.04,Heading:true)]),0));}
+    private sealed class GrowingArabic:ITextTranslator{public Task<string> TranslateAsync(string source,CancellationToken token=default)=>Task.FromResult(source.EndsWith("later.")?string.Join(" ",Enumerable.Repeat("سأراك لاحقًا عندما ينتهي هذا الأمر",8)):"عذرًا، طرأ أمر.");}
+    [Fact]public async Task CorrectedLongerMessageGetsSpaceInsteadOfBeingForcedIntoTheOldShortBubble()
+    {
+        long now=0;var cell=new TextLine("Sorry, something came up.",new(.1,.3,.9,.4));var reader=new Reader(new([new("Kenton",new(.3,.03,.7,.08)),cell]));
+        using var s=new ReadingAreaSession([ReadingArea.Phone() with{AutoDetect=false,Source=new(.1,.9,.6,.95)}],()=>reader,new GrowingArabic(),()=>now);var first=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);var full=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);
+        s.Caption+=c=>{if(c.Panel?.Cells.Any(x=>!x.Heading&&x.Text.Length>0)!=true)return;first.TrySetResult(c);if(c.Panel.Cells.Any(x=>x.Source.EndsWith("later.")&&x.Text.Length>100))full.TrySetResult(c);};
+        await s.ProcessAsync(Light(900,600));now=500;await s.ProcessAsync(Light(900,600));var early=await first.Task.WaitAsync(TimeSpan.FromSeconds(2));reader.Lines=new([new("Kenton",new(.3,.03,.7,.08)),cell with{Text="Sorry, something came up. I'll see you later."}]);now=1000;await s.ProcessAsync(Light(900,600));now=1500;await s.ProcessAsync(Light(900,600));var complete=await full.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var a=early.Panel!.Cells.Single(x=>!x.Heading);var b=complete.Panel!.Cells.Single(x=>!x.Heading);Assert.True((b.Box.Bottom-b.Box.Top)*complete.Panel.Height>(a.Box.Bottom-a.Box.Top)*early.Panel.Height);
+    }
+    [Fact]public void RecordedAccentInLocalSpeakerIsRecognizedWithoutRewritingUnknownNames(){Assert.True(PhoneReadingEvidence.IsDialogue("Löcal: Die, ho!"));Assert.Equal("Local: Die, ho!",ArabicGameNames.NormalizeSpeakerLabels("Löcal: Die, ho!"));Assert.Equal("José: Hello.",ArabicGameNames.NormalizeSpeakerLabels("José: Hello."));}
     [Fact]public void MatchingMessageDoesNotDriftWithOcrBoxJitter()
     {
         var t=new PhonePanelTracker();var cell=new PanelCell("You guys go ahead.","",new(.1,.3,.8,.4),"#FAFAFA","#20232A",.03,true);

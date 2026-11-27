@@ -204,7 +204,7 @@ public sealed class ReadingAreaSession : IDisposable
                 if(panel is {Kind:"phone"}){
                     var body=panel.Cells.Where(PhonePanelTracker.Body).ToArray();if(!body.Any(c=>!string.IsNullOrWhiteSpace(c.Text)))return;
                     var o=s.Output??s.Area.PresentationOutput();double scale=Math.Max(.01,Math.Min((o.Right-o.Left)*s.FullWidth/panel.Width,(o.Bottom-o.Top)*s.FullHeight/panel.Height));
-                    if(s.LastPanel is {Kind:"phone"} previous&&s.LastSourcePanel is {} raw&&panel.Cells.Count==raw.Cells.Count&&panel.Cells.Select((c,i)=>PhonePanelTracker.Same(raw.Cells[i],c)).All(same=>same))
+                    if(s.LastPanel is {Kind:"phone"} previous&&s.LastSourcePanel is {} raw&&panel.Cells.Count==raw.Cells.Count&&panel.Cells.Select((c,i)=>Key(raw.Cells[i].Source)==Key(c.Source)).All(same=>same))
                         panel=panel with{Width=previous.Width,Height=previous.Height,Cells=panel.Cells.Select((c,i)=>c with{Box=previous.Cells[i].Box,LineHeight=previous.Cells[i].LineHeight}).ToArray()};
                     else panel=SpatialText.ReflowPhone(panel,s.Area.Appearance?.MatchSize==false?s.Area.FontSize*s.FullWidth/1920d/scale:null);
                 }

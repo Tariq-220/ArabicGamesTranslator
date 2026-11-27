@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 using System.Text.RegularExpressions;
+using System.Text;
+using System.Globalization;
 namespace GameTranslator.Core;
 /// <summary>Character names are terminology, not broken dialogue. Some providers deliberately
 /// preserve speaker labels in Latin script. Only names actually present in the source are localized.</summary>
@@ -12,7 +14,9 @@ public static class ArabicGameNames
         ["Wade"]="وايد",["Billy"]="بيلي",["Kenton"]="كينتون",["Andy"]="آندي",["Shirley"]="شيرلي",["Brian"]="براين",
         ["John"]="جون",["Arthur"]="آرثر",["Marston"]="مارستون",["Atreus"]="أتريوس",["Kratos"]="كريتوس",["Mimir"]="ميمير"
     };
-    public static string? Speaker(string name)=>Names.GetValueOrDefault(name.Trim());
+    public static string CanonicalSpeaker(string name){var value=name.Trim();if(Names.ContainsKey(value))return value;var plain=string.Concat(value.Normalize(NormalizationForm.FormD).Where(c=>CharUnicodeInfo.GetUnicodeCategory(c)!=UnicodeCategory.NonSpacingMark)).Normalize(NormalizationForm.FormC);return Names.ContainsKey(plain)?plain:value;}
+    public static string? Speaker(string name)=>Names.GetValueOrDefault(CanonicalSpeaker(name));
+    public static string NormalizeSpeakerLabels(string source)=>Regex.Replace(source,@"(?m)^(?<label>[^:\r\n]{1,40})(?<colon>[:：])",m=>CanonicalSpeaker(m.Groups["label"].Value)+m.Groups["colon"].Value);
     public static string Localize(string source,string output)
     {
         foreach(var (name,arabic) in Names)

@@ -12,7 +12,7 @@ public static class DialogueProfile {
  private static bool KnownHud(string text)=>Regex.IsMatch(text.Trim(),@"^(?:PHOTO (?:STUDIO|MODE)(?: [A-Z])? SELECT.*|(?:PRESS\s*[A-Z]|HOLD(?: [A-Z])? AND PRESS\s*[A-Z])\s*TO (?:FIGHT|HEAL)|GIRARDI ES9|MILITARY PISTOL|DAMAGE|ACCURACY|HANDLING|RANGE|HAT|W-14 RIFLE|LT|RT|[!|0-9 ]+)$",RegexOptions.IgnoreCase);
  public static bool Rdr2(string game)=>game.Trim().Equals("RDR2",StringComparison.OrdinalIgnoreCase)||game.Trim().Equals("Red Dead Redemption 2",StringComparison.OrdinalIgnoreCase);
  public static Reading DialogueOnly(Reading reading,TextBox area,string game){
-  reading=new Reading(reading.Lines.Where(line=>!IsInterfaceText(line.Text)&&!IsCaptureChrome(line.Text)&&!KnownHud(line.Text)));
+  reading=new Reading(reading.Lines.Select(line=>line with{Text=ArabicGameNames.NormalizeSpeakerLabels(line.Text)}).Where(line=>!IsInterfaceText(line.Text)&&!IsCaptureChrome(line.Text)&&!KnownHud(line.Text)));
   if(Regex.IsMatch(game.Trim(),@"^(?:GTA\s*(?:6|VI)|Grand Theft Auto VI)$",RegexOptions.IgnoreCase)){
    // Classify the complete subtitle block, not each row: a short wrapped row or a
    // detached coloured speaker at the edge still belongs to its central dialogue.
@@ -38,6 +38,7 @@ public static class DialogueProfile {
   return English(text,game);
  }
  public static string English(string text,string game){
+  text=ArabicGameNames.NormalizeSpeakerLabels(text);
   if(!Rdr2(game))return text;
   var fixes=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){["Itrank you..."]="Thank you...",["VII hold them off."]="I'll hold them off.",["rm coming with you."]="I'm coming with you.",["1 did."]="I did.",["1 do."]="I do."};
   if(fixes.TryGetValue(text.Trim(),out var value))return value;
