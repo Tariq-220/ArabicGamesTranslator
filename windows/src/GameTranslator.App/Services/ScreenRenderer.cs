@@ -283,18 +283,13 @@ public static class ScreenRenderer
         public ITextTranslator Create(string source, string target) => throw new NotSupportedException();
     }
 
-    private sealed class DemoStore(bool ready) : IAppStore
+    private sealed class DemoStore : IAppStore
     {
-        public void Save<T>(string key, T value) { }
-        public T? Load<T>(string key) => !ready ? default : key switch
-        {
-            StoreKeys.AccountId => (T)(object)new byte[8],
-            StoreKeys.Console => (T)(object)new RegisteredConsole("192.168.1.20", "PS5-123", new byte[16], new byte[16]),
-            StoreKeys.Tv => (T)(object)new LgTv("[LG] webOS TV", "192.168.1.30"),
-            StoreKeys.TvKey => (T)(object)"key",
-            _ => default,
-        };
-        public void Remove(string key) { }
+        private readonly Dictionary<string,object?> values=new();
+        public DemoStore(bool ready){if(!ready)return;values[StoreKeys.AccountId]=new byte[8];values[StoreKeys.Console]=new RegisteredConsole("192.168.1.20","PS5-123",new byte[16],new byte[16]);values[StoreKeys.Tv]=new LgTv("[LG] webOS TV","192.168.1.30");values[StoreKeys.TvKey]="key";}
+        public void Save<T>(string key,T value)=>values[key]=value;
+        public T? Load<T>(string key)=>values.TryGetValue(key,out var value)?(T?)value:default;
+        public void Remove(string key)=>values.Remove(key);
     }
 
     private sealed class DemoSettings : ISettingsStore
