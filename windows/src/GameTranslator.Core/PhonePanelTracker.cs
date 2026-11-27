@@ -22,22 +22,22 @@ public sealed class PhonePanelTracker
     public static bool Body(PanelCell c){if(c.Heading)return false;var text=c.Source.Trim();if(System.Text.RegularExpressions.Regex.IsMatch(text,@"^(?:New messages?|Locating\.*)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase))return false;var words=text.Split(' ',StringSplitOptions.RemoveEmptyEntries);return text.StartsWith("Map Pin ",StringComparison.OrdinalIgnoreCase)||text.IndexOfAny(['!','?','…'])>=0||words.Skip(1).Any(w=>w.Length>0&&char.IsLower(w[0]))||new[]{"Hey","Hi","Hello","Okay","OK","Thanks","Yes","No"}.Contains(text,StringComparer.OrdinalIgnoreCase);}
     public void Reset(){current=pending=null;capture=null;seen.Clear();confirmations=0;newPageAt=0;}
     private static bool Negation(string s)=>System.Text.RegularExpressions.Regex.IsMatch(s,@"\b(?:not|no|never|cannot)\b|n['’]t\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-    private static bool Same(PanelCell a,PanelCell b)
+    internal static bool Same(PanelCell a,PanelCell b)
     {
         if(Key(a)==Key(b))return true;
         if(a.Heading&&b.Heading&&TextMatch.IsSimilar(TextMatch.Normalize(a.Source),TextMatch.Normalize(b.Source),.72))return true;
         var oldText=TextMatch.Normalize(a.Source);var newText=TextMatch.Normalize(b.Source);
-        if(newText.Split(' ').Length>=3&&newText.Length>=oldText.Length*.45&&(oldText.StartsWith(newText+" ",StringComparison.Ordinal)||oldText.EndsWith(" "+newText,StringComparison.Ordinal)))return true;
-        var x=TextMatch.Normalize(a.Source);var y=TextMatch.Normalize(b.Source);
-        return x.Split(' ').Length>=3&&x.Split(' ').Length==y.Split(' ').Length&&Negation(a.Source)==Negation(b.Source)
-            &&string.Concat(a.Source.Where(char.IsDigit))==string.Concat(b.Source.Where(char.IsDigit))&&TextMatch.IsSimilar(x,y,.96);
+        if(Negation(a.Source)!=Negation(b.Source)||string.Concat(a.Source.Where(char.IsDigit))!=string.Concat(b.Source.Where(char.IsDigit)))return false;
+        bool Extends(string longer,string shorter)=>shorter.Split(' ').Length>=3&&shorter.Length>=longer.Length*.45&&(longer.StartsWith(shorter+" ",StringComparison.Ordinal)||longer.EndsWith(" "+shorter,StringComparison.Ordinal));
+        if(Extends(oldText,newText)||Extends(newText,oldText))return true;
+        return oldText.Split(' ').Length>=4&&newText.Split(' ').Length>=4&&Math.Min(oldText.Length,newText.Length)>=Math.Max(oldText.Length,newText.Length)*.78&&TextMatch.IsSimilar(oldText,newText,.92);
     }
     private static double Shift(TextBox a,TextBox b)=>Math.Max(Math.Max(Math.Abs(a.Left-b.Left),Math.Abs(a.Top-b.Top)),Math.Max(Math.Abs(a.Right-b.Right),Math.Abs(a.Bottom-b.Bottom)));
     private static bool Overlap(TextBox a,TextBox b)=>Math.Min(a.Right,b.Right)-Math.Max(a.Left,b.Left)>.05&&Math.Min(a.Bottom,b.Bottom)-Math.Max(a.Top,b.Top)>.008;
     public bool MatchesCurrentPage(PanelLayout next)=>current is not null&&next.Cells.Any(n=>Body(n)&&current.Cells.Any(p=>Body(p)&&Same(p,n)&&Shift(p.Box,n.Box)<.06));
     public PanelLayout? Observe(PanelLayout next,long at)
     {
-        bool Content(PanelCell c)=>next.Kind=="notification"?(!next.Cells.Any(x=>!x.Heading)||!c.Heading):Body(c);
+        bool Content(PanelCell c)=>next.Kind=="notification"?(!c.Heading||!next.Cells.Any(x=>!x.Heading)&&System.Text.RegularExpressions.Regex.IsMatch(c.Source,@"^(?:Saved|Saving|Paused)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase)):Body(c);
         if(!next.Cells.Any(Content))return null;
         if(current is null){current=next;foreach(var c in next.Cells)seen[Key(c)]=at;return next;}
         var shared=next.Cells.Count(n=>Content(n)&&current.Cells.Any(p=>Same(p,n)&&Shift(p.Box,n.Box)<.06));
@@ -54,7 +54,8 @@ public sealed class PhonePanelTracker
         var cells=new List<PanelCell>();
         foreach(var n in next.Cells){
             var prior=current.Cells.FirstOrDefault(p=>Same(p,n)&&Shift(p.Box,n.Box)<.06);
-            var cell=prior is null?n:n with{Source=prior.Source,Background=prior.Background,Foreground=prior.Foreground,LineHeight=prior.LineHeight,Box=Shift(prior.Box,n.Box)<.018?prior.Box:n.Box};
+            var grows=prior is not null&&Key(n).Length>Key(prior).Length&&(Key(n).StartsWith(Key(prior)+" ",StringComparison.Ordinal)||Key(n).EndsWith(" "+Key(prior),StringComparison.Ordinal));
+            var cell=prior is null?n:n with{Source=grows?n.Source:prior.Source,Background=prior.Background,Foreground=prior.Foreground,LineHeight=prior.LineHeight,Box=prior.Box};
             cells.Add(cell);seen[Key(cell)]=at;
         }
         foreach(var p in current.Cells.Where(p=>!cells.Any(n=>Same(p,n))))if(at-seen.GetValueOrDefault(Key(p),at)<=4000&&!cells.Any(n=>Overlap(p.Box,n.Box)))cells.Add(p);

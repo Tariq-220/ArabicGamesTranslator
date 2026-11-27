@@ -14,14 +14,14 @@ public static class SpatialText
     public static bool IsConversation(Reading reading)
     {
         var lines=reading.Lines.Where(l=>l.Box is not null&&!string.IsNullOrWhiteSpace(l.Text)).ToArray();
-        if(lines.Length<2)return false;
+        if(lines.Length<2||PhoneReadingEvidence.Incompatible(reading))return false;
         var nav=string.Join(" ",lines.Where(l=>l.Box!.Value.Top<.16).Select(l=>l.Text));
         if(System.Text.RegularExpressions.Regex.IsMatch(nav,@"\bMAP\b.*\b(?:BRIEF|PROGRESS)\b|\bBRIEF\b.*\bPROGRESS\b|^(?:SETTINGS|GRAPHICS|CONTROLS|FEATURES)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase))return false;
         // A light strip of map or pavement is not a phone. Require a header and message/list content.
         var top=lines.Where(l=>l.Box!.Value.Top<.22).ToArray();
         bool Message(string text){var words=text.Split(' ',StringSplitOptions.RemoveEmptyEntries);return words.Skip(1).Any(w=>w.Length>0&&char.IsLower(w[0]))||text.IndexOfAny(['!','?',',','…'])>=0||System.Text.RegularExpressions.Regex.IsMatch(text,@"^(?:Map Pin (?:Unavailable|Expired)|New messages?)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase);}
         var body=lines.Where(l=>l.Box!.Value.Top>=.12&&Message(l.Text)).ToArray();
-        return top.Any(l=>l.Text.Length<=65)&&body.Length>=1&&lines.Length>=2;
+        return top.Any(l=>l.Text.Length<=65&&l.Text.Count(char.IsLetter)>=2&&l.Text.Count(char.IsLetter)>l.Text.Count(char.IsDigit)&&!System.Text.RegularExpressions.Regex.IsMatch(l.Text,@"^[NSEW\s.]+$",System.Text.RegularExpressions.RegexOptions.IgnoreCase)&&body.Any(b=>b!=l&&b.Box!.Value.Top>=l.Box!.Value.Bottom+.015));
     }
     public static PanelLayout Build(Frame frame,Reading reading,ReadingAreaKind kind,bool includeImage=true)
     {
@@ -149,6 +149,7 @@ public static class SpatialText
     }
     public static bool PhoneSurfacePresent(Frame f,CropRegion region){int light=0,total=0;for(int row=0;row<12;row++)for(int col=0;col<8;col++){var c=Pixel(f,(int)((region.Left+(region.Right-region.Left)*(col+.5)/8)*f.Width),(int)((region.Top+(region.Bottom-region.Top)*(row+.5)/12)*f.Height));if(c.Max()-c.Min()<75&&c.Sum(x=>(int)x)>300)light++;total++;}return light>=total/5;}
     public static bool HasDarkBackground(Frame f,TextBox box)=>Sample(f,box).Max()<110;
+    public static bool HasMessageSurface(Frame frame,TextBox box){var c=Sample(frame,box);return c.Min()>125&&c.Max()-c.Min()<65||c[2]>150&&c[1]>75&&c[2]-c[0]>45;}
     private static byte[] Pixel(Frame f,int x,int y){var i=Math.Clamp(y,0,f.Height-1)*f.Stride+Math.Clamp(x,0,f.Width-1)*4;return [f.Pixels[i+2],f.Pixels[i+1],f.Pixels[i]];}
     private static byte[] Sample(Frame f,TextBox b)
     {

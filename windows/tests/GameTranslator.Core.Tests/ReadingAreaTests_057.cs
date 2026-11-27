@@ -26,7 +26,7 @@ public class ReadingAreaTests_057
     {
         long now=0;var phone=ReadingArea.Phone() with{AutoDetect=false,Source=new(.1,.9,.6,.95)};
         var reader=new PhoneReader();using var session=new ReadingAreaSession([phone],()=>reader,new FakeTranslator(),()=>now);
-        await session.ProcessAsync(Frame.Blank(400,300));
+        await session.ProcessAsync(PhoneFrames.Light(400,300));
         var text=new TextLine("Might help him with some hunting.",new(.65,.7,.9,.75));
         Assert.Empty(session.WithoutPhoneText(new([text]),new(0,0,1,1)).Lines);
         Assert.Single(session.WithoutPhoneText(new([text with{Box=new(.1,.7,.4,.75)}]),new(0,0,1,1)).Lines);

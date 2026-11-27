@@ -36,12 +36,43 @@ public static class ScreenRenderer
         if(!TextMatch.Normalize(dialogue.Text).Contains("pay me to go")||!SpeakerMerge.HasBody(dialogue))throw new InvalidOperationException("Coloured speaker must not replace the complete white dialogue body: "+dialogue.Text);
         File.WriteAllText(Path.Combine(folder,"ocr-probe.txt"),"Synthetic Windows OCR passed with opaque and zero alpha: "+opaque+"\nBlue subtitle band: "+dialogue.Text);
     }
+    private sealed class EvidenceReader(Reading lines):ITextReader
+    {public string Read(Frame frame)=>lines.Text;public Reading ReadSpatial(Frame frame)=>lines;}
+    private sealed class EvidenceTranslator:ITextTranslator
+    {public int Calls;public Task<string> TranslateAsync(string text,CancellationToken token=default){Interlocked.Increment(ref Calls);return Task.FromResult("رسالة عربية واضحة.");}}
+    private static void VerifyPhoneEvidence(WindowsOcrReader reader,string folder)
+    {
+        var source=new CropRegion(.11182121104655093,.8759766455174428,.3502806341923062,.7751391147904854);
+        foreach(var realPhone in new[]{false,true}){
+            var drawing=new DrawingVisual();using(var dc=drawing.RenderOpen()){
+                dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(30,38,46)),null,new Rect(0,0,1280,720));
+                void Text(string value,double x,double y,double size,Brush ink)=>dc.DrawText(new FormattedText(value,System.Globalization.CultureInfo.GetCultureInfo("en-US"),FlowDirection.LeftToRight,new Typeface("Segoe UI"),size,ink,1),new Point(x,y));
+                if(realPhone){
+                    dc.DrawRectangle(Brushes.White,null,new Rect(500,110,300,470));Text("Kenton",565,130,28,Brushes.Black);Text("Almost there!",525,290,28,Brushes.Black);
+                    dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(40,103,216)),null,new Rect(610,430,175,60));Text("I'm on it.",625,443,24,Brushes.White);
+                }else{
+                    dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(40,55,90)),null,new Rect(455,585,490,48));Text("Locals: Motherfucker!",470,593,27,Brushes.White);Text("+289 m",500,100,22,Brushes.White);
+                }
+            }
+            var bitmap=new RenderTargetBitmap(1280,720,96,96,PixelFormats.Pbgra32);bitmap.Render(drawing);var pixels=new byte[1280*720*4];bitmap.CopyPixels(pixels,1280*4,0);var frame=new Frame(pixels,1280,720,1280*4);
+            var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(Path.Combine(folder,realPhone?"phone-evidence-valid.png":"phone-evidence-gameplay.png")))encoder.Save(file);
+            var reading=reader.ReadSpatial(RegionCropper.Crop(frame,source));
+            if(!TextMatch.Normalize(reading.Text).Contains(realPhone?"almost there":"motherfucker"))throw new InvalidOperationException("Phone evidence OCR did not read the measured source: "+reading.Text);
+            long at=0;var engine=new EvidenceTranslator();using var session=new ReadingAreaSession([ReadingArea.Phone() with{AutoDetect=false,Source=source}],()=>new EvidenceReader(reading),engine,()=>at);
+            var shown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);session.Caption+=c=>{if(!c.Clear&&(!realPhone||c.Panel?.Cells.Any(cell=>TextMatch.Normalize(cell.Source).Contains("almost there")&&cell.Text.Length>0)==true))shown.TrySetResult(c);};
+            session.ProcessAsync(frame).GetAwaiter().GetResult();at=500;session.ProcessAsync(frame).GetAwaiter().GetResult();
+            if(realPhone){var caption=shown.Task.WaitAsync(TimeSpan.FromSeconds(3)).GetAwaiter().GetResult();if(caption.Panel?.Kind!="phone"||!caption.Panel.Cells.Any(c=>TextMatch.Normalize(c.Source).Contains("almost there")&&c.Text.Length>0))throw new InvalidOperationException("The genuine phone disappeared behind the identity guard.");}
+            else {Task.Delay(150).GetAwaiter().GetResult();if(shown.Task.IsCompleted||engine.Calls!=0)throw new InvalidOperationException("Recorded gameplay/HUD was sent through the phone lane.");if(session.WithoutMessageText(reading,new(source.Left,source.Top,source.Right,source.Bottom)).Lines.Count!=reading.Lines.Count)throw new InvalidOperationException("Rejected phone stole the gameplay text.");}
+            File.AppendAllText(Path.Combine(folder,"ocr-probe.txt"),"\nPhone evidence "+(realPhone?"genuine phone shown":"gameplay/HUD rejected without provider call")+": "+reading.Text.Replace('\n',' '));
+        }
+    }
     public static void RunArabic(Application app,string folder)
     {
         Directory.CreateDirectory(folder);app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
         VerifyOpaqueOcr(folder);
         ThemeManager.Apply(app.Resources,true);
         try {
+            if(WindowsOcrReader.Create("en") is {} phoneReader)VerifyPhoneEvidence(phoneReader,folder);
             AssertInternalPlayerSelectable();
             for(int variant=0;variant<10;variant++){
                 int selected=variant%5;
@@ -66,6 +97,12 @@ public static class ScreenRenderer
                 foreach(var element in LogicalElements(grid).Where(x=>x.IsVisible&&(Equals(x.Tag,"capture-window")||Equals(x.Tag,"engine-choice")||Equals(x.Tag,"engine-test")))){
                     var bounds=element.TransformToAncestor(grid).TransformBounds(new Rect(element.RenderSize));
                     if(bounds.Left < -1 || bounds.Right > grid.ActualWidth+1)throw new InvalidOperationException("Horizontal clipping: "+element.Tag);
+                }
+                if(selected==2){
+                    var add=LogicalElements(grid).OfType<System.Windows.Controls.Button>().Single(x=>Equals(x.Tag,"add-car-phone"));add.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));add.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                    if(controller.ReadingAreas.Count(a=>a.Kind==ReadingAreaKind.Phone&&a.Variant=="car")!=1)throw new InvalidOperationException("Car phone preset was duplicated or missing.");
+                    var choice=LogicalElements(grid).OfType<System.Windows.Controls.ComboBox>().Single(x=>Equals(x.Tag,"reading-area-choice"));if(choice.SelectedItem?.ToString()?.Contains("جوال السيارة")!=true)throw new InvalidOperationException("Car phone selection switched to another card.");
+                    window.UpdateLayout();
                 }
                 if(selected==0){
                     var toggle=LogicalElements(grid).OfType<System.Windows.Controls.CheckBox>().Single(x=>Equals(x.Tag,"desktop-overlay"));

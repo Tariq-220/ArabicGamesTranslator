@@ -50,5 +50,8 @@ public class DialogueProfileTests
 
  [Fact]public void GtaCornerGuardPreservesDetachedSpeakerAndWrappedDialogue(){var source=new Reading([new("Jason:",new(.14,.75,.23,.79)),new("We should leave this place",new(.25,.75,.75,.79)),new("right now.",new(.25,.80,.43,.84))]);var filtered=DialogueProfile.DialogueOnly(source,new(0,0,1,1),"GTA6");Assert.Equal("Jason: We should leave this place\nright now.",filtered.Text);Assert.Empty(DialogueProfile.DialogueOnly(new([new("Meet me at the shop.",new(.79,.8,.98,.9))]),new(0,0,1,1),"GTA6").Lines);}
 
+ [Theory][InlineData("Local: Stop!","Local: توقف!","أحد السكان: توقف!")][InlineData("Locals: Stop!","Locals: توقف!","السكان: توقف!")][InlineData("Driver: Stop!","Driver: توقف!","السائق: توقف!")][InlineData("A local shop.","local متجر.","local متجر.")]
+ public void SpeakerRolesAreLocalizedWithoutReplacingAnAdjective(string source,string result,string expected)=>Assert.Equal(expected,ArabicGameNames.Localize(source,result));
+
  [Fact]public void KnownCombatButtonsCannotBecomeDialogue(){var input=new Reading(new[]{new TextLine("Press X to fight",null),new TextLine("Get down!",null),new TextLine("PHOTO STUDIO X SELECT",null)});var output=DialogueProfile.DialogueOnly(input,new GameTranslator.Core.TextBox(0,0,1,1),"GTA6");Assert.Equal("Get down!",output.Text);}
 }

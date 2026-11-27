@@ -14,7 +14,7 @@ public sealed class ReadingAreaSession : IDisposable
         public string Candidate="", Sent="", LastResult="";
         public long Since, Seen, ReadAt=long.MinValue/2, Revision, Generation;
         public int Misses;public long MissingSince;public bool Busy, Visible;public long RetryAt;public int Failures;
-        public CropRegion? Output;public PanelLayout? Panel,LastPanel;public Frame? PanelFrame;public long LastEmit;
+        public CropRegion? Output;public PanelLayout? Panel,LastPanel,LastSourcePanel;public Frame? PanelFrame;public long LastEmit;public string LastRejected="";
         public readonly Dictionary<string,string> Cache=new(StringComparer.Ordinal);
     }
     private readonly object gate=new();
@@ -81,26 +81,44 @@ public sealed class ReadingAreaSession : IDisposable
             }
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
             if(s.Area.Kind==ReadingAreaKind.MapCard)reading=new Reading(reading.Lines.Where(l=>l.Box is {} b&&SpatialText.HasDarkBackground(crop,b)));
-            var panel=s.Area.Structured?SpatialText.Build(crop,reading,s.Area.Kind,includeImage:false):null;
-            if(s.Area.Kind==ReadingAreaKind.Phone&&s.Area.Structured&&s.Area.AutoDetect&&!SpatialText.IsConversation(reading)&&!(panel is not null&&s.Phone.MatchesCurrentPage(panel))){Status?.Invoke(s.Area.Id,"المنطقة لا تحتوي محادثة جوال مؤكدة؛ لن يُعرض قالب فارغ فوق الخريطة.");Observe(s,"",null,crop);return;}
-            if(s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&s.Area.Structured){
+            var messageArea=s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification;
+            var originalMessage=reading;var wrongSource=messageArea&&PhoneReadingEvidence.Incompatible(reading);
+            if(s.Area.Kind==ReadingAreaKind.Phone)reading=PhoneReadingEvidence.WithoutGameplay(reading);
+            var panel=s.Area.Structured||messageArea?SpatialText.Build(crop,reading,s.Area.Kind,includeImage:false):null;
+            var phoneAccepted=s.Area.Kind!=ReadingAreaKind.Phone||PhoneReadingEvidence.Accepts(crop,reading,source,s.Area.Structured&&s.Area.AutoDetect,panel is not null&&s.Phone.MatchesCurrentPage(panel));
+            if(messageArea&&(PhoneReadingEvidence.Incompatible(reading)||wrongSource&&!phoneAccepted||s.Area.Kind==ReadingAreaKind.Notification&&wrongSource)){
+                var rejected=Key(originalMessage.Text);var log=s.LastRejected!=rejected;ClearConflicting(s);s.LastRejected=rejected;
+                Status?.Invoke(s.Area.Id,"هذا حوار أو نص خريطة، وليس رسالة جوال؛ بقي متاحًا لقناته الأصلية.");
+                if(log)Trace?.Invoke(new(s.Area.Id,s.Area.Name,originalMessage.Text,"","ignored_wrong_content"));return;
+            }
+            if(!phoneAccepted){Status?.Invoke(s.Area.Id,"لم تتأكد محادثة الجوال؛ اختر منطقة شاشة الجوال أو بطاقة جوال السيارة.");Observe(s,"",null,crop);return;}
+            if(messageArea){
                 if(panel is not {Cells.Count:>0}){Status?.Invoke(s.Area.Id,"قُرئ نص بلا مواضع رسائل؛ بانتظار قراءة مكانية، دون تحويله إلى مربع حوار.");Observe(s,"",null,crop);return;}
                 // Claim the measured cells before page stabilization or translation. Different OCR
                 // spellings of this same physical message must never become another area's caption.
-                lock(gate){s.PhoneBounds=actualSource;s.OwnedMessages=panel;s.PhoneVerifiedAt=now();}
+                lock(gate){s.PhoneBounds=actualSource;s.OwnedMessages=panel;s.PhoneVerifiedAt=now();s.LastRejected="";}
             }
             if(s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&panel is not null){panel=s.Phone.Observe(panel,now());if(panel is null){Status?.Invoke(s.Area.Id,"بانتظار نص محادثة كامل؛ لن تُعرض لوحة باسم فقط.");Observe(s,"",null,crop);return;}}
-            if(s.Area.Kind==ReadingAreaKind.Notification&&panel is not null){
-                var content=Key(string.Join(" ",panel.Cells.Select(c=>c.Source)));bool duplicate;
-                lock(gate)duplicate=states.TakeWhile(other=>other!=s).Any(other=>other.Area.Kind==ReadingAreaKind.Notification&&other.PhoneBounds is {} b&&now()-other.PhoneVerifiedAt<=1800&&other.Panel is {} existing&&Key(string.Join(" ",existing.Cells.Select(c=>c.Source)))==content&&Intersection(actualSource,b)>.65);
-                if(duplicate){ClearConflicting(s);Status?.Invoke(s.Area.Id,"التنبيه نفسه تقرؤه بطاقة أخرى؛ أُوقف العرض المكرر.");return;}
-            }
+            if(messageArea&&panel is not null&&SuppressDuplicate(s,panel,actualSource))return;
             Status?.Invoke(s.Area.Id,string.IsNullOrWhiteSpace(reading.Text)?"اللوحة موجودة، لكن OCR لم يقرأ نصًا.":$"قُرئت {reading.Lines.Count} أسطر · الترجمة قيد المعالجة");
-            Observe(s,panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>c.Source)):reading.Text.Trim(),panel is {Cells.Count:0}?null:panel,crop);
+            Observe(s,panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>c.Source)):reading.Text.Trim(),!s.Area.Structured||panel is {Cells.Count:0}?null:panel,crop);
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke("ocr",error.GetType().Name);}
         finally { Volatile.Write(ref processing,0); }
+    }
+
+    private bool SuppressDuplicate(State state,PanelLayout panel,TextBox source)
+    {
+        State[] matches;State winner;
+        static IEnumerable<PanelCell> Body(PanelLayout p)=>p.Cells.Any(c=>!c.Heading)?p.Cells.Where(c=>!c.Heading):p.Cells;
+        lock(gate){
+            matches=states.Where(other=>other!=state&&other.Area.Kind==state.Area.Kind&&other.PhoneBounds is {} bounds&&other.OwnedMessages is {} existing&&now()-other.PhoneVerifiedAt<=1800&&Intersection(source,bounds)>.65&&Body(panel).Any(c=>Body(existing).Any(n=>PhonePanelTracker.Same(n,c)))).Append(state).ToArray();
+            winner=matches.OrderBy(s=>(s.Area.Source.Right-s.Area.Source.Left)*(s.Area.Source.Bottom-s.Area.Source.Top)).ThenBy(s=>states.IndexOf(s)).First();
+        }
+        foreach(var loser in matches.Where(s=>s!=winner))ClearConflicting(loser);
+        if(winner==state)return false;
+        Status?.Invoke(state.Area.Id,"المحادثة نفسها تقرؤها بطاقة أدق؛ مُنع عرضها مرتين.");return true;
     }
 
     private static double Intersection(TextBox a,TextBox b){var overlap=Math.Max(0,Math.Min(a.Right,b.Right)-Math.Max(a.Left,b.Left))*Math.Max(0,Math.Min(a.Bottom,b.Bottom)-Math.Max(a.Top,b.Top));var smaller=Math.Max(.000001,Math.Min((a.Right-a.Left)*(a.Bottom-a.Top),(b.Right-b.Left)*(b.Bottom-b.Top)));return overlap/smaller;}
@@ -111,6 +129,7 @@ public sealed class ReadingAreaSession : IDisposable
             var phones=states.Where(s=>s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&s.PhoneBounds is not null&&now()-s.PhoneVerifiedAt<=1800&&s.OwnedMessages is not null).ToArray();
             if(phones.Length==0)return input;
             return new Reading(input.Lines.Where(line=>{
+                if(PhoneReadingEvidence.IsDialogue(line.Text))return true;
                 if(line.Box is not {} local)return true;var box=local.PlacedIn(dialogueArea);
                 foreach(var phone in phones){
                     var bounds=phone.PhoneBounds!.Value;var text=TextMatch.Normalize(line.Text);
@@ -124,7 +143,7 @@ public sealed class ReadingAreaSession : IDisposable
             }));
         }
     }
-    private void ClearConflicting(State s){AreaCaption? clear=null;lock(gate){if(s.Visible||s.Candidate.Length>0){s.Visible=false;s.Candidate=s.Sent=s.LastResult="";s.LastPanel=null;s.Generation++;s.Revision++;clear=Make(s,"",true);}}Status?.Invoke(s.Area.Id,"النص تابع لمنطقة أخرى؛ مُنع العرض المكرر.");if(clear is not null)Caption?.Invoke(clear);}
+    private void ClearConflicting(State s){AreaCaption? clear=null;lock(gate){var hadContent=s.Visible||s.Candidate.Length>0;s.Visible=false;s.Candidate=s.Sent=s.LastResult="";s.LastPanel=s.LastSourcePanel=s.Panel=s.OwnedMessages=null;s.PhoneBounds=null;s.Phone.Reset();s.Generation++;if(hadContent){s.Revision++;clear=Make(s,"",true);}}Status?.Invoke(s.Area.Id,"النص تابع لمنطقة أخرى؛ مُنع العرض المكرر.");if(clear is not null)Caption?.Invoke(clear);}
 
     private void Observe(State s,string text,PanelLayout? panel,Frame frame)
     {
@@ -136,7 +155,7 @@ public sealed class ReadingAreaSession : IDisposable
             if(text.Length<2)
             {
                 if(s.Misses==0)s.MissingSince=at;
-                if((s.Visible||s.Candidate.Length>0)&&++s.Misses>=2&&at-s.MissingSince>=timing.GoneMs){s.Visible=false;s.Sent="";s.Candidate="";s.LastResult="";s.LastPanel=null;s.PanelFrame=null;s.OwnedMessages=null;s.PhoneBounds=null;s.Phone.Reset();s.Generation++;s.Revision++;clear=Make(s,"",true);}
+                if((s.Visible||s.Candidate.Length>0)&&++s.Misses>=2&&at-s.MissingSince>=timing.GoneMs){s.Visible=false;s.Sent="";s.Candidate="";s.LastResult="";s.LastPanel=s.LastSourcePanel=null;s.PanelFrame=null;s.OwnedMessages=null;s.PhoneBounds=null;s.Phone.Reset();s.Generation++;s.Revision++;clear=Make(s,"",true);}
             }
             else
             {
@@ -185,11 +204,11 @@ public sealed class ReadingAreaSession : IDisposable
                 if(panel is {Kind:"phone"}){
                     var body=panel.Cells.Where(PhonePanelTracker.Body).ToArray();if(!body.Any(c=>!string.IsNullOrWhiteSpace(c.Text)))return;
                     var o=s.Output??s.Area.PresentationOutput();double scale=Math.Max(.01,Math.Min((o.Right-o.Left)*s.FullWidth/panel.Width,(o.Bottom-o.Top)*s.FullHeight/panel.Height));
-                    if(s.LastPanel is {Kind:"phone"} previous&&panel.Cells.Select(c=>Key(c.Source)).SequenceEqual(previous.Cells.Select(c=>Key(c.Source))))
+                    if(s.LastPanel is {Kind:"phone"} previous&&s.LastSourcePanel is {} raw&&panel.Cells.Count==raw.Cells.Count&&panel.Cells.Select((c,i)=>PhonePanelTracker.Same(raw.Cells[i],c)).All(same=>same))
                         panel=panel with{Width=previous.Width,Height=previous.Height,Cells=panel.Cells.Select((c,i)=>c with{Box=previous.Cells[i].Box,LineHeight=previous.Cells[i].LineHeight}).ToArray()};
                     else panel=SpatialText.ReflowPhone(panel,s.Area.Appearance?.MatchSize==false?s.Area.FontSize*s.FullWidth/1920d/scale:null);
                 }
-                s.LastResult=result;s.LastPanel=panel;s.LastEmit=now();s.Visible=true;s.Revision++;
+                s.LastResult=result;s.LastSourcePanel=s.Panel;s.LastPanel=panel;s.LastEmit=now();s.Visible=true;s.Revision++;
                 caption=Make(s,result) with{Panel=panel};
                 trace=new(s.Area.Id,s.Area.Name,s.Candidate,result,partial?"partial":"shown");
             }

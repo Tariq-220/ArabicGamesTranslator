@@ -6,7 +6,7 @@ namespace GameTranslator.Core;
 public static class ArabicGameNames
 {
     private static readonly IReadOnlyDictionary<string,string> Names=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
-        ["Tourist"]="السائح",["Tourists"]="السياح",["Officer"]="الشرطي",["Man"]="الرجل",["Woman"]="المرأة",
+        ["Local"]="أحد السكان",["Locals"]="السكان",["Driver"]="السائق",["Stranger"]="الغريب",["Cop"]="الشرطي",["Tourist"]="السائح",["Tourists"]="السياح",["Officer"]="الشرطي",["Man"]="الرجل",["Woman"]="المرأة",
         ["Jason"]="جيسون",["Lucia"]="لوسيا",["Donnie"]="دوني",["Leonida"]="ليونيدا",
         ["Vicki"]="فيكي",["Kyle"]="كايل",["Raul"]="راؤول",["Dre'Quan"]="دري كوان",["Karim"]="كريم",["Boobie"]="بوبي",
         ["Wade"]="وايد",["Billy"]="بيلي",["Kenton"]="كينتون",["Andy"]="آندي",["Shirley"]="شيرلي",["Brian"]="براين",
@@ -17,6 +17,7 @@ public static class ArabicGameNames
     {
         foreach(var (name,arabic) in Names)
         {
+            if(name is "Local" or "Locals" or "Driver" && !Regex.IsMatch(source,@"(?im)^\s*"+Regex.Escape(name)+@"\s*[:：]"))continue;
             var pattern=@"(?<![A-Za-z])"+Regex.Escape(name)+@"(?![A-Za-z])";
             if(Regex.IsMatch(source,pattern,RegexOptions.IgnoreCase|RegexOptions.CultureInvariant))
                 output=Regex.Replace(output,pattern,arabic,RegexOptions.IgnoreCase|RegexOptions.CultureInvariant);

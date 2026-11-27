@@ -1032,6 +1032,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             ReadingAreas=ReadingAreas.Select(a=>a.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification && a.Appearance?.Font is null or "noto"?a with{FontSize=Math.Max(28,a.FontSize),Appearance=(a.Appearance??ReadingArea.DefaultAppearance(a.Kind)) with{Font="tajawal"}}:a).ToList();
             store.Save("readable-message-fonts-v1",true);
         }
+        if(!store.Load<bool>("phone-identity-fixed-size-v1")){
+            Settings=settings with{Style=settings.Style with{Appearance=(settings.Style.Appearance??new()) with{MatchSize=false}}};
+            ReadingAreas=ReadingAreas.Select(a=>a.Kind==ReadingAreaKind.Phone?a with{Appearance=(a.Appearance??ReadingArea.DefaultAppearance(a.Kind)) with{MatchSize=false}}:a).ToList();
+            store.Save("phone-identity-fixed-size-v1",true);
+        }
         if(settings.Style.Appearance is null){
             var r=settings.Region;if(Math.Abs(r.Top-.8)<.001&&Math.Abs(r.Bottom-.918)<.001)r=r with{Bottom=.97};
             Settings=settings with{Region=r,Style=settings.Style with{Appearance=new(Position:"above"),Background=72}};
