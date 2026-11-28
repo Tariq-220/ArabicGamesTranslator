@@ -79,7 +79,7 @@ Coordinates(settings,"source","② من أين نقرأ؟ · %");Coordinates(set
     private static Slider Slide(int min,int max)=>new(){Minimum=min,Maximum=max,TickFrequency=1,IsSnapToTickEnabled=true,Margin=new Thickness(5)};
     private static Button Action(string title,Action action){var b=new Button{Content=title,MinHeight=40,MinWidth=0,Padding=new Thickness(4),Margin=new Thickness(3)};if(title.StartsWith("حذف",StringComparison.Ordinal)){b.ToolTip="حذف البطاقة المحددة";b.Background=new SolidColorBrush(Color.FromRgb(125,35,55));b.Foreground=Brushes.White;}b.Click+=(_,_)=>action();return b;}
     private static void Section(StackPanel p,string title,(string,Control)[] controls){var inner=new StackPanel();foreach(var (text,c) in controls){inner.Children.Add(new TextBlock{Text=text,Margin=new Thickness(4)});inner.Children.Add(c);}p.Children.Add(new Expander{Header=title,Content=inner,IsExpanded=false,Foreground=Brushes.White});}
-    private static void AddSlider(StackPanel p,string text,Slider slider,string format){
+    internal static void AddSlider(StackPanel p,string text,Slider slider,string format){
         p.Children.Add(new TextBlock{Text=text,Margin=new Thickness(4)});
         var row=new Grid();row.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});row.ColumnDefinitions.Add(new ColumnDefinition());row.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
         var input=Input();input.Tag="numeric-"+text;input.FlowDirection=FlowDirection.LeftToRight;input.TextAlignment=TextAlignment.Center;

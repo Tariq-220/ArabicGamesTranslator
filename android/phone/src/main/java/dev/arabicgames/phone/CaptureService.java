@@ -181,7 +181,7 @@ public final class CaptureService extends Service {
     if(s.closed||generation!=s.epoch){s.busy.set(false);return;}
     full=BitmapFactory.decodeByteArray(jpeg,0,jpeg.length);if(full==null)throw new IllegalArgumentException("Bad frame");
     if(rotation!=0){Matrix m=new Matrix();m.postRotate(rotation);Bitmap rotated=Bitmap.createBitmap(full,0,0,full.getWidth(),full.getHeight(),m,true);if(rotated!=full)full.recycle();full=rotated;}
-    if(cropFull&&s.areas!=null)s.areas.offer(full);float[] region=ReadingCards.primary(s);
+    if(cropFull){PhoneVideoPreview.publishBitmap(full);if(s.areas!=null)s.areas.offer(full);}float[] region=ReadingCards.primary(s);
     crop=cropFull?Bitmap.createBitmap(full,(int)(full.getWidth()*region[0]),(int)(full.getHeight()*region[1]),Math.max(1,(int)(full.getWidth()*region[2])),Math.max(1,(int)(full.getHeight()*region[3]))):full;
     if(crop!=full)full.recycle();full=null;Bitmap image=crop;crop=null;s.processBitmap(image,now,generation);
    }catch(Exception e){if(crop!=null)crop.recycle();if(full!=null)full.recycle();s.busy.set(false);Status.message="تعذرت قراءة إطار Xbox.";}

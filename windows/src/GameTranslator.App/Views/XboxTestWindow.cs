@@ -117,7 +117,7 @@ public sealed class XboxTestWindow : Window
         latest.Unchecked+=(_,_)=>controller.PreferLatestDialogue=false;
         root.Children.Add(latest);
         var timingOptions=new StackPanel();
-        void TimingSlider(string caption,int min,int max,int current,Action<int> update){var label=Label(caption+": "+current);var slider=new Slider{Minimum=min,Maximum=max,Value=current,IsSnapToTickEnabled=true,TickFrequency=1,Margin=new Thickness(8)};slider.ValueChanged+=(_,_)=>{int n=(int)slider.Value;label.Text=caption+": "+n;update(n);};timingOptions.Children.Add(label);timingOptions.Children.Add(slider);}
+        void TimingSlider(string caption,int min,int max,int current,Action<int> update){var slider=new Slider{Minimum=min,Maximum=max,Value=current,IsSnapToTickEnabled=true,TickFrequency=1};GameTranslator.App.Controls.ReadingAreaEditor.AddSlider(timingOptions,caption,slider,"0");slider.ValueChanged+=(_,_)=>update((int)slider.Value);}
         void ApplyTiming(ReadingTiming value){controller.Timing=value;DesktopCaptureStreamSession.SamplingIntervalMs=(int)Math.Round(1000d/Math.Max(value.CaptureFps,value.PreviewFps));}
         ApplyTiming(controller.Timing);
         TimingSlider("إطارات القراءة في الثانية",1,60,controller.Timing.CaptureFps,n=>ApplyTiming(controller.Timing with{CaptureFps=n}));

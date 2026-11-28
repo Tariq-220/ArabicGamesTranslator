@@ -20,7 +20,7 @@ public class DeepLTest {
   try{
    String actual=AiClient.send(new AiPreferences.Config("deepl","auto","RDR2","fake-key:fx",true),"Keep going.",List.of("Through the palms. → عبر النخيل."),"http://127.0.0.1:"+server.getListeningPort()+"/v2/translate");
    assertEquals("واصل التقدم.",actual);assertEquals("DeepL-Auth-Key fake-key:fx",auth.get());
-   JSONObject body=new JSONObject(payload.get());assertEquals("EN",body.getString("source_lang"));assertEquals("AR",body.getString("target_lang"));assertEquals("Keep going.",body.getJSONArray("text").getString(0));assertEquals("Through the palms.",body.getString("context"));
+   JSONObject body=new JSONObject(payload.get());assertEquals("EN",body.getString("source_lang"));assertEquals("AR",body.getString("target_lang"));assertEquals("Keep going.",body.getJSONArray("text").getString(0));assertTrue(body.getString("context").startsWith(AiRequest.INSTRUCTION));assertTrue(body.getString("context").endsWith("Through the palms."));
    assertFalse(body.has("messages"));assertFalse(body.has("model_type"));assertFalse(payload.get().contains("fake-key"));
   }finally{server.stop();}
  }

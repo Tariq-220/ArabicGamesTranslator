@@ -34,7 +34,7 @@ public final class XboxActivity extends Activity {
   caption.setVisibility(arabic.isEmpty()?View.GONE:View.VISIBLE);
   if(SystemClock.elapsedRealtime()-audioAt>700){applyAudio();audioAt=SystemClock.elapsedRealtime();}
   if(reading.active()&&!pending&&CaptureService.acceptsDirect()&&isXbox(browser.getUrl())){
-   pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicCardsFull="+ReadingCards.auxiliaryEnabled(XboxActivity.this)+";window.__arabicBounds="+java.util.Arrays.toString(ReadingCards.primary(XboxActivity.this))+";window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
+   pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicCardsFull="+(ReadingCards.auxiliaryEnabled(XboxActivity.this)||ReadingCardsActivity.previewActive)+";window.__arabicBounds="+java.util.Arrays.toString(ReadingCards.primary(XboxActivity.this))+";window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
     if(callbackId!=requestId)return;pending=false;if(!reading.accepts(generation)||destroyed)return;
     try{
      Object raw=new JSONTokener(value).nextValue();if(!(raw instanceof String))return;JSONObject frame=new JSONObject((String)raw);
@@ -71,7 +71,7 @@ public final class XboxActivity extends Activity {
    @Override public void onPageFinished(WebView view,String url){if(!isXbox(url))Status.message="أكمل الدخول في صفحة Microsoft الرسمية.";else applyAudio();}
   });browser.setWebChromeClient(new WebChromeClient(){@Override public void onPermissionRequest(PermissionRequest request){request.deny();}});
   video.addView(browser,new FrameLayout.LayoutParams(-1,-1));
-  video.addView(areaLayer,new FrameLayout.LayoutParams(-1,-1));
+  video.addView(areaLayer,new FrameLayout.LayoutParams(-1,-1));Ui.fitVideoLayer(video,areaLayer);
   caption=Ui.text(this,"",19);caption.setGravity(Gravity.CENTER);caption.setTextDirection(View.TEXT_DIRECTION_RTL);caption.setPadding(Ui.dp(this,12),Ui.dp(this,8),Ui.dp(this,12),Ui.dp(this,8));caption.setBackground(Ui.background(this,0xee0b111c));caption.setVisibility(View.GONE);
   FrameLayout.LayoutParams cp=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);cp.setMargins(Ui.dp(this,8),0,Ui.dp(this,8),Ui.dp(this,8));video.addView(caption,cp);
   PhoneInsets.fit(root);setContentView(root);

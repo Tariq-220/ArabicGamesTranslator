@@ -8,7 +8,7 @@ namespace GameTranslator.Core;
 public static class ArabicGameNames
 {
     private static readonly IReadOnlyDictionary<string,string> Names=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
-        ["Staff Member"]="الموظف",["Cops"]="رجال الشرطة",["Pilot"]="الطيار",["Vagrants"]="المتشردون",
+        ["In Spanish"]="بالإسبانية",["Staff Member"]="الموظف",["Cops"]="رجال الشرطة",["Pilot"]="الطيار",["Vagrants"]="المتشردون",
         ["Local"]="أحد السكان",["Locals"]="السكان",["Driver"]="السائق",["Stranger"]="الغريب",["Cop"]="الشرطي",["Tourist"]="السائح",["Tourists"]="السياح",["Officer"]="الشرطي",["Man"]="الرجل",["Woman"]="المرأة",
         ["Jason"]="جيسون",["Lucia"]="لوسيا",["Donnie"]="دوني",["Leonida"]="ليونيدا",
         ["Vicki"]="فيكي",["Kyle"]="كايل",["Raul"]="راؤول",["Dre'Quan"]="دري كوان",["Karim"]="كريم",["Boobie"]="بوبي",
@@ -21,7 +21,7 @@ public static class ArabicGameNames
         foreach(var known in Names.Keys.OrderByDescending(k=>k.Length)){
             if(!plain.EndsWith(" "+known,StringComparison.OrdinalIgnoreCase))continue;
             var prefix=plain[..^(known.Length+1)].Trim();
-            if(prefix.Length<=6&&Regex.Matches(prefix,@"[A-Za-z]+").All(m=>Regex.IsMatch(m.Value,@"^(?:[psefvic]|ji)$",RegexOptions.IgnoreCase)))return known;
+            if(prefix.Length<=6&&Regex.Matches(prefix,@"[A-Za-z]+").All(m=>Regex.IsMatch(m.Value,@"^(?:[psefvicg]|ji)$",RegexOptions.IgnoreCase)))return known;
         }
         return value;}
     public static string? Speaker(string name)=>Names.GetValueOrDefault(CanonicalSpeaker(name));

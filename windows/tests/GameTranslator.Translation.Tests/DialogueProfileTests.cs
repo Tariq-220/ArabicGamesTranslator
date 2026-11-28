@@ -5,6 +5,8 @@ using System.Text.Json;
 namespace GameTranslator.Translation.Tests;
 public class DialogueProfileTests
 {
+ [Theory][InlineData("Lucia: Uh, we good? i •","Lucia: Uh, we good?")][InlineData("Local: Oh god. Ohh god! J","Local: Oh god. Ohh god!")][InlineData("Jason: No! I","Jason: No! I")][InlineData("v In Spanish: You went too far!","In Spanish: You went too far!")]
+ public void RecordedSpeakerAndTrailingArtifactsDoNotInvalidateCompleteDialogue(string source,string expected)=>Assert.Equal(expected,DialogueProfile.English(source,"Grand Theft Auto VI"));
  [Theory][InlineData("æ-iÄ.j","")][InlineData("Sí, sí.","Sí, sí.")][InlineData("José: No!","José: No!")][InlineData("-E Lucia: Get in!","Lucia: Get in!")]
  public void RecordedHudArtifactIsNotDialogueButAccentedSpeechSurvives(string source,string expected)=>Assert.Equal(expected,DialogueProfile.English(source,"Grand Theft Auto VI"));
 

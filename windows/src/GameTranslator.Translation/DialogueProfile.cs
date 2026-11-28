@@ -42,6 +42,7 @@ public static class DialogueProfile {
   // glyphs and punctuation embedded between letters. Keep accented dialogue and names.
   if(!Regex.IsMatch(text,@"[A-Za-z]{2}")&&text.Count(c=>char.IsLetter(c)&&c>127)>=2&&Regex.IsMatch(text,@"\p{L}[._-]\p{L}"))return "";
   text=ArabicGameNames.NormalizeSpeakerLabels(text);
+  text=Regex.Replace(text,@"(?m)(?<=[.!?])\s+[B-HJ-Zb-z](?:\s*[•|_\-]+)?\s*$", "");
   if(!Rdr2(game))return text;
   var fixes=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){["Itrank you..."]="Thank you...",["VII hold them off."]="I'll hold them off.",["rm coming with you."]="I'm coming with you.",["1 did."]="I did.",["1 do."]="I do."};
   if(fixes.TryGetValue(text.Trim(),out var value))return value;

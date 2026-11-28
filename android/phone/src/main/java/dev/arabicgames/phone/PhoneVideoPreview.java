@@ -7,10 +7,11 @@ import java.nio.ByteBuffer;
 final class PhoneVideoPreview {
  static volatile boolean enabled;static volatile Bitmap latest;private static long at;
  static synchronized void publish(ByteBuffer buffer,int w,int h,int stride){
-  long now=SystemClock.elapsedRealtime();if(!enabled||!Status.translatorUiVisible||now-at<100||w<2||h<2||w>3840||h>2160||stride<w*4||stride%4!=0||(long)stride*h>buffer.capacity())return;at=now;
+  long now=SystemClock.elapsedRealtime();if((!enabled&&!ReadingCardsActivity.previewActive)||!Status.translatorUiVisible||now-at<100||w<2||h<2||w>3840||h>2160||stride<w*4||stride%4!=0||(long)stride*h>buffer.capacity())return;at=now;
   Bitmap full=null;
   try{full=Bitmap.createBitmap(stride/4,h,Bitmap.Config.ARGB_8888);ByteBuffer input=buffer.duplicate();input.rewind();full.copyPixelsFromBuffer(input);Bitmap visible=w==full.getWidth()?full:Bitmap.createBitmap(full,0,0,w,h);int target=Math.min(1280,w);Bitmap scaled=Bitmap.createScaledBitmap(visible,target,Math.max(1,h*target/w),true);if(visible!=full&&visible!=scaled)visible.recycle();if(full!=scaled)full.recycle();full=null;latest=scaled;}
   catch(RuntimeException|OutOfMemoryError e){if(full!=null)full.recycle();}
  }
+ static void publishBitmap(Bitmap bitmap){if(ReadingCardsActivity.previewActive){int w=Math.min(1280,bitmap.getWidth());Bitmap scaled=Bitmap.createScaledBitmap(bitmap,w,Math.max(1,bitmap.getHeight()*w/bitmap.getWidth()),true);latest=scaled==bitmap?bitmap.copy(Bitmap.Config.ARGB_8888,false):scaled;}}
  static void clear(){enabled=false;latest=null;}
 }

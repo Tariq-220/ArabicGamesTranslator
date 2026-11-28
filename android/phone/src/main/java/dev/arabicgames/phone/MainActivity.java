@@ -26,7 +26,7 @@ public final class MainActivity extends Activity {
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().setNavigationBarColor(Ui.BG);getWindow().setStatusBarColor(Ui.BG);
   LinearLayout root=Ui.column(this);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,20));root.setBackgroundColor(Ui.BG);
   TextView title=Ui.text(this,"مترجم الألعاب",27);title.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(title);
-  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — نسخة اختبار 0.4.8",14));
+  root.addView(Ui.text(this,"Xbox · PS5 · كمبيوتر — الإصدار "+Ui.version(this),14));
 
   LinearLayout model=Ui.card(this,root,"1 · تجهيز العربية");modelLabel=Ui.text(this,"افحص نموذج الترجمة أولًا",15);model.addView(modelLabel);
   download=Ui.button(this,model,"المحلي فقط: فحص / تنزيل العربية",false,this::prepare);
