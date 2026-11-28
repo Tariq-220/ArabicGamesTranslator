@@ -1,0 +1,81 @@
+{
+  "status": "ready_private_draft",
+  "version": "0.5.13",
+  "tested_source": "f56e93c31540b613863ca266fb74550bfa349ee2",
+  "source": "89d96ac620228d1e17f2a1f8015d9ab4f6088059",
+  "validation_run": 46134709984,
+  "source_tests": {
+    "core": 278,
+    "shell": 12,
+    "translation": 172
+  },
+  "native_capture": {
+    "wgc": "passed_changing_and_resized_native_window",
+    "fallback": "passed",
+    "live_stream": "wgc",
+    "width": 500,
+    "height": 300
+  },
+  "package_run": 46134947892,
+  "public_publish": false,
+  "models_changed": false,
+  "unchanged_android": {
+    "phone": "0.5.0",
+    "tv": "0.4.9"
+  },
+  "assets": [
+    {
+      "digest": "sha256:7fd0d8220b90661150aaef9fa0154720eaddf562cda861f7b7f45eae4af1f2a8",
+      "id": 804154299,
+      "name": "ArabicGames-Arabic-Guide.zip",
+      "size": 1148384
+    },
+    {
+      "digest": "sha256:8f1c1c8c3b3d442197b792f04232d88332345d2087a5c02443df24af0d7c2d58",
+      "id": 804154296,
+      "name": "ArabicGames-Enable-AutoUpdate.zip",
+      "size": 2129
+    },
+    {
+      "digest": "sha256:71b824172887790dc61beef9ba1af4b80d4251232fb058fda37db3db6e22e436",
+      "id": 804154297,
+      "name": "ArabicGames-Source-0.5.13.zip",
+      "size": 42638375
+    },
+    {
+      "digest": "sha256:21658032fc1c9aca84e48aead976e77a81319052ab61af51508d5bf52a86519a",
+      "id": 804154302,
+      "name": "ArabicGames-Windows-0.5.13-Full-Install.zip",
+      "size": 194498122
+    },
+    {
+      "digest": "sha256:6dfd4ea2fdc36435eecaf8d90e1f53834123a49a3213fc8b5119f3c8d4b59e83",
+      "id": 804154305,
+      "name": "ArabicGames-Windows-0.5.13-Update.zip",
+      "size": 33336439
+    },
+    {
+      "digest": "sha256:aaa6b713965a4c70fe68f6cd250efdeac72f8715e54d73ec1dd5d2050fd67d1d",
+      "id": 804154317,
+      "name": "SHA256SUMS.txt",
+      "size": 510
+    }
+  ],
+  "release_id": 461474100,
+  "url": "https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/untagged-48519cbec9583ef89a63",
+  "draft": true,
+  "package_tests": {
+    "translation": 172,
+    "core": 308,
+    "remote_play": 51,
+    "shell": 13
+  },
+  "download_verified": {
+    "asset": "ArabicGames-Windows-0.5.13-Update.zip",
+    "bytes": 33336439,
+    "sha256": "6dfd4ea2fdc36435eecaf8d90e1f53834123a49a3213fc8b5119f3c8d4b59e83",
+    "zip_crc": "passed",
+    "installer_version": "0.5.13",
+    "payload_hashes": 20
+  }
+}
