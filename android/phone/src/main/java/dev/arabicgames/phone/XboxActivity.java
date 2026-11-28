@@ -15,29 +15,31 @@ import java.io.*;
 
 /** The official Xbox page stays intact; translation and local audio controls are separate. */
 public final class XboxActivity extends Activity {
+ private AreaCaptionLayer areaLayer;private final java.util.Map<String,Long> areaRevisions=new java.util.HashMap<>();
  private WebView browser;private TextView status,caption;private Button startButton,stopButton,soundButton;
  private ProximityDisplay proximity;
  private View darkCover;private float previousBrightness;private int previousSystemUi;
  private String script,audioScript;private boolean phoneMuted=true;
  private final dev.arabicgames.ReadingSession reading=new dev.arabicgames.ReadingSession();
- private boolean pending,resumed,destroyed;private int requestId;private long audioAt,pendingAt;
+ private boolean pending,resumed,destroyed,toolsOpen;private int requestId;private long audioAt,pendingAt;
  private final Handler ui=new Handler(Looper.getMainLooper());
  private final Runnable poll=new Runnable(){public void run(){
-  if(destroyed||!resumed)return;
+  if(destroyed)return;if(!resumed&&!(toolsOpen&&Status.translatorUiVisible)){if(toolsOpen)ui.postDelayed(this,300);return;}
   if(pending&&SystemClock.elapsedRealtime()-pendingAt>=3000){pending=false;requestId++;PipelineMetrics.captureTimeouts.incrementAndGet();Status.message="تأخرت قراءة فيديو Xbox؛ أُعيد طلب إطار حديث.";}
   String connection=Status.clients>0?"شاشات متصلة: "+Status.clients:"لا توجد شاشة متصلة";
   status.setText(connection+" · "+(reading.requested()?CaptureService.directState():"اضغط بدء الترجمة")+"\n"+Status.message);
+  for(org.json.JSONObject area:Status.areaCaptions.values()){String id=area.optString("id");long revision=area.optLong("revision");if(areaRevisions.getOrDefault(id,-1L)<revision){areaRevisions.put(id,revision);if(areaLayer!=null)areaLayer.apply(area);}}
   String arabic=Status.arabic;
   if(!caption.getText().toString().equals(arabic))caption.setText(arabic);
   caption.setVisibility(arabic.isEmpty()?View.GONE:View.VISIBLE);
   if(SystemClock.elapsedRealtime()-audioAt>700){applyAudio();audioAt=SystemClock.elapsedRealtime();}
   if(reading.active()&&!pending&&CaptureService.acceptsDirect()&&isXbox(browser.getUrl())){
-   pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
+   pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicCardsFull="+ReadingCards.auxiliaryEnabled(this)+";window.__arabicBounds="+java.util.Arrays.toString(ReadingCards.primary(this))+";window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
     if(callbackId!=requestId)return;pending=false;if(!reading.accepts(generation)||destroyed)return;
     try{
      Object raw=new JSONTokener(value).nextValue();if(!(raw instanceof String))return;JSONObject frame=new JSONObject((String)raw);
      switch(frame.getString("status")){
-      case "FRAME":String encoded=frame.getString("image");int comma=encoded.indexOf(',');if(comma>0&&encoded.length()<800000)CaptureService.directJpeg(Base64.decode(encoded.substring(comma+1),Base64.DEFAULT));break;
+      case "FRAME":String encoded=frame.getString("image");int comma=encoded.indexOf(',');if(comma>0&&encoded.length()<800000)CaptureService.directJpeg(Base64.decode(encoded.substring(comma+1),Base64.DEFAULT),frame.optBoolean("full",false),0);break;
       case "CAPTURE_BLOCKED":Status.message="المشغّل يمنع قراءة الفيديو. جرّب مشاركة الشاشة إذا سمح بها النظام.";reading.stop();CaptureService.pauseDirect();updateButtons();break;
       case "WAIT_VIDEO":Status.message="بانتظار فيديو Xbox. اختر جهازك وشغّل اللعبة داخل الصفحة.";break;
      }
@@ -61,6 +63,7 @@ public final class XboxActivity extends Activity {
   root.addView(new ConnectionBar(this));
   status=Ui.text(this,"اختر جهاز Xbox، ثم اضغط بدء الترجمة بعد ظهور اللعبة.",12);status.setMaxLines(3); // Details remain available from the session menu; fixed ConnectionBar stays visible.
   FrameLayout video=new FrameLayout(this);root.addView(video,new LinearLayout.LayoutParams(-1,0,1));
+  areaLayer=new AreaCaptionLayer(this);
   browser=new WebView(this);WebSettings settings=browser.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setMediaPlaybackRequiresUserGesture(false);settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setSafeBrowsingEnabled(true);
   CookieManager.getInstance().setAcceptCookie(true);CookieManager.getInstance().setAcceptThirdPartyCookies(browser,true);
   browser.setWebViewClient(new WebViewClient(){
@@ -68,6 +71,7 @@ public final class XboxActivity extends Activity {
    @Override public void onPageFinished(WebView view,String url){if(!isXbox(url))Status.message="أكمل الدخول في صفحة Microsoft الرسمية.";else applyAudio();}
   });browser.setWebChromeClient(new WebChromeClient(){@Override public void onPermissionRequest(PermissionRequest request){request.deny();}});
   video.addView(browser,new FrameLayout.LayoutParams(-1,-1));
+  video.addView(areaLayer,new FrameLayout.LayoutParams(-1,-1));
   caption=Ui.text(this,"",19);caption.setGravity(Gravity.CENTER);caption.setTextDirection(View.TEXT_DIRECTION_RTL);caption.setPadding(Ui.dp(this,12),Ui.dp(this,8),Ui.dp(this,12),Ui.dp(this,8));caption.setBackground(Ui.background(this,0xee0b111c));caption.setVisibility(View.GONE);
   FrameLayout.LayoutParams cp=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);cp.setMargins(Ui.dp(this,8),0,Ui.dp(this,8),Ui.dp(this,8));video.addView(caption,cp);
   PhoneInsets.fit(root);setContentView(root);
@@ -80,8 +84,8 @@ public final class XboxActivity extends Activity {
   menu.getMenu().add("إطفاء بحساس القرب / حماية OLED").setOnMenuItemClickListener(item->{displayOptions();return true;});
   menu.getMenu().add("تعتيم OLED — ليس قفل الشاشة").setOnMenuItemClickListener(item->{enterDarkMode();return true;});
   android.view.MenuItem dialogueOnly=menu.getMenu().add("الحوار فقط — تجاهل قوائم Xbox وأسماء الطاقم المعروفة");dialogueOnly.setCheckable(true).setChecked(getSharedPreferences("reading",0).getBoolean("dialogueOnly",true));dialogueOnly.setOnMenuItemClickListener(item->{boolean on=!item.isChecked();getSharedPreferences("reading",0).edit().putBoolean("dialogueOnly",on).apply();CaptureService.readingChanged();Status.message=on?"تنقية الحوار مفعّلة؛ قوائم Xbox لا تُرسل للمحرك.":"تنقية الحوار متوقفة؛ اختر القوائم لترجمتها.";return true;});
-  menu.getMenu().add("منطقة القراءة / القوائم / رسائل الهاتف").setOnMenuItemClickListener(item->{ReadingOptions.show(this);return true;});
-  menu.getMenu().add("سجل الحوارات / تصدير حزمة").setOnMenuItemClickListener(item->{startActivity(new Intent(this,HistoryActivity.class));return true;});menu.getMenu().add("محرك الترجمة / AI").setOnMenuItemClickListener(item->{startActivity(new Intent(this,AiSettingsActivity.class));return true;});menu.getMenu().add("اختبار إرسال إلى الشاشة").setOnMenuItemClickListener(item->{reading.stop();requestId++;pending=false;updateButtons();if(!CaptureService.screenTest())Status.message="خدمة الربط غير جاهزة.";return true;});menu.getMenu().add("تفاصيل الترجمة والربط").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("تفاصيل الترجمة").setMessage("IP: "+Status.address()+"\nالرمز: "+Status.code+"\nشاشات: "+Status.clients+" | صور مقروءة: "+Status.framesRead+"\n"+Status.metrics+"\n"+Status.cloudMetrics+"\nEnglish: "+Status.observedOcr+"\nالعربية: "+Status.arabic).setPositiveButton("إغلاق",null).show();return true;});
+  menu.getMenu().add("مناطق القراءة والبطاقات").setOnMenuItemClickListener(item->{openTools(ReadingCardsActivity.class);return true;});
+  menu.getMenu().add("التوقيت وتحسين السرعة").setOnMenuItemClickListener(item->{openTools(TimingActivity.class);return true;});menu.getMenu().add("سجل الحوارات / تصدير حزمة").setOnMenuItemClickListener(item->{openTools(HistoryActivity.class);return true;});menu.getMenu().add("محرك الترجمة / AI").setOnMenuItemClickListener(item->{openTools(AiSettingsActivity.class);return true;});menu.getMenu().add("اختبار إرسال إلى الشاشة").setOnMenuItemClickListener(item->{reading.stop();requestId++;pending=false;updateButtons();if(!CaptureService.screenTest())Status.message="خدمة الربط غير جاهزة.";return true;});menu.getMenu().add("تفاصيل الترجمة والربط").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("تفاصيل الترجمة").setMessage("IP: "+Status.address()+"\nالرمز: "+Status.code+"\nشاشات: "+Status.clients+" | صور مقروءة: "+Status.framesRead+"\n"+Status.metrics+"\n"+Status.cloudMetrics+"\nEnglish: "+Status.observedOcr+"\nالعربية: "+Status.arabic).setPositiveButton("إغلاق",null).show();return true;});
   menu.getMenu().add("مساعدة صوت الشاشة").setOnMenuItemClickListener(item->{new AlertDialog.Builder(this).setTitle("الصوت من الشاشة").setMessage("زر الصوت هنا يغيّر صوت فيديو الجوال فقط. في تطبيق الشاشة فعّل صوت HDMI.\nإذا كتم Xbox السماعات أثناء Remote Play، راجع Xbox: Settings > General > Volume & audio output > Additional options، وألغِ Mute speaker audio when headset attached إن كان مفعّلًا. لا يغيّر التطبيق مستوى صوت التلفزيون أو إعداد Xbox.").setPositiveButton("إغلاق",null).show();return true;});
   menu.getMenu().add("إنهاء جلسة Xbox والعودة").setOnMenuItemClickListener(item->{finish();return true;});menu.show();
  }
@@ -112,8 +116,10 @@ public final class XboxActivity extends Activity {
   if(Build.VERSION.SDK_INT>=30){android.view.WindowInsetsController bars=getWindow().getInsetsController();if(bars!=null)bars.show(android.view.WindowInsets.Type.systemBars());}else getWindow().getDecorView().setSystemUiVisibility(previousSystemUi);
  }
  private void updateButtons(){if(startButton!=null)startButton.setEnabled(!reading.requested());if(stopButton!=null)stopButton.setEnabled(reading.requested());if(soundButton!=null)soundButton.setText(phoneMuted?"صوت الجوال: مكتوم":"صوت الجوال: مسموع");}
- @Override protected void onResume(){super.onResume();resumed=true;reading.resume();if(reading.requested())Status.message="استؤنفت قراءة الفيديو.";if(browser!=null)browser.onResume();ui.post(poll);}
- @Override protected void onPause(){if(proximity!=null)proximity.stop();resumed=false;reading.pause();requestId++;pending=false;CaptureService.pauseDirect();ui.removeCallbacks(poll);if(browser!=null)browser.onPause();super.onPause();}
+ @Override protected void onResume(){super.onResume();resumed=true;reading.resume();if(reading.requested())Status.message="استؤنفت قراءة الفيديو.";if(browser!=null)browser.onResume();ui.removeCallbacks(poll);ui.post(poll);}
+ private void openTools(Class<? extends Activity> target){toolsOpen=true;LiveTools.open(this,target);}
+ @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==LiveTools.REQUEST)toolsOpen=false;}
+ @Override protected void onPause(){if(proximity!=null)proximity.stop();resumed=false;if(!toolsOpen){reading.pause();requestId++;pending=false;CaptureService.pauseDirect();ui.removeCallbacks(poll);if(browser!=null)browser.onPause();}super.onPause();}
  @Override public void onBackPressed(){if(darkCover!=null){exitDarkMode();return;}if(browser.canGoBack())browser.goBack();else super.onBackPressed();}
  @Override protected void onDestroy(){if(proximity!=null)proximity.stop();exitDarkMode();destroyed=true;ui.removeCallbacksAndMessages(null);CaptureService.pauseDirect();if(browser!=null){browser.stopLoading();browser.destroy();}super.onDestroy();}
 }

@@ -34,6 +34,7 @@ public final class NativePlayStationActivity extends Activity {
   }else{
    card.addView(Ui.text(this,"PS5 المحفوظ: "+(saved==null?"غير متاح":saved.name)+"\nارجع للأساسي من يد التحكم المتصلة بالـPS5 وافتح لعبتك، واترك الثانوي للبث. فعّل Subtitles الإنجليزية. أغلق جلسة Sony Remote Play الخارجية إذا كانت تعمل؛ اتصالنا هنا مباشر.",15));
    live=Ui.text(this,"",13);card.addView(live);
+   Ui.button(this,card,"فتح فيديو PS5 داخل التطبيق — الإعدادات أثناء البث",true,()->startActivity(new Intent(this,NativeVideoActivity.class)));
    Ui.button(this,card,"بدء ترجمة PS5 مباشرة",true,()->{
     load();if(!NativeBridge.available()||saved==null||!saved.paired()){status.setText("أكمل تسجيل Sony والاقتران بمحرك PS5 أولًا.");return;}if(!AiPreferences.canTranslate(this)){status.setText("جهّز نموذج العربية أو اختر محرك الترجمة من الإعدادات.");return;}if(Status.captureActive){status.setText("توجد مشاركة شاشة قديمة. اضغط إيقاف المصدر أولًا ثم ابدأ PS5 المباشر.");return;}
     try{startForegroundService(new Intent(this,CaptureService.class).setAction("ps5"));status.setText("بدأ طلب البث المباشر؛ لا نحتاج إذن مشاركة شاشة أو فتح تطبيق Sony.");}catch(Exception e){status.setText("تعذر تشغيل خدمة PS5. افتح التطبيق من جديد وأعد المحاولة.");}

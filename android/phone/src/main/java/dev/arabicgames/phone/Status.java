@@ -3,6 +3,7 @@ package dev.arabicgames.phone;
 import java.net.*;
 import java.util.*;
 final class Status {
+ static final java.util.concurrent.ConcurrentHashMap<String,org.json.JSONObject> areaCaptions=new java.util.concurrent.ConcurrentHashMap<>();
  static volatile boolean running,captureActive,modelReady,translatorUiVisible;
  static volatile String message="نزّل نموذج العربية ثم ابدأ اختبار ربط التلفزيون.";
  static volatile String code="", source="", arabic="", metrics="";

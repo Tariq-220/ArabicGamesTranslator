@@ -8,7 +8,7 @@ import org.json.*;
 
 public final class HistoryActivity extends Activity {
  private LinearLayout rows;private TextView status;private String pendingExport;private boolean exportingLog;
- @Override public void onCreate(Bundle saved){super.onCreate(saved);
+ @Override public void onCreate(Bundle saved){LiveTools.theme(this);super.onCreate(saved);
   LinearLayout root=Ui.column(this);root.setBackgroundColor(Ui.BG);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16));root.addView(Ui.text(this,"سجل الحوارات والترجمة",24));
   root.addView(Ui.text(this,"آخر 200 سطر محفوظة على هذا الجوال فقط. تصحيحك المعتمد يُستخدم تلقائيًا عند تكرار النص نفسه في اللعبة نفسها؛ لا نعتمد ناتج AI كتصحيح. التصحيحات المعتمدة محفوظة منفصلة حتى لو خرج السطر من آخر 200 سطر؛ المسح الصريح يحذفها أيضًا. السطور الآلية قد تكون خاطئة. لا يوجد رفع جماعي تلقائي.",14));
   CheckBox community=new CheckBox(this);community.setText("تنزيل التصحيحات العامة بعد مراجعتها تلقائيًا — لا يرفع سجلك");community.setTextColor(Ui.TEXT);community.setChecked(getSharedPreferences("reading",0).getBoolean("communityUpdates",true));community.setOnCheckedChangeListener((b,on)->{getSharedPreferences("reading",0).edit().putBoolean("communityUpdates",on).apply();if(on)CommunityCorrections.refresh(this);});root.addView(community);

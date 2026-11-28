@@ -21,7 +21,7 @@ public final class AreaCaptionLayer extends FrameLayout {
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final Map<String,JSONObject> pending=new HashMap<>();
  private final Map<String,View> views=new HashMap<>();
- private final Map<String,String> texts=new HashMap<>();
+ private final Map<String,String> texts=new HashMap<>(),signatures=new HashMap<>();
  private final Map<String,Long> revisions=new HashMap<>();
  private final Map<String,Runnable> expiry=new HashMap<>();
  public AreaCaptionLayer(Context context){super(context);font=android.graphics.Typeface.createFromAsset(context.getAssets(),"fonts/NotoSansArabic.ttf");setFocusable(false);setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);}
@@ -37,6 +37,8 @@ public final class AreaCaptionLayer extends FrameLayout {
   double left=bound(box.optDouble("left",.1)),top=bound(box.optDouble("top",.1));
   double right=bound(box.optDouble("right",.9)),bottom=bound(box.optDouble("bottom",.8));
   if(right-left<.02||bottom-top<.02)return;
+  String signature=text+box.toString()+data.optJSONObject("panel")+data.optJSONObject("appearance")+data.optInt("fontSize",24)+":"+data.optInt("background",0)+":"+getWidth()+":"+getHeight();
+  View existing=views.get(id);if(existing!=null&&signature.equals(signatures.get(id))){existing.setVisibility(View.VISIBLE);lease(id,existing,revision,data.optInt("duration",3500));return;}signatures.put(id,signature);
   View oldView=views.get(id);if(oldView!=null)removeView(oldView);
   JSONObject panel=data.optJSONObject("panel"),appearance=data.optJSONObject("appearance");
   int screenWidth=Math.max(1,getWidth()),screenHeight=Math.max(1,getHeight());
@@ -50,9 +52,10 @@ public final class AreaCaptionLayer extends FrameLayout {
   FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(Math.max(40,(int)((right-left)*width)),Math.max(30,(int)((bottom-top)*height)),Gravity.TOP|Gravity.LEFT);p.leftMargin=(int)(left*width);p.topMargin=(int)(top*height);view.setLayoutParams(p);
   
   view.setVisibility(View.VISIBLE);boolean changed=!text.equals(texts.put(id,text));int fade=appearance==null?0:Math.max(0,Math.min(300,appearance.optInt("fadeMs",100)));if(changed&&fade>0&&(oldView==null||oldView.getVisibility()!=View.VISIBLE)){view.setAlpha(0);view.animate().alpha(1).setDuration(fade).start();}final View caption=view;
-  Runnable hide=()->{if(revisions.getOrDefault(id,-1L)==revision)caption.setVisibility(View.INVISIBLE);expiry.remove(id);};expiry.put(id,hide);handler.postDelayed(hide,Math.max(1200,Math.min(30000,data.optInt("duration",3500))));
+  lease(id,caption,revision,data.optInt("duration",3500));
  }
 
+ private void lease(String id,View caption,long revision,int duration){Runnable hide=()->{if(revisions.getOrDefault(id,-1L)==revision)caption.setVisibility(View.INVISIBLE);expiry.remove(id);};expiry.put(id,hide);handler.postDelayed(hide,Math.max(1200,Math.min(30000,duration)));}
  private static boolean hasCells(JSONObject panel){if(panel==null||panel.optJSONArray("cells")==null)return false;org.json.JSONArray cells=panel.optJSONArray("cells");for(int i=0;i<Math.min(24,cells.length());i++){JSONObject c=cells.optJSONObject(i);if(c==null||c.optString("text","").trim().isEmpty())continue;JSONObject b=c.optJSONObject("box");if(b!=null&&b.optDouble("right")>b.optDouble("left")&&b.optDouble("bottom")>b.optDouble("top"))return true;}return false;}
  @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){super.onSizeChanged(w,h,oldw,oldh);if(w>0&&h>0&&!pending.isEmpty()){java.util.List<JSONObject> values=new java.util.ArrayList<>(pending.values());pending.clear();for(JSONObject value:values)apply(value);}}
  private View panel(JSONObject panel,JSONObject appearance,int width,int height,int fontSize,int opacity){

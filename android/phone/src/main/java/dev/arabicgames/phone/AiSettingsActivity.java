@@ -20,7 +20,7 @@ public final class AiSettingsActivity extends Activity {
   String provider,game,address;boolean consent,fast,deepLFast;
  }
  @Override public void onCreate(Bundle saved){
-  super.onCreate(saved);getWindow().setStatusBarColor(Ui.BG);getWindow().setNavigationBarColor(Ui.BG);
+  LiveTools.theme(this);super.onCreate(saved);getWindow().setStatusBarColor(Ui.BG);getWindow().setNavigationBarColor(Ui.BG);
   Draft retained=(Draft)getLastNonConfigurationInstance();if(retained!=null){keyDrafts.putAll(retained.keys);modelDrafts.putAll(retained.models);}
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
   LinearLayout root=Ui.column(this);root.setPadding(Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,16),Ui.dp(this,20));root.setBackgroundColor(Ui.BG);

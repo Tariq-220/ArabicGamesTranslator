@@ -12,7 +12,7 @@ final class Ps5Session {
  private static final ScheduledExecutorService control=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"ps5-native-control");t.setDaemon(true);return t;});
  private static final AtomicLong epoch=new AtomicLong();private static volatile boolean wanted;private static volatile long handle;
  static volatile String state="متوقف";static volatile long frames;private static int retries;
- static void start(Context context){Context app=context.getApplicationContext();long generation=epoch.incrementAndGet();wanted=true;frames=0;state="جارٍ الاتصال المباشر بـPS5…";
+ static synchronized void start(Context context){if(wanted)return;Context app=context.getApplicationContext();long generation=epoch.incrementAndGet();wanted=true;frames=0;state="جارٍ الاتصال المباشر بـPS5…";
   control.execute(()->{close();retries=0;connect(app,generation);});
  }
  private static void close(){long old=handle;handle=0;if(old!=0)NativeBridge.INSTANCE.sessionStop(old);}
@@ -31,7 +31,7 @@ final class Ps5Session {
    state="فتح بث PS5 المباشر — الحساب الثانوي للبث";
    handle=NativeBridge.INSTANCE.sessionStart(saved.host,saved.key,saved.morning,saved.account,5,new NativeBridge.SessionListener(){
     public void onLog(int level,String message){} // Native packet/key logs are deliberately not exported.
-    public void onFrame(ByteBuffer buffer,int w,int h,int stride){if(!current(g))return;frames++;CaptureService.ps5Rgba(buffer,w,h,stride);}
+    public void onFrame(ByteBuffer buffer,int w,int h,int stride){if(!current(g))return;frames++;PhoneVideoPreview.publish(buffer,w,h,stride);CaptureService.ps5Rgba(buffer,w,h,stride);}
     public void onEvent(int event,int reason,String detail){
      if(!current(g))return;if(event==0){state="متصل مباشرة بـPS5 — ارجع لحسابك الأساسي من اليد وافتح اللعبة";return;}
      control.execute(()->{if(!current(g))return;close();

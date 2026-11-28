@@ -24,7 +24,7 @@
   try {
     // Crop before transferring a frame to Android: subtitle area only, no entire-screen copy.
     const mode = window.__arabicRegion || 'subtitles';
-    const rect = mode === 'phoneRight' ? [.55,.08,.44,.89] : mode === 'phoneLeft' ? [.01,.08,.44,.89] : mode === 'all' ? [0,0,1,1] : mode === 'left' ? [0,0,.65,1] : mode === 'right' ? [.35,0,.65,1] : [.10,.62,.80,.35];
+    const rect = window.__arabicCardsFull ? [0,0,1,1] : Array.isArray(window.__arabicBounds) && window.__arabicBounds.length === 4 && window.__arabicBounds.every(Number.isFinite) ? window.__arabicBounds : mode === 'phoneRight' ? [.55,.08,.44,.89] : mode === 'phoneLeft' ? [.01,.08,.44,.89] : mode === 'all' ? [0,0,1,1] : mode === 'left' ? [0,0,.65,1] : mode === 'right' ? [.35,0,.65,1] : [.10,.62,.80,.35];
     const sx = Math.floor(video.videoWidth * rect[0]), sy = Math.floor(video.videoHeight * rect[1]);
     const sw = Math.max(1, Math.floor(video.videoWidth * rect[2])), sh = Math.max(1, Math.floor(video.videoHeight * rect[3]));
     const scale = Math.min(1, (mode === 'subtitles' ? 1000 : 1280) / sw);
@@ -34,6 +34,6 @@
     canvas.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
     const image = canvas.toDataURL('image/jpeg', .80);
     state.count = count;
-    return output('FRAME', {image});
+    return output('FRAME', {image,full: !!window.__arabicCardsFull});
   } catch (e) { return output('CAPTURE_BLOCKED'); }
 })();

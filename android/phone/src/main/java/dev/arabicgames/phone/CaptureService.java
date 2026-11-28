@@ -38,7 +38,8 @@ public final class CaptureService extends Service {
  private boolean isLocal(){return engine!=null&&(AiPreferences.NATIVE.equals(engine.provider)||AiPreferences.LOCAL.equals(engine.provider));}
  private boolean localOcrAllowed(){return SystemClock.elapsedRealtime()-lastLocalOcr>=(isLocal()?LocalTiming.interval(this):200);}
  private final SubtitleGate gate=new SubtitleGate();
- private AiPreferences.Config engine;
+ private volatile AiPreferences.Config engine;
+ private PhoneAreas areas;private final java.util.concurrent.ExecutorService areaWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
  private volatile LocalModels.Session localSession;private int localLoadEpoch=-1,modelGeneration;
  private final java.util.ArrayDeque<String> history=new java.util.ArrayDeque<>();
  private final java.util.concurrent.ExecutorService aiWorker=java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -59,6 +60,11 @@ public final class CaptureService extends Service {
    foreground(projection!=null||"capture".equals(intent.getAction()));
    if(server==null){String code=getSharedPreferences("relay",MODE_PRIVATE).getString("pairingCode",null);if(code==null){code=Pairing.createCode();getSharedPreferences("relay",MODE_PRIVATE).edit().putString("pairingCode",code).apply();}server=new RelayServer(code);server.start(15000,false);Status.code=code;ui.post(testLoop);}
    if("test".equals(intent.getAction())){server.subtitle("آرثر: هذا اختبار العربية — 25 دولارًا",5000);Status.message="اختبار الربط فقط؛ لترجمة اللعبة اختر Xbox أو بدء ترجمة PS5. من الشاشة اختر اكتشاف الجوال ووافق على الرمز.";return START_NOT_STICKY;}
+   if("ps5-preview".equals(intent.getAction())) {
+    if(projection!=null){Status.message="أوقف مشاركة الشاشة قبل بدء PS5 المباشر.";return START_NOT_STICKY;}
+    directSource="ps5";Status.running=true;Ps5Session.start(this);return START_NOT_STICKY;
+   }
+   if("ps5-pause".equals(intent.getAction())){directActive=false;epoch++;localQueue.reset();gate.absent();Status.source="";Status.arabic="";if(server!=null)server.clear();Status.message="توقفت الترجمة؛ فيديو PS5 مستمر.";return START_NOT_STICKY;}
    if("ps5".equals(intent.getAction())) {
     if(projection!=null){Status.message="أوقف مشاركة الشاشة أولًا قبل تشغيل PS5 المباشر.";return START_NOT_STICKY;}
     dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);directSource="ps5";epoch++;gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;
@@ -128,12 +134,13 @@ public final class CaptureService extends Service {
   if(recognizer!=null){ensureModel();return;}
   loadPack();
    recognizer=TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+   areas=new PhoneAreas(this,this::translateArea,value->{Status.areaCaptions.put(value.optString("id"),value);if(server!=null)server.area(value);});
    translator=Translation.getClient(new TranslatorOptions.Builder().setSourceLanguage(TranslateLanguage.ENGLISH).setTargetLanguage(TranslateLanguage.ARABIC).build());
    ensureModel();
  }
  static boolean screenTest(){CaptureService s=current;if(s==null||s.closed||s.server==null)return false;String text="اختبار إرسال من الجوال إلى الشاشة — "+(SystemClock.elapsedRealtime()/1000%10000);Status.arabic=text;Status.message="أُرسل اختبار الربط؛ قراءة اللعبة إن كانت تعمل تستمر.";s.server.subtitle(text,10000);final int generation=s.epoch;s.ui.postDelayed(()->{if(!s.closed&&s.epoch==generation&&Status.arabic.equals(text)){Status.arabic="";s.server.clear();}},10000);return true;}
  static void retryModel(){CaptureService s=current;if(s!=null)s.ensureModel();}
- static void readingChanged(){CaptureService s=current;if(s==null)return;s.epoch++;s.localQueue.reset();s.gate.resetMemory();s.lease.clear();s.history.clear();Status.arabic="";if(s.server!=null)s.server.clear();}
+ static void readingChanged(){CaptureService s=current;if(s==null)return;if(s.areas!=null)s.areas.reload();s.epoch++;s.localQueue.reset();s.gate.resetMemory();s.lease.clear();s.history.clear();Status.arabic="";if(s.server!=null)s.server.clear();}
  static void translationChanged(){CaptureService s=current;if(s==null||s.closed)return;
   s.epoch++;s.localQueue.reset();if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.modelGeneration++;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.cloudFailures=0;s.ready=false;
   Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
@@ -159,7 +166,7 @@ public final class CaptureService extends Service {
  static void ps5Rgba(java.nio.ByteBuffer buffer,int w,int h,int stride){
   CaptureService s=current;if(apiTestActive||s==null||s.closed||!s.directActive||!"ps5".equals(s.directSource)||!s.ready||!s.localOcrAllowed()||w<2||h<2||w>3840||h>2160||stride<w*4||stride%4!=0||((long)stride*h)>buffer.capacity()||!s.busy.compareAndSet(false,true))return;
   int generation=s.epoch;long now=SystemClock.elapsedRealtime();Bitmap full=null,crop=null;
-  try{full=Bitmap.createBitmap(stride/4,h,Bitmap.Config.ARGB_8888);buffer.rewind();full.copyPixelsFromBuffer(buffer);float[] region=ReadingRegion.bounds(s.getSharedPreferences("reading",0).getString("region","subtitles"));
+  try{full=Bitmap.createBitmap(stride/4,h,Bitmap.Config.ARGB_8888);buffer.rewind();full.copyPixelsFromBuffer(buffer);if(s.areas!=null)s.areas.offer(full);float[] region=ReadingCards.primary(s);
    crop=Bitmap.createBitmap(full,(int)(w*region[0]),(int)(h*region[1]),Math.max(1,(int)(w*region[2])),Math.max(1,(int)(h*region[3])));if(crop!=full)full.recycle();full=null;Bitmap image=crop;crop=null;
    s.frames.post(()->{if(s.closed||generation!=s.epoch){image.recycle();s.busy.set(false);return;}s.processBitmap(image,now,generation);});
   }catch(Exception e){if(crop!=null)crop.recycle();if(full!=null)full.recycle();s.busy.set(false);Status.message="تعذرت قراءة إطار PS5.";}
@@ -174,7 +181,7 @@ public final class CaptureService extends Service {
     if(s.closed||generation!=s.epoch){s.busy.set(false);return;}
     full=BitmapFactory.decodeByteArray(jpeg,0,jpeg.length);if(full==null)throw new IllegalArgumentException("Bad frame");
     if(rotation!=0){Matrix m=new Matrix();m.postRotate(rotation);Bitmap rotated=Bitmap.createBitmap(full,0,0,full.getWidth(),full.getHeight(),m,true);if(rotated!=full)full.recycle();full=rotated;}
-    float[] region=ReadingRegion.bounds(s.getSharedPreferences("reading",0).getString("region","subtitles"));
+    if(cropFull&&s.areas!=null)s.areas.offer(full);float[] region=ReadingCards.primary(s);
     crop=cropFull?Bitmap.createBitmap(full,(int)(full.getWidth()*region[0]),(int)(full.getHeight()*region[1]),Math.max(1,(int)(full.getWidth()*region[2])),Math.max(1,(int)(full.getHeight()*region[3]))):full;
     if(crop!=full)full.recycle();full=null;Bitmap image=crop;crop=null;s.processBitmap(image,now,generation);
    }catch(Exception e){if(crop!=null)crop.recycle();if(full!=null)full.recycle();s.busy.set(false);Status.message="تعذرت قراءة إطار Xbox.";}
@@ -185,8 +192,8 @@ public final class CaptureService extends Service {
    lastLocalOcr=SystemClock.elapsedRealtime();Status.framesRead++;PipelineMetrics.ocr.incrementAndGet();
    recognizer.process(InputImage.fromBitmap(bitmap,0))
     .addOnSuccessListener(result->{
-     int bitmapWidth=bitmap.getWidth();bitmap.recycle();if(closed||generation!=epoch){busy.set(false);return;}
-     String observed=ReadingRegion.sourceLimit(SubtitleGate.normalize(dialogueText(result,bitmapWidth)));Status.observedOcr=observed;String cleaned=getSharedPreferences("reading",0).getBoolean("dialogueOnly",true)?CaptionNoise.clean(this,observed,AiPreferences.game(this)):observed;String text=DialogueProfile.english(cleaned,AiPreferences.game(this));long readDone=SystemClock.elapsedRealtime();
+     int bitmapWidth=bitmap.getWidth(),bitmapHeight=bitmap.getHeight();bitmap.recycle();if(closed||generation!=epoch){busy.set(false);return;}
+     String observed=ReadingRegion.sourceLimit(SubtitleGate.normalize(dialogueText(result,bitmapWidth,bitmapHeight)));Status.observedOcr=observed;String cleaned=getSharedPreferences("reading",0).getBoolean("dialogueOnly",true)?CaptionNoise.clean(this,observed,AiPreferences.game(this)):observed;String text=DialogueProfile.english(cleaned,AiPreferences.game(this));long readDone=SystemClock.elapsedRealtime();
      if(text.isEmpty()){PipelineMetrics.empty.incrementAndGet();if(!observed.isEmpty()&&cleaned.isEmpty())PipelineMetrics.filtered.incrementAndGet();
       if(readDone-lastText>1200){localQueue.reset();gate.absent();lease.clear();if(!Status.arabic.isEmpty()){Status.arabic="";if(server!=null)server.clear();}}
       if(!observed.isEmpty()&&cleaned.isEmpty())Status.message="تم تجاهل قوائم Xbox أو أسماء الطاقم. خيار الحوار فقط من قائمة الجلسة.";else if(readDone-started>10000&&readDone-lastText>10000)Status.message="لم يظهر نص: فعّل ترجمة اللعبة الإنجليزية. قد يكون البث أسود أو محميًا من الالتقاط؛ لا يمكن قراءة محتوى محمي.";
@@ -232,9 +239,19 @@ public final class CaptureService extends Service {
    });
   }catch(Exception e){PipelineMetrics.failures.incrementAndGet();ui.post(()->{if(!closed&&job.generation==epoch&&localQueue.current(job)){gate.retry();cloudRetryAfter=SystemClock.elapsedRealtime()+1000;Status.message="تعذرت ترجمة السطر محليًا؛ ستُعاد المحاولة دون تراكم طلبات.";}});}finally{ui.post(()->{localQueue.finish(job);drainLocalQueue();});}});
  }
- private String dialogueText(com.google.mlkit.vision.text.Text result,int width){
-  if(!DialogueProfile.rdr2(AiPreferences.game(this)))return result.getText();StringBuilder text=new StringBuilder();float[] region=ReadingRegion.bounds(getSharedPreferences("reading",0).getString("region","subtitles"));
+ private String dialogueText(com.google.mlkit.vision.text.Text result,int width,int height){
+  if(!DialogueProfile.rdr2(AiPreferences.game(this)))return areas==null?result.getText():areas.dialogueText(result,width,height,ReadingCards.primary(this));StringBuilder text=new StringBuilder();float[] region=ReadingRegion.bounds(getSharedPreferences("reading",0).getString("region","subtitles"));
   for(com.google.mlkit.vision.text.Text.TextBlock block:result.getTextBlocks())for(com.google.mlkit.vision.text.Text.Line line:block.getLines()){Rect box=line.getBoundingBox();String value=line.getText();float center=box==null?0:region[0]+region[2]*box.exactCenterX()/Math.max(1,width);if(DialogueProfile.interactionPrompt(value,center))continue;if(text.length()>0)text.append('\n');text.append(value);}return text.toString();
+ }
+ private java.util.concurrent.CompletableFuture<String> translateArea(String text){
+  java.util.concurrent.CompletableFuture<String> result=new java.util.concurrent.CompletableFuture<>();
+  String known=DialogueStore.get(this).reviewed(AiPreferences.game(this),text);if(known==null)known=CommunityCorrections.find(this,AiPreferences.game(this),text);if(known!=null){result.complete(known);return result;}
+  AiPreferences.Config selected=engine;if(closed||!ready||selected==null){result.completeExceptionally(new IllegalStateException("Engine not ready"));return result;}
+  if(!selected.cloud()&&!AiPreferences.NATIVE.equals(selected.provider)&&!AiPreferences.LOCAL.equals(selected.provider)){
+   translator.translate(text).addOnSuccessListener(result::complete).addOnFailureListener(result::completeExceptionally);return result;
+  }
+  java.util.concurrent.ExecutorService queue=selected.cloud()?areaWorker:aiWorker;
+  queue.execute(()->{if(closed){result.completeExceptionally(new IllegalStateException("Closed"));return;}try{LocalModels.Session local=localSession;String arabic=AiPreferences.NATIVE.equals(selected.provider)?(local==null?"":local.translate(text)):AiClient.translate(selected,text,java.util.Collections.emptyList());if(arabic.trim().isEmpty())throw new java.io.IOException("Empty translation");result.complete(arabic);}catch(Exception error){result.completeExceptionally(error);}});return result;
  }
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin){publish(text,arabic,captured,readDone,translated,generation,origin,true);}
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin,boolean releaseFrame){publish(text,arabic,captured,readDone,translated,generation,origin,releaseFrame,-1,0);}
@@ -249,7 +266,7 @@ public final class CaptureService extends Service {
    Status.message="ترجمة نشطة — "+origin;if(server!=null){server.subtitle(arabic,5000);Status.clients=server.clients();}
   }finally{if(releaseFrame)busy.set(false);}
  }
- @Override public void onDestroy(){dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);Ps5Session.stop();current=null;directActive=false;closed=true;localQueue.reset();epoch++;ready=false;Status.running=false;Status.captureActive=false;Status.clients=0;Status.code="";ui.removeCallbacks(testLoop);
+ @Override public void onDestroy(){dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);Ps5Session.stop();current=null;directActive=false;closed=true;if(areas!=null)areas.close();areaWorker.shutdownNow();Status.source="";Status.arabic="";localQueue.reset();epoch++;ready=false;Status.running=false;Status.captureActive=false;Status.clients=0;Status.code="";ui.removeCallbacks(testLoop);
   if(server!=null){server.clear();server.stop();server=null;}
   if(display!=null)display.release();if(reader!=null)reader.close();if(projection!=null)projection.stop();
   if(localSession!=null){localSession.close();localSession=null;}aiWorker.shutdownNow();if(thread!=null)thread.quitSafely();if(recognizer!=null)recognizer.close();if(translator!=null)translator.close();
