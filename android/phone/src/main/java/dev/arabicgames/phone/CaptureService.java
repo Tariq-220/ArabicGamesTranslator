@@ -143,7 +143,7 @@ public final class CaptureService extends Service {
  static void readingChanged(){CaptureService s=current;if(s==null)return;if(s.areas!=null)s.areas.reload();s.epoch++;s.localQueue.reset();s.gate.resetMemory();s.lease.clear();s.history.clear();Status.arabic="";if(s.server!=null)s.server.clear();}
  static void translationChanged(){CaptureService s=current;if(s==null||s.closed)return;
   s.epoch++;s.localQueue.reset();if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.modelGeneration++;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.cloudFailures=0;s.ready=false;
-  Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
+  if(s.areas!=null)s.areas.reload();Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
  }
  private void loadTranslationSettings(){try{engine=AiPreferences.read(this);}catch(Exception e){engine=new AiPreferences.Config(AiPreferences.provider(this),"","","",AiPreferences.cloud(this));Status.message="تعذر قراءة مفتاح AI. افتح إعدادات المحرك وأعد إدخاله.";}}
  static String directState(){CaptureService s=current;if(s==null||s.closed)return "خدمة الربط متوقفة";if(!s.directActive)return "اختر وضع Xbox المباشر";if(!s.ready)return s.modelDownloading?"تجهيز نموذج العربية…":"نموذج العربية غير جاهز داخل جلسة القراءة";return s.localQueue.working()?"النموذج المحلي يترجم — قراءة الحوار مستمرة":s.busy.get()?"معالجة إطار":"جاهز لقراءة الفيديو";}
@@ -203,6 +203,7 @@ public final class CaptureService extends Service {
      if(gate.alreadyShown(text)){localQueue.reset();if(lease.renew(text,readDone)){Status.arabic=lease.text();if(server!=null)server.subtitle(lease.text(),5000);}busy.set(false);return;}
      String reviewed=DialogueStore.get(this).reviewed(AiPreferences.game(this),text);
      if(reviewed==null)reviewed=CommunityCorrections.find(this,AiPreferences.game(this),text);
+     if(reviewed==null)reviewed=FormalArabic.ready(text);
      if(reviewed!=null){localQueue.reset();Status.source=text;publish(text,reviewed,now,readDone,readDone,generation,"تصحيحك المعتمد — بدون طلب محرك");return;}
      String packed=GameNames.same(pack.game,AiPreferences.game(this))?pack.find(text):null;
      if(packed!=null&&!gate.alreadyShown(text)){localQueue.reset();Status.source=text;publish(text,packed,now,readDone,readDone,generation,"حزمة عربية: "+pack.game);return;}
@@ -245,18 +246,19 @@ public final class CaptureService extends Service {
  }
  private java.util.concurrent.CompletableFuture<String> translateArea(String text){
   java.util.concurrent.CompletableFuture<String> result=new java.util.concurrent.CompletableFuture<>();
-  String known=DialogueStore.get(this).reviewed(AiPreferences.game(this),text);if(known==null)known=CommunityCorrections.find(this,AiPreferences.game(this),text);if(known!=null){result.complete(known);return result;}
+  String known=DialogueStore.get(this).reviewed(AiPreferences.game(this),text);if(known==null)known=CommunityCorrections.find(this,AiPreferences.game(this),text);if(known==null)known=FormalArabic.ready(text);if(known!=null){result.complete(known);return result;}
   AiPreferences.Config selected=engine;if(closed||!ready||selected==null){result.completeExceptionally(new IllegalStateException("Engine not ready"));return result;}
   if(!selected.cloud()&&!AiPreferences.NATIVE.equals(selected.provider)&&!AiPreferences.LOCAL.equals(selected.provider)){
    translator.translate(text).addOnSuccessListener(result::complete).addOnFailureListener(result::completeExceptionally);return result;
   }
   java.util.concurrent.ExecutorService queue=selected.cloud()?areaWorker:aiWorker;
-  queue.execute(()->{if(closed){result.completeExceptionally(new IllegalStateException("Closed"));return;}try{LocalModels.Session local=localSession;String arabic=AiPreferences.NATIVE.equals(selected.provider)?(local==null?"":local.translate(text)):AiClient.translate(selected,text,java.util.Collections.emptyList());if(arabic.trim().isEmpty())throw new java.io.IOException("Empty translation");result.complete(arabic);}catch(Exception error){result.completeExceptionally(error);}});return result;
+  queue.execute(()->{if(closed){result.completeExceptionally(new IllegalStateException("Closed"));return;}try{LocalModels.Session local=localSession;String arabic=AiPreferences.NATIVE.equals(selected.provider)?(local==null?"":local.translate(text)):AiClient.translate(selected,text,java.util.Collections.emptyList());if(arabic.trim().isEmpty())throw new java.io.IOException("Empty translation");result.complete(FormalArabic.normalize(arabic));}catch(Exception error){result.completeExceptionally(error);}});return result;
  }
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin){publish(text,arabic,captured,readDone,translated,generation,origin,true);}
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin,boolean releaseFrame){publish(text,arabic,captured,readDone,translated,generation,origin,releaseFrame,-1,0);}
  private void publish(String text,String arabic,long captured,long readDone,long translated,int generation,String origin,boolean releaseFrame,long inferenceMs,long queueMs){
   if(!origin.startsWith("تصحيحك المعتمد"))arabic=CommunityCorrections.improve(this,AiPreferences.game(this),text,DialogueProfile.arabic(text,arabic,AiPreferences.game(this)));
+  arabic=FormalArabic.normalize(arabic);
   try{
    if(closed||generation!=epoch)return;
    PipelineMetrics.published.incrementAndGet();gate.remember(text,arabic);gate.shown(text);lease.store(text,arabic,translated);Status.arabic=arabic;

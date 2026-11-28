@@ -34,7 +34,7 @@ public final class XboxActivity extends Activity {
   caption.setVisibility(arabic.isEmpty()?View.GONE:View.VISIBLE);
   if(SystemClock.elapsedRealtime()-audioAt>700){applyAudio();audioAt=SystemClock.elapsedRealtime();}
   if(reading.active()&&!pending&&CaptureService.acceptsDirect()&&isXbox(browser.getUrl())){
-   pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicCardsFull="+ReadingCards.auxiliaryEnabled(this)+";window.__arabicBounds="+java.util.Arrays.toString(ReadingCards.primary(this))+";window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
+   pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicCardsFull="+ReadingCards.auxiliaryEnabled(XboxActivity.this)+";window.__arabicBounds="+java.util.Arrays.toString(ReadingCards.primary(XboxActivity.this))+";window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
     if(callbackId!=requestId)return;pending=false;if(!reading.accepts(generation)||destroyed)return;
     try{
      Object raw=new JSONTokener(value).nextValue();if(!(raw instanceof String))return;JSONObject frame=new JSONObject((String)raw);

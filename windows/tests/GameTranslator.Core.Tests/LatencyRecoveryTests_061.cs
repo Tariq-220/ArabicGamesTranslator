@@ -90,6 +90,12 @@ public class LatencyRecoveryTests_061
     private sealed class CancelledMission:ITextTranslator
     {public readonly TaskCompletionSource Entered=new(TaskCreationOptions.RunContinuationsAsynchronously),Cancelled=new(TaskCreationOptions.RunContinuationsAsynchronously);
      public async Task<string> TranslateAsync(string text,CancellationToken token=default){Entered.TrySetResult();try{await Task.Delay(Timeout.Infinite,token);}catch(OperationCanceledException){Cancelled.TrySetResult();throw;}return "";}}
+    [Fact]public void ReviewedTauntIsContextualMsaWithoutLosingSpeakerOrRewritingLongerDialogue()
+    {
+        Assert.Equal("السكان: تبًّا لك، أيها الوغد!",ReviewedArabicExpressions.Find("Locals: Suck my fuckin' nuts!"));
+        Assert.Null(ReviewedArabicExpressions.Find("Jason: He said 'Suck my balls!' and walked away."));
+        Assert.Null(ReviewedArabicExpressions.Find("Mystery speaker: Suck my balls!"));
+    }
     private sealed class Reader(string text):ITextReader
     {
         public string Text=text;

@@ -67,6 +67,12 @@ jobs:
           name: rebuild-tv-preview
           path: android/tv/build/ui-previews
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: rebuild-phone-preview
+          path: android/phone/build/ui-previews
+          if-no-files-found: ignore
       - name: Report individual test failures
         if: always()
         run: python scripts/rebuild-test-report.py

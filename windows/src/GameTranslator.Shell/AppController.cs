@@ -1059,7 +1059,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<AreaCaption>? AreaCaptionShown;
     public event Action<AreaTrace>? AreaTraceObserved;
     public bool ArabicPacksEnabled {get=>store.Load<bool?>("arabic-ready-packs")??true;set{store.Save("arabic-ready-packs",value);ArabicGamePackStore.Shared.Enabled=value;}}
-    private static string? ReadyArabic(string game,string source){foreach(var candidate in new[]{CommunityCorrections.Find(game,source),ArabicGamePackStore.Shared.Find(game,source),CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null}){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(!ArabicRegister.NeedsRephrase(source,value)&&ArabicOutputQuality.Accepts(source,value))return value;}return null;}
+    private static string? ReadyArabic(string game,string source){
+        IEnumerable<string?> Candidates(){yield return CommunityCorrections.Find(game,source);yield return ReviewedArabicExpressions.Find(source);yield return ArabicGameNames.Speaker(source.Trim());yield return ArabicGamePackStore.Shared.Find(game,source);yield return CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null;}
+        foreach(var candidate in Candidates()){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(!ArabicRegister.NeedsRephrase(source,value)&&ArabicOutputQuality.Accepts(source,value))return value;}return null;
+    }
+
     private void MakeAreaSession()
     {
         areaSession?.Dispose();areaSession=null;
