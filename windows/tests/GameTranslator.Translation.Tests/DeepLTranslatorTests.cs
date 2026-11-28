@@ -22,6 +22,22 @@ public class DeepLTranslatorTests
         Assert.False(fallback.SupportsConcurrentAreas);
         Assert.False(fallback.ForIndependentArea().SupportsConcurrentAreas);
     }
+    [Fact]public async Task CachedDialectIsRephrasedWithoutThrowingAwayGoodArabicCacheEntries()
+    {
+        var cache=new TranslationCache(targetLanguage:"ar");cache.Store("Open the door.","افتح الباب عشان أطلع.");cache.Store("Stay here.","ابق هنا.");
+        var server=new FakeDeepL((_,_)=>Json("{\"translations\":[{\"text\":\"افتح الباب لأخرج.\"}]}"));var translator=new DeepLTranslator("test",null,new HttpClient(server),cache,validateArabic:true);
+        Assert.Equal("افتح الباب لأخرج.",await translator.TranslateAsync("Open the door."));Assert.Equal("ابق هنا.",await translator.TranslateAsync("Stay here."));Assert.Equal("افتح الباب لأخرج.",await translator.TranslateAsync("Open the door."));Assert.Single(server.Requests);
+    }
+    [Fact]public async Task PersistentDialectIsShownAndNotRetriedInALoop()
+    {
+        var cache=new TranslationCache(targetLanguage:"ar");cache.Store("I want to leave.","أنا عايز أروح.");var server=new FakeDeepL((_,_)=>Json("{\"translations\":[{\"text\":\"أنا عايز أروح.\"}]}"));var translator=new DeepLTranslator("test",null,new HttpClient(server),cache,validateArabic:true);
+        Assert.NotEmpty(await translator.TranslateAsync("I want to leave."));Assert.NotEmpty(await translator.TranslateAsync("I want to leave."));Assert.Single(server.Requests);
+    }
+    [Fact]public async Task FailedMsaRephraseKeepsReadableCachedArabicInsteadOfHidingDialogue()
+    {
+        var cache=new TranslationCache(targetLanguage:"ar");cache.Store("I want to leave.","أنا عايز أروح.");var server=new FakeDeepL((_,_)=>Json("{}",HttpStatusCode.ServiceUnavailable));var translator=new DeepLTranslator("test",null,new HttpClient(server),cache,validateArabic:true);
+        Assert.Equal("جيسون: أنا عايز أروح.",await translator.TranslateAsync("Jason: I want to leave."));Assert.NotEmpty(await translator.TranslateAsync("Jason: I want to leave."));Assert.Single(server.Requests);Assert.Equal(OnlineKeyState.Unreachable,translator.LastError);
+    }
     /// <summary>DeepL yerine geçen sahte sunucu: gelen istekleri saklar, verilen yanıtı döner.</summary>
     private sealed class FakeDeepL(Func<HttpRequestMessage, string, HttpResponseMessage> reply) : HttpMessageHandler
     {

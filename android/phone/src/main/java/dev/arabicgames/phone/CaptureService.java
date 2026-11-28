@@ -209,7 +209,7 @@ public final class CaptureService extends Service {
      if(reviewed==null)reviewed=CommunityCorrections.find(this,AiPreferences.game(this),text);
      if(reviewed!=null){Status.source=text;publishReady(text,reviewed,now,readDone,generation,"تصحيحك المعتمد — بدون طلب محرك");return;}
      String packed=GameNames.same(pack.game,AiPreferences.game(this))?pack.find(text):null;
-     if(packed!=null&&!gate.alreadyShown(text)){Status.source=text;publishReady(text,packed,now,readDone,generation,"حزمة عربية: "+pack.game);return;}
+     if(packed!=null&&!FormalArabic.needsRephrase(text,packed)&&!gate.alreadyShown(text)){Status.source=text;publishReady(text,packed,now,readDone,generation,"حزمة عربية: "+pack.game);return;}
      if(!gate.accept(text,readDone,isLocal()?LocalTiming.settle(this):180)){busy.set(false);return;}
      Status.source=text;String known=gate.cached(text);
      if(known!=null){publishReady(text,known,now,readDone,generation,"ذاكرة الترجمة — "+(engine!=null&&engine.cloud()?engine.label():"محلي"));return;}
