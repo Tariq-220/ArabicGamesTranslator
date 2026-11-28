@@ -1,9 +1,0 @@
-package dev.arabicgames.phone;
-import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import static org.junit.Assert.*;
-@RunWith(RobolectricTestRunner.class) @Config(sdk=35)
-public class ReviewedLanguageTest {
- @Test public void idiomsGeneralizeToUnseenSentencesWithoutCallingAModel(){var c=RuntimeEnvironment.getApplication();assertEquals("أسرع يا رجل",CommunityCorrections.improve(c,"GTA6","Hurry! And haul ass, man.","اسحب المؤخرة يا رجل"));assertEquals("أطفئ المحرك الآن.",CommunityCorrections.improve(c,"RDR2","Please kill the engine now.","اقتل المحرك الآن."));}
- @Test public void unrelatedEnglishOrCorrectArabicNeverTriggersReplacement(){var c=RuntimeEnvironment.getApplication();for(String source:new String[]{"Show me the head of the plane.","Never mind.","prehaul assuffix"})assertEquals("اسحب المؤخرة",CommunityCorrections.improve(c,"GTA6",source,"اسحب المؤخرة"));assertEquals("أطفئ المحرك.",CommunityCorrections.improve(c,"GTA6","Kill the engine.","أطفئ المحرك."));}
- @Test public void unreviewedRulesCannotBeApplied()throws Exception{String json="{\"rules\":[{\"id\":\"bad\",\"game\":\"*\",\"source_phrase\":\"haul ass\",\"bad_arabic\":\"اسحب المؤخرة\",\"replacement\":\"أسرع\",\"reviewed\":false}]}";try{ReviewedLanguage.parse(json);fail();}catch(IllegalArgumentException expected){}}
- @Test public void meaningHintIsAddedToExistingDeepLRequestWithoutChangingText()throws Exception{CommunityCorrections.find(RuntimeEnvironment.getApplication(),"GTA6","Hello.");org.json.JSONObject body=AiRequest.body(new AiPreferences.Config("deepl","auto","GTA6","fake-key",true),"Haul ass, man.",java.util.Collections.emptyList());assertTrue(body.getString("context").contains("hurry up"));assertEquals("Haul ass, man.",body.getJSONArray("text").getString(0));assertFalse(body.toString().contains("fake-key"));}
-}

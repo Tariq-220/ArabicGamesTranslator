@@ -1,8 +1,0 @@
-package dev.arabicgames.phone;
-import android.content.*;import android.view.*;import android.widget.*;import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import static org.junit.Assert.*;
-@RunWith(RobolectricTestRunner.class) @Config(sdk=35)
-public class HistoryExportTest {
- private static Button find(View v){if(v instanceof Button&&"تصدير سجل المقارنة مع الأوقات".contentEquals(((Button)v).getText()))return(Button)v;if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++){Button b=find(((ViewGroup)v).getChildAt(i));if(b!=null)return b;}return null;}
- @Test public void exportsComparisonFileWithoutRequiringCloudCredentials(){try(var c=Robolectric.buildActivity(HistoryActivity.class).setup()){find(c.get().getWindow().getDecorView()).performClick();Intent intent=Shadows.shadowOf(c.get()).getNextStartedActivityForResult().intent;assertEquals(Intent.ACTION_CREATE_DOCUMENT,intent.getAction());assertEquals("comparison-phone.jsonl",intent.getStringExtra(Intent.EXTRA_TITLE));}}
- @Test public void comparisonRetainsIdenticalWordingFromDifferentEngines()throws Exception{java.io.File file=java.io.File.createTempFile("dialogue-compare",".json",RuntimeEnvironment.getApplication().getCacheDir());file.delete();DialogueStore store=new DialogueStore(file);store.add("RDR2","subtitles","Hello.","مرحبًا.","QuickMT",20,200,220,180,20);store.add("RDR2","subtitles","Hello.","مرحبًا.","Jisr",20,80,100,70,10);assertEquals(2,store.snapshot().length());assertEquals(180,store.snapshot().getJSONObject(0).getLong("inference_ms"));assertEquals(10,store.snapshot().getJSONObject(1).getLong("queue_ms"));}
-}

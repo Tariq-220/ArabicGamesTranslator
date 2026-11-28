@@ -1,9 +1,0 @@
-{
-  "abi": "arm64-v8a",
-  "minSdk": 26,
-  "ndk": "27.2.12479018",
-  "openssl": "3.5.9",
-  "chiaki": "f30da0aaeb96fc0026cc03683153f682352e7d7c",
-  "source": "dac1793cf4c9cd135d1b9ff653eb7abe2f897c6d",
-  "sha256": "f36d6891e6cfedc7e9d3ea1017f180908a1a852baff067585e0c45ec5acb7385"
-}
