@@ -47,7 +47,7 @@ internal static class CaptureProbe
     private static async Task<Frame?> WaitFor(GraphicsWindowCapture capture,Func<Frame,bool> valid)
     {
         var started=Environment.TickCount64;
-        while(Environment.TickCount64-started<5000){if(capture.Faulted)throw new InvalidOperationException("WGC failed while copying the native surface.");if(capture.Latest is {} frame&&valid(frame))return frame;await Task.Delay(40);}
+        while(Environment.TickCount64-started<5000){if(capture.Faulted)throw new InvalidOperationException("WGC failed while copying the native surface. "+capture.Diagnostics+"\n"+capture.LastFault);if(capture.Latest is {} frame&&valid(frame))return frame;await Task.Delay(40);}
         return null;
     }
     private static bool Dominant(Frame frame,int channel)

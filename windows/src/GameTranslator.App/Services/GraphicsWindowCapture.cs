@@ -18,7 +18,7 @@ internal sealed class GraphicsWindowCapture : IDisposable
 {
     private readonly IDirect3DDevice device;
     private readonly GraphicsCaptureItem item;
-    private readonly Direct3D11CaptureFramePool pool;
+    private Direct3D11CaptureFramePool pool;
     private GraphicsCaptureSession session;
     private readonly object resources=new();
     private readonly Func<int> interval;
@@ -27,6 +27,7 @@ internal sealed class GraphicsWindowCapture : IDisposable
     private long lastCopy=long.MinValue/2;
     private int processing,pending,resizing,disposed,released;
     public bool Faulted {get;private set;}
+    internal string? LastFault {get;private set;}
     public Frame? Latest=>Volatile.Read(ref latest);
     public bool Updating=>Volatile.Read(ref processing)!=0||Volatile.Read(ref resizing)!=0;
     internal string Diagnostics=>$"pool={size.Width}x{size.Height}, latest={Latest?.Width}x{Latest?.Height}, processing={Volatile.Read(ref processing)}, pending={Volatile.Read(ref pending)}, faulted={Faulted}";
@@ -56,7 +57,7 @@ internal sealed class GraphicsWindowCapture : IDisposable
     private void OnClosed(GraphicsCaptureItem sender,object args)=>Faulted=true;
     private async void OnFrame(Direct3D11CaptureFramePool sender,object args)
     {
-        if(Volatile.Read(ref disposed)!=0)return;
+        if(Volatile.Read(ref disposed)!=0||!ReferenceEquals(sender,Volatile.Read(ref pool)))return;
         if(Interlocked.Exchange(ref processing,1)!=0){Volatile.Write(ref pending,1);return;}
         try{
             if(Volatile.Read(ref disposed)!=0)return;
@@ -93,15 +94,17 @@ internal sealed class GraphicsWindowCapture : IDisposable
                 Volatile.Write(ref resizing,1);
                 // Recreate discards the old-sized surface. Restart also requests the first
                 // image of a static resized window; it need not repaint again to be readable.
-                session.Dispose();sender.Recreate(device,DirectXPixelFormat.B8G8R8A8UIntNormalized,2,next);size=next;
-                session=sender.CreateCaptureSession(item);session.IsCursorCaptureEnabled=false;session.StartCapture();
+                sender.FrameArrived-=OnFrame;session.Dispose();sender.Dispose();size=next;
+                pool=Direct3D11CaptureFramePool.CreateFreeThreaded(device,DirectXPixelFormat.B8G8R8A8UIntNormalized,2,next);
+                pool.FrameArrived+=OnFrame;
+                session=pool.CreateCaptureSession(item);session.IsCursorCaptureEnabled=false;session.StartCapture();
             }}}
         }
-        catch(Exception){Faulted=true;}
+        catch(Exception error){LastFault=error.ToString();Faulted=true;}
         finally{
             Volatile.Write(ref processing,0);ReleaseIfStopped();
             if(Interlocked.Exchange(ref pending,0)!=0&&Volatile.Read(ref disposed)==0)
-                _=Task.Run(()=>OnFrame(sender,args));
+                _=Task.Run(()=>OnFrame(Volatile.Read(ref pool),args));
         }
     }
     public void Dispose()
