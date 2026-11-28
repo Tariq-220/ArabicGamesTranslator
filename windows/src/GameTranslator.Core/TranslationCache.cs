@@ -193,6 +193,8 @@ public sealed class TranslationProbe
     private readonly object gate = new();
     private readonly List<string> fresh = [];
     private int hits;
+    private int queueWaitMs,providerMs;
+    private bool timed;
 
     public static TranslationProbe? Current
     {
@@ -205,6 +207,11 @@ public sealed class TranslationProbe
     internal void NoteFresh(string? engine) { lock (gate) fresh.Add(engine ?? ""); }
 
     public int Hits { get { lock (gate) return hits; } }
+    internal void NoteQueueWait(long ms){lock(gate){timed=true;queueWaitMs=(int)Math.Clamp((long)queueWaitMs+Math.Max(0,ms),0,int.MaxValue);}}
+    internal void NoteProvider(long ms){lock(gate)providerMs=(int)Math.Clamp((long)providerMs+Math.Max(0,ms),0,int.MaxValue);}
+    public int? QueueWaitMs {get{lock(gate)return timed?queueWaitMs:null;}}
+    public int? ProviderMs {get{lock(gate)return timed?providerMs:null;}}
+
 
     /// <summary>"çeviri:&lt;motor&gt;" (motor yeni çevirdi), "önbellek" (her parça önbellekten geldi) ya da bilinmiyorsa "çeviri:&lt;yedek ad&gt;".</summary>
     public string Outcome(string fallbackEngine = "motor")

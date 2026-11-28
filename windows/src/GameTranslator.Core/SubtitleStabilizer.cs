@@ -215,10 +215,10 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
     /// Son gönderilen satırı unutur (ör. çevirisi başarısız oldu); satır ekranda kaldıkça yeniden kararlı sayılıp çevrilir,
     /// ama en erken <see cref="RetryAfterMs"/> sonra: kalıcı hatada (model eksik) her karede çevirmene gidilmez.
     /// </summary>
-    public void ForgetSent()
+    public void ForgetSent(int? retryDelayMs=null)
     {
         if (sent.Length > 0) forgotten = sent;
-        retryAt = now() + RetryAfterMs;
+        retryAt = now() + (retryDelayMs??RetryAfterMs);
         sent = "";
         sentRaw = "";
         candidate = "";

@@ -5,11 +5,12 @@ namespace GameTranslator.Core;
 /// CPU models and providers with shared fallbacks remain serialized.</summary>
 public sealed class TranslationWorkQueue : IDisposable
 {
-    private sealed record Request(string Text,CancellationToken Token,TaskCompletionSource<string> Result,TranslationProbe? Probe,bool Dialogue,IReadOnlyList<string>? Batch=null,TaskCompletionSource<IReadOnlyList<string>>? BatchResult=null);
+    private sealed record Request(string Text,CancellationToken Token,TaskCompletionSource<string> Result,TranslationProbe? Probe,bool Dialogue,IReadOnlyList<string>? Batch=null,TaskCompletionSource<IReadOnlyList<string>>? BatchResult=null,long SubmittedAt=0);
     private readonly Queue<Request> high=new(),low=new();
     private readonly object gate=new();
     private readonly SemaphoreSlim available=new(0),areaAvailable=new(0);
     private readonly bool independentAreas;
+    private readonly Func<long> now;
     private readonly CancellationTokenSource lifetime=new();
     private readonly ITextTranslator provider,areaProvider;
     private bool disposed;
@@ -17,8 +18,8 @@ public sealed class TranslationWorkQueue : IDisposable
     public ITextTranslator Areas {get;}
     private readonly Task worker;
     private readonly Task? areaWorker;
-    public TranslationWorkQueue(ITextTranslator provider)
-    {this.provider=provider;areaProvider=provider.ForIndependentArea();
+    public TranslationWorkQueue(ITextTranslator provider,Func<long>? clock=null)
+    {now=clock??(()=>Environment.TickCount64);this.provider=provider;areaProvider=provider.ForIndependentArea();
      independentAreas=provider.SupportsConcurrentAreas&&!ReferenceEquals(provider,areaProvider);
      Dialogue=new Lane(this,true);Areas=new Lane(this,false);worker=Task.Run(()=>Work(false));
      if(independentAreas)areaWorker=Task.Run(()=>Work(true));}
@@ -32,14 +33,14 @@ public sealed class TranslationWorkQueue : IDisposable
             // Entries are already bounded by the per-region/latest candidate policy; enforce a hard bound too.
             if(queue.Count>=(foreground?3:8))return Task.FromException<string>(new TranslatorException(TranslatorStatus.ServiceBusy));
             var done=new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-            queue.Enqueue(new(text,token,done,TranslationProbe.Current,foreground));Wake(foreground);return done.Task.WaitAsync(token);
+            queue.Enqueue(new(text,token,done,TranslationProbe.Current,foreground,SubmittedAt:now()));Wake(foreground);return done.Task.WaitAsync(token);
         }
     }
     private Task<IReadOnlyList<string>> SubmitMany(IReadOnlyList<string> texts,bool foreground,CancellationToken token){
         lock(gate){if(disposed)return Task.FromCanceled<IReadOnlyList<string>>(new CancellationToken(true));var queue=foreground?high:low;
             if(queue.Count>=(foreground?3:8))return Task.FromException<IReadOnlyList<string>>(new TranslatorException(TranslatorStatus.ServiceBusy));
             var done=new TaskCompletionSource<IReadOnlyList<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
-            queue.Enqueue(new("",token,new(TaskCreationOptions.RunContinuationsAsynchronously),TranslationProbe.Current,foreground,texts.ToArray(),done));Wake(foreground);return done.Task.WaitAsync(token);
+            queue.Enqueue(new("",token,new(TaskCreationOptions.RunContinuationsAsynchronously),TranslationProbe.Current,foreground,texts.ToArray(),done,now()));Wake(foreground);return done.Task.WaitAsync(token);
         }
     }
     private async Task Work(bool areasOnly)
@@ -54,8 +55,13 @@ public sealed class TranslationWorkQueue : IDisposable
                 if(request is null)continue;
                 if(request.Token.IsCancellationRequested){if(request.BatchResult is {} batch)batch.TrySetCanceled(request.Token);else request.Result.TrySetCanceled(request.Token);continue;}
                 using var cancel=CancellationTokenSource.CreateLinkedTokenSource(request.Token,lifetime.Token);
-                TranslationProbe.Current=request.Probe;
-                try{var engine=request.Dialogue?provider:areaProvider;if(request.Batch is {} texts)request.BatchResult!.TrySetResult(await engine.TranslateManyAsync(texts,cancel.Token).ConfigureAwait(false));else request.Result.TrySetResult(await engine.TranslateAsync(request.Text,cancel.Token).ConfigureAwait(false));}
+                var started=now();
+                TranslationProbe.Current=request.Probe;request.Probe?.NoteQueueWait(started-request.SubmittedAt);
+                try{
+                    var engine=request.Dialogue?provider:areaProvider;
+                    if(request.Batch is {} texts){var result=await engine.TranslateManyAsync(texts,cancel.Token).ConfigureAwait(false);request.Probe?.NoteProvider(now()-started);request.BatchResult!.TrySetResult(result);}
+                    else{var result=await engine.TranslateAsync(request.Text,cancel.Token).ConfigureAwait(false);request.Probe?.NoteProvider(now()-started);request.Result.TrySetResult(result);}
+                }
                 catch(OperationCanceledException){if(request.BatchResult is {} batch)batch.TrySetCanceled(cancel.Token);else request.Result.TrySetCanceled(cancel.Token);}
                 catch(Exception error){if(request.BatchResult is {} batch)batch.TrySetException(error);else request.Result.TrySetException(error);}
                 finally {TranslationProbe.Current=null;}

@@ -1051,6 +1051,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         get => ReadingArea.Unique(store.Load<List<ReadingArea>>("reading-areas-v1") ?? []).Select(a=>a.Kind==ReadingAreaKind.Phone&&a.Source==new CropRegion(.12,.95,.40,.97)?a with{Source=new(.08,.98,.03,.97)}:a.Kind==ReadingAreaKind.Menu&&a.Source==new CropRegion(.14,.86,.08,.47)&&a.Output==new CropRegion(.14,.86,.50,.90)?ReadingArea.Menu() with{Id=a.Id,Name=a.Name,Enabled=a.Enabled}:a).ToList();
         set { var unique=ReadingArea.Unique(value).Take(8).ToList();if(ReadingAreas.SequenceEqual(unique))return;store.Save("reading-areas-v1", unique); if(isRunning)MakeAreaSession(); Changed(nameof(ReadingAreas)); }
     }
+    public ReadingLayout CaptureReadingLayout()=>new(1,[new ReadingArea("dialogue","الحوار",ReadingAreaKind.Dialogue,settings.Region,DialogueOutput,FontSize:settings.Style.FontSize,Background:settings.Style.Background,Appearance:settings.Style.Appearance),..ReadingAreas]);
+    public ReadingLayout ReadingBaseline {
+        get {var saved=store.Load<ReadingLayout>("reading-user-baseline-v1");if(saved is not null)return saved;var current=CaptureReadingLayout();store.Save("reading-user-baseline-v1",current);return current;}
+    }
+    public void SaveReadingBaseline(ReadingLayout layout){var previous=ReadingBaseline;store.Save("reading-user-baseline-previous-v1",previous);store.Save("reading-user-baseline-v1",layout);}
     public event Action<AreaCaption>? AreaCaptionShown;
     public event Action<AreaTrace>? AreaTraceObserved;
     public bool ArabicPacksEnabled {get=>store.Load<bool?>("arabic-ready-packs")??true;set{store.Save("arabic-ready-packs",value);ArabicGamePackStore.Shared.Enabled=value;}}
@@ -1067,7 +1072,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         current.Trace+=entry=>{if(ReferenceEquals(areaSession,current))post(()=>AreaTraceObserved?.Invoke(entry));};
         current.Status+=(id,status)=>{if(ReferenceEquals(areaSession,current))areaStatus[id]=status;};
         current.Caption+=caption=>{if(!ReferenceEquals(areaSession,current))return;server.SendArea(caption);post(()=>AreaCaptionShown?.Invoke(caption));};
-        areaSession=current;current.SetTiming(Timing);
+        current.ReuseIdenticalFrames=true;areaSession=current;current.SetTiming(Timing);
     }
 
     private void MakePipeline()

@@ -5,6 +5,17 @@ using GameTranslator.Shell;
 namespace GameTranslator.Shell.Tests;
 public class RebuildPreviewTests
 {
+    [Fact]public void UserBaselineCapturesCurrentLayoutAndSurvivesLaterEdits()
+    {
+        var store=new MemoryStore();using var controller=AppControllerTests.Make(store:store);
+        var phone=ReadingArea.CarPhone() with{FontSize=31,Background=63,Source=new(.2,.8,.5,.9)};
+        controller.ReadingAreas=[phone];var saved=controller.ReadingBaseline;
+        controller.ReadingAreas=[phone with{FontSize=20,Source=new(.1,.9,.1,.4)}];
+        Assert.Equal(phone,controller.ReadingBaseline.Areas.Single(a=>a.Id==phone.Id));
+        controller.SaveReadingBaseline(controller.CaptureReadingLayout());Assert.Equal(20,controller.ReadingBaseline.Areas.Single(a=>a.Id==phone.Id).FontSize);
+        Assert.NotEqual(saved,controller.ReadingBaseline);
+    }
+
     [Theory][InlineData(false)][InlineData(true)]
     public async Task SpatialOcrReachesVisiblePhoneAndMissionThroughTheActualLocalOrDeepLQueue(bool deepL)
     {

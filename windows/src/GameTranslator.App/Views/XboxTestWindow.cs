@@ -17,6 +17,7 @@ public sealed class XboxTestWindow : Window
 {
     private readonly AppController controller;
     private XboxPlayerWindow? xboxPlayer;
+    private PlayStationPlayerWindow? playStationPlayer;
     private readonly System.Threading.CancellationTokenSource updateCancel=new();
     private readonly TextBlock updateLabel=Label("جارٍ فحص قناة التحديث…");
     private readonly Button updateButton=new(){Content="فحص التحديث",MinHeight=48,Margin=new Thickness(4)};
@@ -91,7 +92,7 @@ public sealed class XboxTestWindow : Window
         root.Children.Add(Label("1 · مصدر اللعبة — Xbox أو PS5"));
         var consoleActions=Row();consoleActions.Children.Add(Button("Xbox — فتح البث داخل التطبيق",OpenXboxPlayer));consoleActions.Children.Add(Button("تجربة تسجيل Xbox · تحرير البث",async()=>await PauseXboxForRecording()));
         consoleActions.Children.Add(Button("اختيار نافذة بث خارجية",()=>{resetWindowPreference=true;RefreshWindows();UpdateConsoleHelp();}));
-        consoleActions.Children.Add(Button("PS5 — اقتران مباشر",ConfigurePlayStation));root.Children.Add(consoleActions);
+        consoleActions.Children.Add(Button("PS5 — فتح البث داخل التطبيق",OpenPlayStationPlayer));consoleActions.Children.Add(Button("PS5 — اقتران مباشر",ConfigurePlayStation));root.Children.Add(consoleActions);
         var consoleDetails=new StackPanel();consoleDetails.Children.Add(consoleHelp);UpdateConsoleHelp();
         consoleDetails.Children.Add(Button("بديل: قراءة Sony Remote Play الخارجي",LaunchPlayStation));
         consoleDetails.Children.Add(Button("خطوات ربط PS5 الرسمية",()=>OpenUrl("https://remoteplay.dl.playstation.net/remoteplay/lang/en/ps5_win.html")));
@@ -344,9 +345,17 @@ public sealed class XboxTestWindow : Window
         catch { updateLabel.Text="تعذر فحص أو تنزيل تحديث موثوق. ترجمة اللعبة مستمرة؛ حاول لاحقًا."; }
         finally{activeUpdateDownload=null;checkingUpdate=false;updateButton.IsEnabled=true;if(readyInstaller==null)updateButton.Content="فحص التحديث";}
     }
+    private void OpenPlayStationPlayer()
+    {
+        if(!controller.HasAccount||controller.Console is null||!controller.NativePlayStationEnabled)ConfigurePlayStation();
+        if(!controller.HasAccount||controller.Console is null||!controller.NativePlayStationEnabled)return;
+        controller.PreferPlayStation=true;controller.Settings=controller.Settings with{VideoSource=VideoSourceType.RemotePlay};
+        try{if(!controller.IsRunning)controller.StartSourcePreview();if(playStationPlayer is null){playStationPlayer=new PlayStationPlayerWindow(controller,()=>{WindowState=WindowState.Normal;Activate();}){Owner=this};playStationPlayer.Closed+=(_,_)=>playStationPlayer=null;playStationPlayer.Show();}else{playStationPlayer.WindowState=WindowState.Normal;playStationPlayer.Activate();}UpdateConsoleHelp();}
+        catch{status.Text="تعذر بدء فيديو PS5؛ تحقق من الاقتران والاتصال من زر PS5 المباشر.";}
+    }
     private void OpenXboxPlayer()
     {
-        controller.Stop();controller.PreferPlayStation=false;controller.NativePlayStationEnabled=false;
+        playStationPlayer?.Close();controller.Stop();controller.PreferPlayStation=false;controller.NativePlayStationEnabled=false;
         if(xboxPlayer is null){xboxPlayer=new XboxPlayerWindow();xboxPlayer.Closed+=(_,_)=>xboxPlayer=null;xboxPlayer.Show();}
         else {xboxPlayer.ResumeAfterRecording();xboxPlayer.WindowState=WindowState.Normal;xboxPlayer.Activate();}
         controller.Settings=controller.Settings with {DesktopWindowName="window:"+XboxPlayerWindow.PlayerTitle,VideoSource=VideoSourceType.DesktopScreen};

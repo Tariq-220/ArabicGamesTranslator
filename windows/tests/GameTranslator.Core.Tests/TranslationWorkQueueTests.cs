@@ -34,6 +34,22 @@ public class TranslationWorkQueueTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>phone.WaitAsync(TimeSpan.FromSeconds(3)));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>pending.WaitAsync(TimeSpan.FromSeconds(3)));
     }
+    [Fact] public async Task ProbeSeparatesProviderWorkFromQueueWaiting()
+    {
+        long clock=0;var provider=new TimedProvider(()=>Interlocked.Add(ref clock,300));
+        using var queue=new TranslationWorkQueue(provider,()=>Interlocked.Read(ref clock));
+        var blocked=queue.Areas.TranslateAsync("menu");await provider.Entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Interlocked.Exchange(ref clock,100);var probe=new TranslationProbe();TranslationProbe.Current=probe;
+        var dialogue=queue.Dialogue.TranslateAsync("reply");TranslationProbe.Current=null;
+        Interlocked.Exchange(ref clock,500);provider.Release.TrySetResult();
+        await dialogue.WaitAsync(TimeSpan.FromSeconds(3));await blocked;
+        Assert.Equal(400,probe.QueueWaitMs);Assert.Equal(300,probe.ProviderMs);
+    }
+    private sealed class TimedProvider(Action translate):ITextTranslator
+    {
+        public readonly TaskCompletionSource Entered=new(TaskCreationOptions.RunContinuationsAsynchronously),Release=new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async Task<string> TranslateAsync(string text,CancellationToken token=default){if(text=="menu"){Entered.TrySetResult();await Release.Task.WaitAsync(token);}else translate();return "ترجمة";}
+    }
     private sealed class Provider:ITextTranslator
     {
         public readonly TaskCompletionSource Entered=new(TaskCreationOptions.RunContinuationsAsynchronously);

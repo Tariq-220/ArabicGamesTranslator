@@ -5,6 +5,9 @@ using System.Text.Json;
 namespace GameTranslator.Translation.Tests;
 public class DialogueProfileTests
 {
+ [Theory][InlineData("æ-iÄ.j","")][InlineData("Sí, sí.","Sí, sí.")][InlineData("José: No!","José: No!")][InlineData("-E Lucia: Get in!","Lucia: Get in!")]
+ public void RecordedHudArtifactIsNotDialogueButAccentedSpeechSurvives(string source,string expected)=>Assert.Equal(expected,DialogueProfile.English(source,"Grand Theft Auto VI"));
+
     private sealed class BridgeHandler(string expectedModel="quickmt") : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token)

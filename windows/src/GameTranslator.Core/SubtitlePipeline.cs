@@ -77,6 +77,8 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     private readonly SubtitleStabilizer stabilizer = new(clock: clock ?? DefaultClock, cleanFastPathOnly: translator.Prefetches);
     /// <summary>En son önceden çevirisi başlatılan okuma; aynı metin her karede yeniden istenmez.</summary>
     private string lastPrefetched = "";
+    private string failedOutputSource="";
+    private int failedOutputCount;
     /// <summary>
     /// Her çeviri isteği sıra numarası alır. Aynı anda yalnız bir çeviri sürer, en çok <see cref="MaxWaiting"/> satır sırada
     /// bekler: hızlı konuşmada satırlar sırayla çevrilir, kuyruk konuşma hızıyla büyümez. Bekleyen satırın uzamış ya da
@@ -747,7 +749,11 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                 Write(request, $"hata ({now() - started} ms): {(error as TranslatorException)?.Status.ToString() ?? error.GetType().Name}{retry}");
                 // Model eksikse ya da geçici bir hata olduysa satır ekranda kaldıkça (saniyede en çok bir kez) yeniden denenir.
                 LastError = (error as TranslatorException)?.Status??(error is HttpRequestException or TaskCanceledException?TranslatorStatus.ServiceUnreachable:TranslatorStatus.EngineFailed);
-                if (request.Number == lineOnScreen) stabilizer.ForgetSent();
+                if(LastError==TranslatorStatus.OutputRejected){
+                    failedOutputCount=failedOutputSource==source?Math.Min(4,failedOutputCount+1):1;
+                    failedOutputSource=source;
+                }
+                if (request.Number == lineOnScreen) stabilizer.ForgetSent(LastError==TranslatorStatus.OutputRejected?Math.Min(8000,1000*(1<<Math.Max(0,failedOutputCount-1))):null);
             }
             LineDiscarded?.Invoke(source,"translation_failed_"+(LastError?.ToString()??error.GetType().Name));
             TranslationResult?.Invoke(LastError);
@@ -763,7 +769,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
                 Write(request, $"{result}, atıldı: oturum bitti");
                 return;
             }
-            LastError = null;
+            LastError = null;failedOutputSource="";failedOutputCount=0;
         }
         TranslationResult?.Invoke(null);
 
@@ -798,7 +804,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             LastBox = request.Box;
             LastOrigin = "motor";
             var read = request.Read;
-            metrics = LineMetrics.Measure(read.CapturedAt, read.OcrMs, (started, finished), now(), read.Confidence, LineOrigin.Engine);
+            metrics = LineMetrics.Measure(read.CapturedAt, read.OcrMs, (started, finished), now(), read.Confidence, LineOrigin.Engine) with{QueueWaitMs=probe.QueueWaitMs,ProviderMs=probe.ProviderMs};
             LastMetrics = metrics;
         }
         MetricsReady?.Invoke(metrics);
@@ -824,6 +830,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             sawText = false;
             lastNote = null;
             session++;
+            failedOutputSource="";failedOutputCount=0;
             lineOnScreen = null;
             waiting.Clear();
             held = null;

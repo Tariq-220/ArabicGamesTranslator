@@ -12,7 +12,10 @@ public sealed class ReadingAreaSession : IDisposable
         public readonly ITextReader Reader=reader;
         public readonly PhonePanelTracker Phone=new();public int FullWidth,FullHeight;public TextBox? PhoneBounds;public PanelLayout? OwnedMessages;public long PhoneVerifiedAt=long.MinValue/2;
         public string Candidate="", Sent="", LastResult="";
+        public Reading SourceReading=Reading.Empty;
         public long Since, Seen, ReadAt=long.MinValue/2, Revision, Generation;
+        public Frame? CachedFrame;public Reading CachedReading=Reading.Empty;public long CachedAt;
+        public CancellationTokenSource? ActiveTranslation;
         public int Misses;public long MissingSince;public bool Busy, Visible;public long RetryAt;public int Failures;
         public CropRegion? Output;public PanelLayout? Panel,LastPanel,LastSourcePanel;public Frame? PanelFrame;public long LastEmit;public string LastRejected="";
         public readonly Dictionary<string,string> Cache=new(StringComparer.Ordinal);
@@ -27,6 +30,8 @@ public sealed class ReadingAreaSession : IDisposable
     private int cursor, processing;
     private bool disposed;
     private ReadingTiming timing=new();
+    /// <summary>Windows pixel-deterministic OCR: reuse only byte-identical crops, refresh every second.</summary>
+    public bool ReuseIdenticalFrames {get;set;}
     public void SetTiming(ReadingTiming value){lock(gate)timing=value.Validate();}
     public event Action<AreaCaption>? Caption;
     public event Action<string,string>? Failed;
@@ -69,9 +74,13 @@ public sealed class ReadingAreaSession : IDisposable
                 Math.Max(1,(int)((source.Right-source.Left)*frame.Width)),Math.Max(1,(int)((source.Bottom-source.Top)*frame.Height)));
             if(s.Area.Kind==ReadingAreaKind.Phone&&s.Area.Structured&&s.Area.AutoDetect){var detected=SpatialText.FindPhone(crop);var phone=s.Phone.Locate(detected,now());if(phone is null||detected is null&&!SpatialText.PhoneSurfacePresent(crop,phone)){Status?.Invoke(s.Area.Id,"لم تُكتشف حدود الجوال؛ حدّد مربع الشاشة ثم أوقف الكشف التلقائي عند الحاجة.");Observe(s,"",null,crop);return;}actualSource=new TextBox(phone.Left,phone.Top,phone.Right,phone.Bottom).PlacedIn(actualSource);crop=RegionCropper.Crop(crop,phone); }
             if(s.Area.Kind==ReadingAreaKind.Notification&&s.Area.Structured&&s.Area.AutoDetect){var message=SpatialText.FindMessage(crop);if(message is null){Status?.Invoke(s.Area.Id,"لم تُكتشف بطاقة التنبيه؛ راجع مربع القراءة أو استخدم حدوده مباشرة.");Observe(s,"",null,crop);return;}actualSource=new TextBox(message.Left,message.Top,message.Right,message.Bottom).PlacedIn(actualSource);crop=RegionCropper.Crop(crop,message); }
-            lifetime.Token.ThrowIfCancellationRequested();var reading=s.Area.Kind==ReadingAreaKind.Instructions?s.Reader.ReadLines(crop,true):s.Reader.ReadSpatial(crop);if(s.Area.Kind==ReadingAreaKind.Menu&&s.Area.AutoDetect)reading=MenuReading.Select(crop,reading,!states.Any(x=>x.Area.Kind==ReadingAreaKind.MapCard));
+            lifetime.Token.ThrowIfCancellationRequested();
+            var unchanged=ReuseIdenticalFrames&&s.CachedFrame is {} previous&&now()-s.CachedAt<1000&&previous.Width==crop.Width&&previous.Height==crop.Height&&previous.Stride==crop.Stride&&previous.Pixels.AsSpan().SequenceEqual(crop.Pixels);
+            var reading=unchanged?s.CachedReading:s.Area.Kind==ReadingAreaKind.Instructions?s.Reader.ReadLines(crop,true):s.Reader.ReadSpatial(crop);
+            if(ReuseIdenticalFrames&&!unchanged){s.CachedReading=reading;s.CachedAt=now();s.CachedFrame=new Frame((byte[])crop.Pixels.Clone(),crop.Width,crop.Height,crop.Stride);}
+            if(s.Area.Kind==ReadingAreaKind.Menu&&s.Area.AutoDetect)reading=MenuReading.Select(crop,reading,!states.Any(x=>x.Area.Kind==ReadingAreaKind.MapCard));
             if(s.Area.Kind is not (ReadingAreaKind.Phone or ReadingAreaKind.Notification)){
-                var originalCount=reading.Lines.Count;reading=WithoutMessageText(reading,actualSource);
+                var originalCount=reading.Lines.Count;reading=WithoutMessageText(reading,actualSource,false);
                 if(originalCount>0&&reading.Lines.Count==0){ClearConflicting(s);return;}
             }
             if(s.Area.Kind==ReadingAreaKind.Instructions&&dialogue is not null){
@@ -81,6 +90,8 @@ public sealed class ReadingAreaSession : IDisposable
             }
             // Paragraph/line boundaries are retained for menus; messages are not mixed into dialogue.
             if(s.Area.Kind==ReadingAreaKind.MapCard)reading=new Reading(reading.Lines.Where(l=>l.Box is {} b&&SpatialText.HasDarkBackground(crop,b)));
+            reading=AuxiliaryReadingEvidence.Select(reading,s.Area.Kind);
+            if(reading.Lines.Count>0)lock(gate)s.SourceReading=reading;
             var messageArea=s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification;
             var originalMessage=reading;var wrongSource=messageArea&&PhoneReadingEvidence.Incompatible(reading);
             if(s.Area.Kind==ReadingAreaKind.Phone)reading=PhoneReadingEvidence.WithoutGameplay(reading);
@@ -97,6 +108,7 @@ public sealed class ReadingAreaSession : IDisposable
                 // Claim the measured cells before page stabilization or translation. Different OCR
                 // spellings of this same physical message must never become another area's caption.
                 lock(gate){s.PhoneBounds=actualSource;s.OwnedMessages=panel;s.PhoneVerifiedAt=now();s.LastRejected="";}
+                ReleaseConflictingOwners();
             }
             if(s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&panel is not null){panel=s.Phone.Observe(panel,now());if(panel is null){Status?.Invoke(s.Area.Id,"بانتظار نص محادثة كامل؛ لن تُعرض لوحة باسم فقط.");Observe(s,"",null,crop);return;}}
             if(messageArea&&panel is not null&&SuppressDuplicate(s,panel,actualSource))return;
@@ -123,16 +135,22 @@ public sealed class ReadingAreaSession : IDisposable
 
     private static double Intersection(TextBox a,TextBox b){var overlap=Math.Max(0,Math.Min(a.Right,b.Right)-Math.Max(a.Left,b.Left))*Math.Max(0,Math.Min(a.Bottom,b.Bottom)-Math.Max(a.Top,b.Top));var smaller=Math.Max(.000001,Math.Min((a.Right-a.Left)*(a.Bottom-a.Top),(b.Right-b.Left)*(b.Bottom-b.Top)));return overlap/smaller;}
     public Reading WithoutPhoneText(Reading input,TextBox dialogueArea)=>WithoutMessageText(input,dialogueArea);
-    public Reading WithoutMessageText(Reading input,TextBox dialogueArea)
+    public Reading WithoutMessageText(Reading input,TextBox dialogueArea,bool preserveDialogue=true)
     {
         lock(gate){
             var phones=states.Where(s=>s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&s.PhoneBounds is not null&&now()-s.PhoneVerifiedAt<=1800&&s.OwnedMessages is not null).ToArray();
             if(phones.Length==0)return input;
             return new Reading(input.Lines.Where(line=>{
-                if(PhoneReadingEvidence.IsDialogue(line.Text))return true;
+                if(preserveDialogue&&PhoneReadingEvidence.IsDialogue(line.Text))return true;
                 if(line.Box is not {} local)return true;var box=local.PlacedIn(dialogueArea);
                 foreach(var phone in phones){
                     var bounds=phone.PhoneBounds!.Value;var text=TextMatch.Normalize(line.Text);
+                    if(!preserveDialogue&&phone.Area.Kind==ReadingAreaKind.Phone){
+                        var occupied=phone.OwnedMessages!.Cells.Select(c=>c.Box).Aggregate((a,b)=>a.Union(b)).PlacedIn(bounds);
+                        double overlap=Math.Max(0,Math.Min(occupied.Right,box.Right)-Math.Max(occupied.Left,box.Left))*Math.Max(0,Math.Min(occupied.Bottom,box.Bottom)-Math.Max(occupied.Top,box.Top));
+                        if(overlap/Math.Max(.000001,(box.Right-box.Left)*(box.Bottom-box.Top))>=.5)return false;
+                    }
+
                     if(text.Length>=5&&Intersection(box,bounds)>=.8&&phone.OwnedMessages!.Cells.Any(c=>{var key=TextMatch.Normalize(c.Source);return key.Contains(text,StringComparison.Ordinal)||TextMatch.IsSimilar(key,text,.94);}))return false;
                     foreach(var cell in phone.OwnedMessages!.Cells){var b=cell.Box.PlacedIn(phone.PhoneBounds!.Value);
                         double overlap=Math.Max(0,Math.Min(b.Right,box.Right)-Math.Max(b.Left,box.Left))*Math.Max(0,Math.Min(b.Bottom,box.Bottom)-Math.Max(b.Top,box.Top));double area=Math.Max(.000001,(box.Right-box.Left)*(box.Bottom-box.Top));
@@ -143,7 +161,16 @@ public sealed class ReadingAreaSession : IDisposable
             }));
         }
     }
-    private void ClearConflicting(State s){AreaCaption? clear=null;lock(gate){var hadContent=s.Visible||s.Candidate.Length>0;s.Visible=false;s.Candidate=s.Sent=s.LastResult="";s.LastPanel=s.LastSourcePanel=s.Panel=s.OwnedMessages=null;s.PhoneBounds=null;s.Phone.Reset();s.Generation++;if(hadContent){s.Revision++;clear=Make(s,"",true);}}Status?.Invoke(s.Area.Id,"النص تابع لمنطقة أخرى؛ مُنع العرض المكرر.");if(clear is not null)Caption?.Invoke(clear);}
+    private void ReleaseConflictingOwners()
+    {
+        State[] pending;lock(gate)pending=states.Where(s=>s.Area.Kind is ReadingAreaKind.Instructions or ReadingAreaKind.MapCard or ReadingAreaKind.Menu&&s.Candidate.Length>0).ToArray();
+        foreach(var other in pending){
+            Reading input;lock(gate)input=other.SourceReading.Lines.Count>0?other.SourceReading:other.Panel is {} panel?new Reading(panel.Cells.Select(c=>new TextLine(c.Source,c.Box))):new Reading([new TextLine(other.Candidate,new(0,0,1,1))]);
+            var source=other.Area.Source;
+            if(WithoutMessageText(input,new(source.Left,source.Top,source.Right,source.Bottom),false).Lines.Count<input.Lines.Count)ClearConflicting(other);
+        }
+    }
+    private void ClearConflicting(State s){AreaCaption? clear=null;CancellationTokenSource? cancel;lock(gate){cancel=s.ActiveTranslation;var hadContent=s.Visible||s.Candidate.Length>0;s.Visible=false;s.Candidate=s.Sent=s.LastResult="";s.LastPanel=s.LastSourcePanel=s.Panel=s.OwnedMessages=null;s.PhoneBounds=null;s.Phone.Reset();s.Generation++;if(hadContent){s.Revision++;clear=Make(s,"",true);}}try{cancel?.Cancel();}catch(ObjectDisposedException){}Status?.Invoke(s.Area.Id,"النص تابع لمنطقة أخرى؛ مُنع العرض المكرر.");if(clear is not null)Caption?.Invoke(clear);}
 
     private void Observe(State s,string text,PanelLayout? panel,Frame frame)
     {
@@ -220,7 +247,8 @@ public sealed class ReadingAreaSession : IDisposable
     private async Task Translate(State s)
     {
         string source;long generation;PanelLayout? panel;long started=now();
-        lock(gate){if(disposed){s.Busy=false;return;}source=s.Candidate;panel=s.Panel;generation=s.Generation;}
+        using var cancel=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        lock(gate){if(disposed||s.Candidate.Length==0){s.Busy=false;return;}source=s.Candidate;panel=s.Panel;generation=s.Generation;s.ActiveTranslation=cancel;}
         Trace?.Invoke(new(s.Area.Id,s.Area.Name,source,"","translating"));
         try
         {
@@ -245,7 +273,7 @@ public sealed class ReadingAreaSession : IDisposable
                 IReadOnlyList<string> values;
                 if(s.Area.Appearance?.ReviewedOnly==true)values=batch.Select(t=>reviewed?.Invoke(t)??"").ToArray();
                 else {
-                    try{values=await translator.TranslateManyAsync(batch,lifetime.Token).ConfigureAwait(false);}
+                    try{values=await translator.TranslateManyAsync(batch,cancel.Token).ConfigureAwait(false);}
                     catch(TranslatorException error)when(error.Status==TranslatorStatus.OutputRejected){
                         foreach(var piece in batch)Trace?.Invoke(new(s.Area.Id,s.Area.Name,piece,"","rejected_output",(int)Math.Clamp(now()-started,0,int.MaxValue),error.Status.ToString()));
                         continue; // A rejected contact or damaged row cannot starve all later messages.
@@ -263,7 +291,7 @@ public sealed class ReadingAreaSession : IDisposable
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested){var reason=error is TranslatorException failure?failure.Status.ToString():error.GetType().Name;Status?.Invoke(s.Area.Id,"تعذر طلب الترجمة: "+reason);Trace?.Invoke(new(s.Area.Id,s.Area.Name,source,"","failed",(int)Math.Clamp(now()-started,0,int.MaxValue),reason));Failed?.Invoke(s.Area.Id,reason);lock(gate)s.RetryAt=now()+1000;}}
-        finally {lock(gate)s.Busy=false;}
+        finally {lock(gate){s.Busy=false;s.ActiveTranslation=null;}}
     }
     private static AreaCaption Make(State s,string text,bool clear=false)=>new(s.Area.Id,s.Revision,text,s.Output??s.Area.PresentationOutput(),
         s.Area.FontSize,s.Area.Background,s.Area.DurationMs,clear,s.Area.Appearance);

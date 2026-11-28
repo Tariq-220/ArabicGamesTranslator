@@ -39,7 +39,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/save-rebuild-previews.py
       - name: Dialogue and independent region regression tests
-        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests|FullyQualifiedName~LanDiscoveryTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~CaptionPresentationTests"
+        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~LatencyRecoveryTests_061|FullyQualifiedName~MetricsPipelineTests|FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests|FullyQualifiedName~LanDiscoveryTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~CaptionPresentationTests"
       - name: Preview lifecycle and persistence
         run: dotnet test windows/tests/GameTranslator.Shell.Tests/GameTranslator.Shell.Tests.csproj -c Release --filter "FullyQualifiedName~RebuildPreviewTests"
       - name: Translation quality validation
@@ -60,7 +60,7 @@ jobs:
         env:
           ROBOLECTRIC_REPO: https://maven-central.storage-download.googleapis.com/maven2
         working-directory: android
-        run: bash gradlew :common:test :tv:testDebugUnitTest --console=plain
+        run: bash gradlew :common:test :tv:testDebugUnitTest :phone:testDebugUnitTest --console=plain
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

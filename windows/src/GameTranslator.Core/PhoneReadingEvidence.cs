@@ -21,7 +21,7 @@ public static class PhoneReadingEvidence
     public static bool Incompatible(Reading reading)
     {
         var text=reading.Text;
-        if(Regex.IsMatch(text,@"\bMAP\b[\s\S]{0,100}\b(?:BRIEF|PROGRESS)\b|\bBRIEF\b[\s\S]{0,80}\bPROGRESS\b",RegexOptions.IgnoreCase))return true;
+        if(Regex.IsMatch(text,@"\bMAP\b[\s\S]{0,100}\b(?:BRIEF|PROGRESS)\b|\bBRIEF\b[\s\S]{0,80}\bPROGRESS\b|\bPROGRESS\b[\s\S]{0,80}\bBRIEF\b",RegexOptions.IgnoreCase))return true;
         if(reading.Lines.Any(line=>IsDialogue(line.Text)))return true;
         return reading.Lines.Count>0&&reading.Lines.All(l=>Distance(l.Text));
     }

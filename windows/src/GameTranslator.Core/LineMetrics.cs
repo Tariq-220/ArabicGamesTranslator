@@ -38,6 +38,9 @@ public sealed record LineMetrics(int? OcrMs, int? TranslationMs, int TotalMs, in
         confidence is { } c ? (int)Math.Round(Math.Clamp(c, 0, 1) * 100, MidpointRounding.AwayFromZero) : null,
         origin);
 
+    public int? QueueWaitMs {get;init;}
+    public int? ProviderMs {get;init;}
+
     private static int Clamp(long ms) => (int)Math.Clamp(ms, 0, int.MaxValue);
 
     /// <summary>

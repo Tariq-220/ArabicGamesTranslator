@@ -38,6 +38,9 @@ public static class DialogueProfile {
   return English(text,game);
  }
  public static string English(string text,string game){
+  // A recurring HUD artifact in recorded OCR has no English word, several accented
+  // glyphs and punctuation embedded between letters. Keep accented dialogue and names.
+  if(!Regex.IsMatch(text,@"[A-Za-z]{2}")&&text.Count(c=>char.IsLetter(c)&&c>127)>=2&&Regex.IsMatch(text,@"\p{L}[._-]\p{L}"))return "";
   text=ArabicGameNames.NormalizeSpeakerLabels(text);
   if(!Rdr2(game))return text;
   var fixes=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){["Itrank you..."]="Thank you...",["VII hold them off."]="I'll hold them off.",["rm coming with you."]="I'm coming with you.",["1 did."]="I did.",["1 do."]="I do."};
