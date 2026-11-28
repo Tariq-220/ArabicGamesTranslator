@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 package dev.arabicgames.phone;
 import fi.iki.elonen.NanoHTTPD;
-import org.json.JSONObject;
+import org.json.JSONObject;import org.json.JSONException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;

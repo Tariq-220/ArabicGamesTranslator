@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: rebuild-validation
+  group: rebuild-validation-${{ contains(github.event.head_commit.message, '[android-only]') && 'android' || contains(github.event.head_commit.message, '[windows-only]') && 'windows' || 'all' }}
   cancel-in-progress: true
 jobs:
   windows:
