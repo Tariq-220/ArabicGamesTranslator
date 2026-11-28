@@ -52,9 +52,11 @@ public class LatencyRecoveryTests_063
     {
         long at=0;var engine=new MapEngine();var reader=new MapReader();var area=ReadingArea.MapCard() with{Source=new(0,1,0,1),Structured=true};
         using var session=new ReadingAreaSession([area],()=>reader,engine,()=>at);
+        var partial=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);string lastStatus="";session.Status+=(_,status)=>{lastStatus=status;if(status.Contains("بعض الأجزاء"))partial.TrySetResult();};
         var shown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);session.Caption+=c=>{if(c.Text.Contains("مصرف صغير")&&c.Text.Contains("الأمن"))shown.TrySetResult(c);};
         await session.ProcessAsync(Frame.Blank(640,360));at=500;await session.ProcessAsync(Frame.Blank(640,360));
         var caption=await shown.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.NotNull(caption.Panel);Assert.Contains("Small bank with marked bills on site.",engine.Requested);Assert.DoesNotContain("FLEECA",caption.Text);
+        await partial.Task.WaitAsync(TimeSpan.FromSeconds(3));at=900;await session.ProcessAsync(Frame.Blank(640,360));Assert.DoesNotContain("قيد المعالجة",lastStatus);Assert.Contains("بعض الأجزاء",lastStatus);
     }
     private sealed class Reader(TestClock clock):ITextReader
     {

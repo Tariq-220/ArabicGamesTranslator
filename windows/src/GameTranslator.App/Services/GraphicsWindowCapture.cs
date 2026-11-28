@@ -19,15 +19,16 @@ internal sealed class GraphicsWindowCapture : IDisposable
     private readonly IDirect3DDevice device;
     private readonly GraphicsCaptureItem item;
     private readonly Direct3D11CaptureFramePool pool;
-    private readonly GraphicsCaptureSession session;
+    private GraphicsCaptureSession session;
+    private readonly object resources=new();
     private readonly Func<int> interval;
     private Frame? latest;
     private SizeInt32 size;
     private long lastCopy=long.MinValue/2;
-    private int processing,pending,disposed,released;
+    private int processing,pending,resizing,disposed,released;
     public bool Faulted {get;private set;}
     public Frame? Latest=>Volatile.Read(ref latest);
-    public bool Updating=>Volatile.Read(ref processing)!=0;
+    public bool Updating=>Volatile.Read(ref processing)!=0||Volatile.Read(ref resizing)!=0;
     internal string Diagnostics=>$"pool={size.Width}x{size.Height}, latest={Latest?.Width}x{Latest?.Height}, processing={Volatile.Read(ref processing)}, pending={Volatile.Read(ref pending)}, faulted={Faulted}";
     public event Action<Frame>? FrameReady;
 
@@ -83,11 +84,18 @@ internal sealed class GraphicsWindowCapture : IDisposable
                 captured=captured.Crop(0,0,Math.Min(content.Width,captured.Width),Math.Min(content.Height,captured.Height));
             if(Volatile.Read(ref disposed)==0&&captured.Width==content.Width&&captured.Height==content.Height){
                 Volatile.Write(ref latest,captured);
+                Volatile.Write(ref resizing,0);
                 try{FrameReady?.Invoke(captured);}catch{/* A consumer failure is not a failed GPU surface. */}
             }
             }finally{frame.Dispose();}
             // Recreate only after releasing the borrowed surface.
-            if(resize is {} next&&Volatile.Read(ref disposed)==0){sender.Recreate(device,DirectXPixelFormat.B8G8R8A8UIntNormalized,2,next);size=next;}
+            if(resize is {} next){lock(resources){if(Volatile.Read(ref disposed)==0){
+                Volatile.Write(ref resizing,1);
+                // Recreate discards the old-sized surface. Restart also requests the first
+                // image of a static resized window; it need not repaint again to be readable.
+                session.Dispose();sender.Recreate(device,DirectXPixelFormat.B8G8R8A8UIntNormalized,2,next);size=next;
+                session=sender.CreateCaptureSession(item);session.IsCursorCaptureEnabled=false;session.StartCapture();
+            }}}
         }
         catch(Exception){Faulted=true;}
         finally{
@@ -98,14 +106,18 @@ internal sealed class GraphicsWindowCapture : IDisposable
     }
     public void Dispose()
     {
+        lock(resources){
         if(Interlocked.Exchange(ref disposed,1)!=0)return;
         pool.FrameArrived-=OnFrame;item.Closed-=OnClosed;
         session.Dispose();Volatile.Write(ref latest,null);ReleaseIfStopped();
+        }
     }
     private void ReleaseIfStopped()
     {
+        lock(resources){
         if(Volatile.Read(ref disposed)==0||Volatile.Read(ref processing)!=0||Interlocked.Exchange(ref released,1)!=0)return;
         pool.Dispose();(device as IDisposable)?.Dispose();
+        }
     }
 
     private static IDirect3DDevice CreateDevice()

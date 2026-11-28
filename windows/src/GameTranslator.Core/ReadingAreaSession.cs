@@ -11,7 +11,7 @@ public sealed class ReadingAreaSession : IDisposable
         public readonly ReadingArea Area=area;
         public readonly ITextReader Reader=reader;
         public readonly PhonePanelTracker Phone=new();public int FullWidth,FullHeight;public TextBox? PhoneBounds;public PanelLayout? OwnedMessages;public long PhoneVerifiedAt=long.MinValue/2;
-        public string Candidate="", Sent="", LastResult="";
+        public string Candidate="", Sent="", LastResult="",TranslationError="";
         public Reading SourceReading=Reading.Empty;
         public long Since, Seen, ReadAt=long.MinValue/2, Revision, Generation;
         public Frame? CachedFrame;public Reading CachedReading=Reading.Empty;public long CachedAt;
@@ -122,12 +122,26 @@ public sealed class ReadingAreaSession : IDisposable
             }
             if(s.Area.Kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification&&panel is not null){panel=s.Phone.Observe(panel,now());if(panel is null){Status?.Invoke(s.Area.Id,"بانتظار نص محادثة كامل؛ لن تُعرض لوحة باسم فقط.");Observe(s,"",null,crop);return;}}
             if(messageArea&&panel is not null&&SuppressDuplicate(s,panel,actualSource))return;
-            Status?.Invoke(s.Area.Id,string.IsNullOrWhiteSpace(reading.Text)?"اللوحة موجودة، لكن OCR لم يقرأ نصًا.":$"قُرئت {reading.Lines.Count} أسطر · الترجمة قيد المعالجة");
             Observe(s,panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>c.Source)):reading.Text.Trim(),!s.Area.Structured||panel is {Cells.Count:0}?null:panel,crop);
+            ReportReadState(s,reading.Lines.Count);
         }
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested)Failed?.Invoke("ocr",error.GetType().Name);}
         finally { Volatile.Write(ref processing,0); }
+    }
+
+    private void ReportReadState(State s,int lines)
+    {
+        string status;lock(gate){
+            var count=s.LastPanel?.Cells.Count(c=>!string.IsNullOrWhiteSpace(c.Text))??(s.LastResult.Length>0?1:0);
+            status=s.Busy?$"قُرئت {lines} أسطر · الترجمة قيد المعالجة"
+                :s.Candidate.Length==0?"اللوحة موجودة، لكن OCR لم يقرأ نصًا."
+                :s.TranslationError.Length>0?"تعذر طلب الترجمة: "+s.TranslationError
+                :s.Failures>0?count>0?$"تُعرض {count} أجزاء · بعض الأجزاء لم تُقبل؛ المحاولة التالية تلقائية.":"قُرئ النص، لكن ناتج ترجمته لم يُقبل؛ المحاولة التالية تلقائية."
+                :s.Visible&&count>0?$"تُعرض الترجمة · {count} أجزاء"
+                :lines>0?$"قُرئت {lines} أسطر · بانتظار ثبات النص":"اللوحة موجودة، لكن OCR لم يقرأ نصًا.";
+        }
+        Status?.Invoke(s.Area.Id,status);
     }
 
     private bool SuppressDuplicate(State state,PanelLayout panel,TextBox source)
@@ -198,7 +212,7 @@ public sealed class ReadingAreaSession : IDisposable
             {
                 s.Misses=0;s.Seen=at;s.Panel=panel;s.PanelFrame=frame;
                 if(!TextMatch.IsSimilar(TextMatch.Normalize(text),TextMatch.Normalize(s.Candidate),.94))
-                {s.Candidate=text;s.Since=at;s.RetryAt=0;s.Failures=0;}
+                {s.Candidate=text;s.Since=at;s.RetryAt=0;s.Failures=0;s.TranslationError="";}
                 var cellsChanged=panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>c.Source).SequenceEqual(s.LastPanel.Cells.Select(c=>c.Source));
                 if((at-s.Since>=timing.SettleMs||(panel is {Cells.Count:>0}?panel.Cells.All(c=>s.Cache.ContainsKey(Key(c.Source))):s.Cache.ContainsKey(Key(text))))&&(s.Candidate!=s.Sent||cellsChanged)&&!s.Busy&&at>=s.RetryAt){s.Busy=true;start=true;}
                 if(s.Visible&&s.LastResult.Length>0&&SharesVisibleContent(s.LastPanel,s.Panel,s.Sent==s.Candidate)&&at-s.LastEmit>=s.Area.DurationMs/2){s.LastEmit=at;s.Revision++;renewed=Make(s,s.LastResult) with{Panel=s.LastPanel};}
@@ -228,7 +242,7 @@ public sealed class ReadingAreaSession : IDisposable
             if(final){
                 if(s.Candidate!=originalSource){s.Sent="";s.RetryAt=0;}
                 else if(partial||string.IsNullOrWhiteSpace(result)){s.Sent="";s.Failures++;s.RetryAt=now()+Math.Min(8000,1000*(1<<Math.Min(3,s.Failures-1)));}
-                else s.Sent=s.Candidate;
+                else {s.Sent=s.Candidate;s.Failures=0;s.TranslationError="";}
                 if(partial||string.IsNullOrWhiteSpace(result)){
                     int translated=panel?.Cells.Count(c=>!string.IsNullOrWhiteSpace(c.Text))??0;
                     finalStatus=translated>0?$"تُعرض {translated} أجزاء · بعض الأجزاء لم تُقبل؛ المحاولة التالية تلقائية.":"قُرئ النص، لكن ناتج ترجمته لم يُقبل؛ المحاولة التالية تلقائية.";
@@ -315,7 +329,7 @@ public sealed class ReadingAreaSession : IDisposable
             PublishCached(s,generation,true,source);
         }
         catch(OperationCanceledException) { }
-        catch(Exception error){if(!lifetime.IsCancellationRequested){var reason=error is TranslatorException failure?failure.Status.ToString():error.GetType().Name;Status?.Invoke(s.Area.Id,"تعذر طلب الترجمة: "+reason);Trace?.Invoke(new(s.Area.Id,s.Area.Name,source,"","failed",(int)Math.Clamp(now()-started,0,int.MaxValue),reason));Failed?.Invoke(s.Area.Id,reason);lock(gate)s.RetryAt=now()+1000;}}
+        catch(Exception error){if(!lifetime.IsCancellationRequested){var reason=error is TranslatorException failure?failure.Status.ToString():error.GetType().Name;lock(gate){s.TranslationError=reason;s.RetryAt=now()+1000;}Status?.Invoke(s.Area.Id,"تعذر طلب الترجمة: "+reason);Trace?.Invoke(new(s.Area.Id,s.Area.Name,source,"","failed",(int)Math.Clamp(now()-started,0,int.MaxValue),reason));Failed?.Invoke(s.Area.Id,reason);}}
         finally {lock(gate){s.Busy=false;s.ActiveTranslation=null;}}
     }
     internal static string VisibleCellTranslation(PanelCell cell,IReadOnlyDictionary<string,string> cache,PanelLayout? oldSource,PanelLayout? oldDisplay,bool phone)
