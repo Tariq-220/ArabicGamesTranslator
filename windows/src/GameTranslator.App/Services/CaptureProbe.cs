@@ -27,10 +27,20 @@ internal static class CaptureProbe
             if(blue is not null&&(blue.Width<300||blue.Height<180))throw new InvalidOperationException("WGC window geometry is invalid.");
             window.Width=500;window.Height=300;window.UpdateLayout();
             var resized=modern is null?null:await WaitFor(modern,f=>f.Width>=499&&f.Height>=299&&Dominant(f,0));
-            if(modern is not null&&resized is null)throw new InvalidOperationException("WGC did not recreate its pool after a native window resize.");
+            if(modern is not null&&resized is null)throw new InvalidOperationException($"WGC did not recreate its pool after a native window resize. Window={window.ActualWidth}x{window.ActualHeight}; {modern.Diagnostics}");
             var fallback=WindowCaptureService.Capture(handle);
             if(fallback is null||!Dominant(fallback,0))throw new InvalidOperationException("Compatibility capture did not deliver the blue window.");
-            File.WriteAllText(Path.Combine(folder,"capture-probe.json"),JsonSerializer.Serialize(new{Wgc=modern is null?"unavailable_on_runner":"passed_changing_and_resized_native_window",Fallback="passed",Width=resized?.Width,Height=resized?.Height,CopyMs=resized?.CaptureMs},new JsonSerializerOptions{WriteIndented=true}));
+            var streamResult="";WindowCaptureService.RegisterInternalPlayer(handle);var previousInterval=DesktopCaptureStreamSession.SamplingIntervalMs;
+            try{
+                DesktopCaptureStreamSession.SamplingIntervalMs=40;
+                using var stream=new DesktopCaptureStreamSession("window:"+window.Title);
+                var initial=new TaskCompletionSource<Frame>(TaskCreationOptions.RunContinuationsAsynchronously);var changed=new TaskCompletionSource<Frame>(TaskCreationOptions.RunContinuationsAsynchronously);
+                stream.FrameReceived+=f=>{if(Dominant(f,0))initial.TrySetResult(f);if(Dominant(f,1))changed.TrySetResult(f);};
+                stream.Start();await initial.Task.WaitAsync(TimeSpan.FromSeconds(5));window.Background=Brushes.Lime;window.UpdateLayout();
+                var delivered=await changed.Task.WaitAsync(TimeSpan.FromSeconds(5));streamResult=delivered.CaptureBackend??"missing";
+                if(modern is not null&&streamResult!="wgc")throw new InvalidOperationException("The live source did not use the verified WGC path.");
+            }finally{DesktopCaptureStreamSession.SamplingIntervalMs=previousInterval;WindowCaptureService.UnregisterInternalPlayer(handle);}
+            File.WriteAllText(Path.Combine(folder,"capture-probe.json"),JsonSerializer.Serialize(new{Wgc=modern is null?"unavailable_on_runner":"passed_changing_and_resized_native_window",Fallback="passed",LiveStream=streamResult,Width=resized?.Width,Height=resized?.Height,CopyMs=resized?.CaptureMs},new JsonSerializerOptions{WriteIndented=true}));
             window.Close();app.Shutdown(0);
         }catch(Exception e){File.WriteAllText(Path.Combine(folder,"errors.txt"),e.ToString());window?.Close();app.Shutdown(1);}
     }

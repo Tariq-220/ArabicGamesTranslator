@@ -53,12 +53,24 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
 
     private async Task CaptureLoopAsync(CancellationToken token)
     {
-        bool emittedStreaming = false;
+        int emittedStreaming=0;
         GraphicsWindowCapture? graphics=null;IntPtr graphicsTarget=IntPtr.Zero;bool graphicsMonitor=false,attempted=false;long graphicsStarted=0,lastCompatibilityCheck=0;
+        void Emit(Frame frame){
+            if(token.IsCancellationRequested||!running)return;
+            if(Interlocked.Exchange(ref emittedStreaming,1)==0)StateChanged?.Invoke(SessionState.Streaming);
+            FrameReceived?.Invoke(frame);
+        }
         Frame? ModernFrame(IntPtr target,bool monitor,Func<Frame?> compatibility,out bool warming)
         {
             if(target!=graphicsTarget||monitor!=graphicsMonitor){graphics?.Dispose();graphics=null;graphicsTarget=target;graphicsMonitor=monitor;attempted=false;}
-            if(!attempted){attempted=true;graphicsStarted=Environment.TickCount64;lastCompatibilityCheck=graphicsStarted;graphics=GraphicsWindowCapture.TryStart(target,monitor,()=>SamplingIntervalMs);}
+            if(!attempted){
+                attempted=true;graphicsStarted=Environment.TickCount64;lastCompatibilityCheck=graphicsStarted;graphics=GraphicsWindowCapture.TryStart(target,monitor,()=>SamplingIntervalMs);
+                if(graphics is {} owner)owner.FrameReady+=fresh=>{
+                    if(!ReferenceEquals(owner,Volatile.Read(ref graphics)))return;
+                    if(monitor&&WindowCaptureService.SetupUiIsForeground())return;
+                    Emit(fresh);
+                };
+            }
             if(graphics?.Faulted==true){graphics.Dispose();graphics=null;}
             var latest=graphics?.Latest;
             if(latest is not null&&Environment.TickCount64-lastCompatibilityCheck>=1500&&WindowCaptureService.IsFrameBlack(latest.Pixels,latest.Width,latest.Height)){
@@ -126,12 +138,9 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
                     {
                         if(token.IsCancellationRequested)break;
                         if(frame.CaptureBackend is null)frame=new Frame(frame.Pixels,frame.Width,frame.Height,frame.Stride){CaptureBackend="gdi",CaptureMs=(int)Math.Clamp(Environment.TickCount64-iterationStarted,0,int.MaxValue)};
-                        if (!emittedStreaming)
-                        {
-                            emittedStreaming = true;
-                            StateChanged?.Invoke(SessionState.Streaming);
-                        }
-                        FrameReceived?.Invoke(frame);
+                        // New WGC images arrive immediately via FrameReady. Periodic repeats only
+                        // confirm a static page; an in-progress fresh copy must not be replaced by an old image.
+                        if(graphics is null||!graphics.Updating)Emit(frame);
                     }
                 }
                 catch { }

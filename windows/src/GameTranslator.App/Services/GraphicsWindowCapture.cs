@@ -27,6 +27,9 @@ internal sealed class GraphicsWindowCapture : IDisposable
     private int processing,pending,disposed,released;
     public bool Faulted {get;private set;}
     public Frame? Latest=>Volatile.Read(ref latest);
+    public bool Updating=>Volatile.Read(ref processing)!=0;
+    internal string Diagnostics=>$"pool={size.Width}x{size.Height}, latest={Latest?.Width}x{Latest?.Height}, processing={Volatile.Read(ref processing)}, pending={Volatile.Read(ref pending)}, faulted={Faulted}";
+    public event Action<Frame>? FrameReady;
 
     public static GraphicsWindowCapture? TryStart(IntPtr handle,bool monitor,Func<int> interval)
     {
@@ -78,7 +81,10 @@ internal sealed class GraphicsWindowCapture : IDisposable
             // During a resize the pool can briefly have the previous surface dimensions.
             if(content.Width<captured.Width||content.Height<captured.Height)
                 captured=captured.Crop(0,0,Math.Min(content.Width,captured.Width),Math.Min(content.Height,captured.Height));
-            if(Volatile.Read(ref disposed)==0&&captured.Width==content.Width&&captured.Height==content.Height)Volatile.Write(ref latest,captured);
+            if(Volatile.Read(ref disposed)==0&&captured.Width==content.Width&&captured.Height==content.Height){
+                Volatile.Write(ref latest,captured);
+                try{FrameReady?.Invoke(captured);}catch{/* A consumer failure is not a failed GPU surface. */}
+            }
             }finally{frame.Dispose();}
             // Recreate only after releasing the borrowed surface.
             if(resize is {} next&&Volatile.Read(ref disposed)==0){sender.Recreate(device,DirectXPixelFormat.B8G8R8A8UIntNormalized,2,next);size=next;}
