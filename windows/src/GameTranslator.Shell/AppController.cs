@@ -1288,11 +1288,11 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public void FeedFrame(Frame frame) => HandleFrame(frame);
     public void ClearLastFrame() => post(() => LastFrame = null);
 
-    private long sampleAt=long.MinValue/2;
+    private readonly FrameSampleGate frameSampling=new();
     private async void HandleFrame(Frame frame)
     {
         PublishPreview(frame);
-        var at=Environment.TickCount64;var previous=Interlocked.Read(ref sampleAt);if(at-previous<1000d/Timing.CaptureFps||Interlocked.CompareExchange(ref sampleAt,at,previous)!=previous)return;
+        if(!frameSampling.Due(Environment.TickCount64,Timing.CaptureFps))return;
         var areas=areaSession;
 
         // Duraklatıldıysa kare yalnız ek bölgeler ve serbest alan için saklanır; altyazı okunmaz.

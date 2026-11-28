@@ -74,6 +74,6 @@ public sealed class TranslationWorkQueue : IDisposable
     }
     public void Dispose(){lock(gate){if(disposed)return;disposed=true;}lifetime.Cancel();}
     private sealed class Lane(TranslationWorkQueue queue,bool foreground):ITextTranslator
-    {public int PreferredBatchSize=>foreground?queue.provider.PreferredBatchSize:1;
+    {public int PreferredBatchSize=>foreground?queue.provider.PreferredBatchSize:queue.independentAreas?Math.Clamp(queue.areaProvider.PreferredBatchSize,1,4):1;
      public Task<string> TranslateAsync(string text,CancellationToken token=default)=>queue.Submit(text,foreground,token);public async Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> texts,CancellationToken token=default){var result=new List<string>();int count=Math.Clamp(PreferredBatchSize,1,24);foreach(var batch in texts.Chunk(count))result.AddRange(await queue.SubmitMany(batch,foreground,token).ConfigureAwait(false));return result;}}
 }

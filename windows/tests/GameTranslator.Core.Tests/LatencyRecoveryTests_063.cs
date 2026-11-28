@@ -8,6 +8,22 @@ public class LatencyRecoveryTests_063
     [InlineData(16,10,6)][InlineData(50,-1,50)][InlineData(50,long.MaxValue,1)]
     public void CaptureWorkConsumesItsIntervalInsteadOfAddingAnotherWait(int interval,long work,int expected)=>Assert.Equal(expected,CaptureCadence.RemainingMs(interval,work));
 
+    [Fact]public void SlightCaptureJitterDoesNotHalveTheConfiguredOcrRate()
+    {
+        var sample=new FrameSampleGate();foreach(var at in new long[]{0,51,100,151,200,251,300})Assert.True(sample.Due(at,20));
+        Assert.False(sample.Due(301,20));Assert.True(sample.Due(351,20));
+    }
+    [Fact]public void LongPauseCannotCreateACatchupBurstAndChangingFpsAppliesImmediately()
+    {
+        var sample=new FrameSampleGate();Assert.True(sample.Due(0,20));Assert.True(sample.Due(5000,20));Assert.False(sample.Due(5001,20));Assert.False(sample.Due(5049,20));Assert.True(sample.Due(5050,20));Assert.True(sample.Due(5051,60));Assert.False(sample.Due(5052,60));Assert.True(sample.Due(10,60));
+    }
+
+    [Fact]public async Task IndependentCloudMapCellsUseOneTransportBatchWithoutBlockingDialogue()
+    {
+        var provider=new CloudEngine();using var work=new TranslationWorkQueue(provider);var translated=await work.Areas.TranslateManyAsync(["FEATURES","SECURITY","CASH DRAWER"]);
+        Assert.Equal(3,translated.Count);Assert.Single(provider.Area.Batches);Assert.Equal(3,provider.Area.Batches[0]);Assert.Equal("حوار عربي.",await work.Dialogue.TranslateAsync("A real reply."));
+    }
+
     [Fact]public async Task FirstObservationIncludesStabilizationAndKeepsLegacyTimingExplicit()
     {
         var clock=new TestClock{Now=0};var engine=new TimedEngine(clock);var messages=new List<string>();var pipeline=new SubtitlePipeline(new Reader(clock),engine,new FakeSender(),clock:clock.Read){MinimumStableMs=120,Log=messages.Add};
@@ -62,5 +78,15 @@ public class LatencyRecoveryTests_063
         public int PreferredBatchSize=>4;public readonly List<string> Requested=[];
         public Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> text,CancellationToken token=default)=>Task.FromException<IReadOnlyList<string>>(new TranslatorException(TranslatorStatus.OutputRejected));
         public Task<string> TranslateAsync(string source,CancellationToken token=default){Requested.Add(source);return source.Contains("FLEECA")?Task.FromException<string>(new TranslatorException(TranslatorStatus.OutputRejected)):Task.FromResult(source.Contains("Small bank")?"مصرف صغير يحتوي على أوراق نقدية معلّمة.":"الأمن");}
+    }
+    private sealed class CloudEngine:ITextTranslator
+    {
+        public readonly CloudArea Area=new();public bool SupportsConcurrentAreas=>true;public ITextTranslator ForIndependentArea()=>Area;
+        public Task<string> TranslateAsync(string text,CancellationToken token=default)=>Task.FromResult("حوار عربي.");
+    }
+    private sealed class CloudArea:ITextTranslator
+    {
+        public readonly List<int> Batches=[];public Task<string> TranslateAsync(string text,CancellationToken token=default)=>Task.FromResult("نص عربي.");
+        public Task<IReadOnlyList<string>> TranslateManyAsync(IReadOnlyList<string> texts,CancellationToken token=default){Batches.Add(texts.Count);return Task.FromResult<IReadOnlyList<string>>(texts.Select(_=>"نص عربي.").ToArray());}
     }
 }

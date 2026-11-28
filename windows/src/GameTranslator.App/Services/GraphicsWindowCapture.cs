@@ -98,7 +98,7 @@ internal sealed class GraphicsWindowCapture : IDisposable
         IntPtr native=IntPtr.Zero,context=IntPtr.Zero,dxgi=IntPtr.Zero,inspectable=IntPtr.Zero;
         try{
             Marshal.ThrowExceptionForHR(D3D11CreateDevice(IntPtr.Zero,1,IntPtr.Zero,0x20,IntPtr.Zero,0,7,out native,out _,out context));
-            var iid=new Guid("54EC77FA-1377-44E6-8C32-88FD5F44C84C");Marshal.ThrowExceptionForHR(Marshal.QueryInterface(native,ref iid,out dxgi));
+            var iid=new Guid("54EC77FA-1377-44E6-8C32-88FD5F44C84C");Marshal.ThrowExceptionForHR(Marshal.QueryInterface(native,in iid,out dxgi));
             Marshal.ThrowExceptionForHR(CreateDirect3D11DeviceFromDXGIDevice(dxgi,out inspectable));
             return MarshalInterface<IDirect3DDevice>.FromAbi(inspectable);
         }finally{foreach(var ptr in new[]{inspectable,dxgi,context,native})if(ptr!=IntPtr.Zero)Marshal.Release(ptr);}

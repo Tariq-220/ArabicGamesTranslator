@@ -515,7 +515,7 @@ public sealed class XboxTestWindow : Window
         translated.Text = controller.LastTranslation;
         if (controller.LastLineMetrics is { } m)
             timing.Text = m.Origin==LineOrigin.Pack ? $"ترجمة من قاموس المراجعة — بدون طلب للمحرك | الإجمالي: {m.TotalMs} ms" : $"القراءة: {m.OcrMs} ms | الترجمة: {m.TranslationMs} ms | الإجمالي داخل البرنامج: {m.TotalMs} ms";
-            if(m.FirstObservedTotalMs is {} total)timing.Text+=$" | من أول قراءة: {total} ms | قبل الطلب: {m.BeforeRequestMs} ms | انتظار داخلي: {m.PipelineWaitMs} ms | الالتقاط: {m.CaptureBackend??"غير مقاس"} {m.CaptureMs} ms";
+        if(controller.LastLineMetrics is {FirstObservedTotalMs:{} total} measured)timing.Text+=$" | من أول قراءة: {total} ms | قبل الطلب: {measured.BeforeRequestMs} ms | انتظار داخلي: {measured.PipelineWaitMs} ms | الالتقاط: {measured.CaptureBackend??"غير مقاس"} {measured.CaptureMs} ms";
         status.Text = controller.OcrMissing ? "حزمة قراءة الإنجليزية مفقودة: ثبّت English من إعدادات لغات Windows."
             : controller.IsRunning ? "الترجمة تعمل — "+(controller.TranslatorStatus switch {
                 TranslatorStatus.ServiceUnreachable=>"تعذر الاتصال بخدمة الترجمة أو انتهت المهلة؛ المفتاح لم يُحذف.",
