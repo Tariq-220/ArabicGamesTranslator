@@ -1,0 +1,62 @@
+{
+  "release_id": 461211167,
+  "url": "https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/untagged-380b7b67bc2a3ad8709c",
+  "draft": true,
+  "source": "f2ac86db2471de997b74d3f8fc739c9c3477a215",
+  "validation_run": 46092109150,
+  "windows_build": 46092407102,
+  "mobile_build": 46092442452,
+  "mobile_transfer": 46092748469,
+  "assets": [
+    {
+      "name": "ArabicGames-Arabic-Guide.zip",
+      "size": 1146631,
+      "digest": "sha256:c4c1ed41ec6680d371b1fa941b00a5b28ea82a53f78bd12b0320e61f7b0c4c41"
+    },
+    {
+      "name": "ArabicGames-Enable-AutoUpdate.zip",
+      "size": 2129,
+      "digest": "sha256:baa7ce2ded255a5c0b2bdd55e054fa7078dc0779a6fc9b34153484d9f682fb4a"
+    },
+    {
+      "name": "ArabicGames-Phone-0.5.0-arm64.apk",
+      "size": 47306319,
+      "digest": "sha256:a8aeb0b4d16f4d879cb986eb3586dfe44536fe6d3025bc25d51fe3af54eff8e4"
+    },
+    {
+      "name": "ArabicGames-Source-0.5.11.zip",
+      "size": 42603895,
+      "digest": "sha256:b0199c82c67352c3bb459d578a0d7923b1ef01fefd64263f21a9055e6982df5e"
+    },
+    {
+      "name": "ArabicGames-TV-0.4.9.apk",
+      "size": 1123882,
+      "digest": "sha256:a0a97153a2577482b42949391bfa66e9aa399d6a6077711c59030063705a8823"
+    },
+    {
+      "name": "ArabicGames-Windows-0.5.11-Full-Install.zip",
+      "size": 194452744,
+      "digest": "sha256:98964af5efee076cf247c73631f0a76f49204e2476a4ad1d3266c6a9415b4a58"
+    },
+    {
+      "name": "ArabicGames-Windows-0.5.11-Update.zip",
+      "size": 33322831,
+      "digest": "sha256:56a0d3afba8dcdcde318b95e1c3ef401364aba83146312dcb5e68bacc3183d8d"
+    },
+    {
+      "name": "manifest.json",
+      "size": 546,
+      "digest": "sha256:34fcbc7ce5d2e50f15548d94d0b7582aac46a64f00d7c22c55cdaf4415a3c36c"
+    },
+    {
+      "name": "SHA256SUMS-Android.txt",
+      "size": 191,
+      "digest": "sha256:51167ed478cbd9aa2126225d9e803a59794a02c11044d990385ac45454f97ed8"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 510,
+      "digest": "sha256:800815c85a333fcc019fe4f2287030a42ebcbf4ce0f2c6394c6608f5708353da"
+    }
+  ]
+}
