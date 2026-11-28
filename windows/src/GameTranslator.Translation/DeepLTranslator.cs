@@ -39,7 +39,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
     private readonly HttpClient _http;
     private readonly TranslationCache _cache;
     private readonly ConcurrentDictionary<string,byte> rephrased=new(StringComparer.Ordinal);
-    private bool Cached(string source,HashSet<string> retry,out string value){if(!_cache.TryGet(source,out value))return false;if(!validateArabic||!ArabicRegister.NeedsRephrase(source,value)||rephrased.ContainsKey(source))return true;retry.Add(source);return false;}
+    private bool Cached(string source,HashSet<string> retry,out string value){if(!(validateArabic?_cache.TryGetReadable(source,out value):_cache.TryGet(source,out value)))return false;if(!validateArabic||!ArabicRegister.NeedsRephrase(source,value)||rephrased.ContainsKey(source))return true;retry.Add(source);return false;}
     private void Rephrased(IEnumerable<string> sources){if(rephrased.Count>=1024)rephrased.Clear();foreach(var source in sources)rephrased[source]=0;}
     private readonly ConcurrentDictionary<string, IReadOnlyList<SpokenLine>> _speech = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _names = new(StringComparer.Ordinal);
@@ -96,7 +96,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         var missing = Enumerable.Range(0, pieces.Count).Where(i => pieces[i].Translate && translations[i] is null).ToList();
         var sources = missing.Select(i => SubtitleSegmenter.NormalizeCase(pieces[i].Text, names)).ToList();
         string? cachedFallback=null;
-        if(validateArabic&&retry.Count>0){var old=new StringBuilder();bool complete=true;foreach(var piece in pieces){if(!piece.Translate)old.Append(piece.Text);else if(_cache.TryGet(piece.Text,out var value))old.Append(value);else{complete=false;break;}}if(complete){var value=ArabicGameNames.Localize(text,old.ToString());if(ArabicOutputQuality.Accepts(text,value))cachedFallback=value;}}
+        if(validateArabic&&retry.Count>0){var old=new StringBuilder();bool complete=true;foreach(var piece in pieces){if(!piece.Translate)old.Append(piece.Text);else if(_cache.TryGetReadable(piece.Text,out var value))old.Append(value);else{complete=false;break;}}if(complete){var value=ArabicGameNames.Localize(text,old.ToString());if(ArabicOutputQuality.Accepts(text,value))cachedFallback=value;}}
         if(now()<_pausedUntil)return cachedFallback??await FallbackAsync(text,cancellationToken).ConfigureAwait(false);
 
 
@@ -137,7 +137,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
         var result=new string[texts.Count];var missing=new List<int>();var retry=new HashSet<string>(StringComparer.Ordinal);
         for(int i=0;i<texts.Count;i++){if(Cached(texts[i],retry,out var hit))result[i]=hit;else missing.Add(i);}
         if(missing.Count==0)return result;
-        if(now()<_pausedUntil){foreach(var i in missing)result[i]=retry.Contains(texts[i])&&_cache.TryGet(texts[i],out var old)&&ArabicOutputQuality.Accepts(texts[i],old)?old:await FallbackAsync(texts[i],cancellationToken).ConfigureAwait(false);return result;}
+        if(now()<_pausedUntil){foreach(var i in missing)result[i]=retry.Contains(texts[i])&&_cache.TryGetReadable(texts[i],out var old)&&ArabicOutputQuality.Accepts(texts[i],old)?old:await FallbackAsync(texts[i],cancellationToken).ConfigureAwait(false);return result;}
         try{
             var sources=missing.Select(i=>texts[i]).ToList();var context=Context()+"\n"+ArabicRegister.Instruction+"\nIndependent screen items (retain each item separately):\n"+string.Join("\n",sources);
             var translated=await RequestAsync(sources,context,cancellationToken).ConfigureAwait(false);Report(null);
@@ -146,7 +146,7 @@ public sealed class DeepLTranslator : ITextTranslator, IOnlineTranslator
             Rephrased(retry);return result;
         }catch(Exception error)when(error is HttpRequestException or TaskCanceledException or DeepLException&&!cancellationToken.IsCancellationRequested){
             Report(error is DeepLException deepL?deepL.State:OnlineKeyState.Unreachable);_pausedUntil=now()+(error is DeepLException failed?failed.RetryDelay:TimeSpan.FromSeconds(2));
-            foreach(var i in missing)result[i]=retry.Contains(texts[i])&&_cache.TryGet(texts[i],out var old)&&ArabicOutputQuality.Accepts(texts[i],old)?old:await FallbackAsync(texts[i],cancellationToken).ConfigureAwait(false);return result;
+            foreach(var i in missing)result[i]=retry.Contains(texts[i])&&_cache.TryGetReadable(texts[i],out var old)&&ArabicOutputQuality.Accepts(texts[i],old)?old:await FallbackAsync(texts[i],cancellationToken).ConfigureAwait(false);return result;
         }
     }
 

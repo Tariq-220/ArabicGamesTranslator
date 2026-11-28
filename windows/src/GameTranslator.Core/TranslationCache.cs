@@ -62,12 +62,15 @@ public sealed class TranslationCache
         get { lock (_gate) { LoadIfNeeded(); return _entries.Count; } }
     }
 
-    public bool TryGet(string key, out string value)
+    public bool TryGet(string key,out string value)=>TryGet(key,out value,false);
+    /// <summary>Readable Arabic for one provider rephrase/failure fallback; ordinary lookups keep the formal register filter.</summary>
+    public bool TryGetReadable(string key,out string value)=>TryGet(key,out value,true);
+    private bool TryGet(string key,out string value,bool allowRegional)
     {
         lock (_gate)
         {
             LoadIfNeeded();
-            if (_entries.TryGetValue(key, out var entry) && (targetLanguage!="ar" || ArabicOutputQuality.Accepts(key,entry.Value)&&!ArabicRegister.NeedsRephrase(key,entry.Value)))
+            if (_entries.TryGetValue(key, out var entry) && (targetLanguage!="ar" || ArabicOutputQuality.Accepts(key,entry.Value)&&(allowRegional||!ArabicRegister.NeedsRephrase(key,entry.Value))))
             {
                 _entries[key] = (entry.Value, ++_tick);
                 value = targetLanguage=="ar"?ArabicRegister.Normalize(entry.Value):entry.Value;

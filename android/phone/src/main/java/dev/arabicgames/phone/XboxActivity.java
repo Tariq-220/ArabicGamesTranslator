@@ -33,13 +33,13 @@ public final class XboxActivity extends Activity {
   if(!caption.getText().toString().equals(arabic))caption.setText(arabic);
   org.json.JSONObject placed=Status.areaCaptions.get("dialogue");caption.setVisibility(arabic.isEmpty()||placed!=null&&!placed.optBoolean("clear")?View.GONE:View.VISIBLE);
   if(SystemClock.elapsedRealtime()-audioAt>700){applyAudio();audioAt=SystemClock.elapsedRealtime();}
-  if(reading.active()&&!pending&&CaptureService.acceptsDirect()&&isXbox(browser.getUrl())){
+  if(!pending&&(reading.active()&&CaptureService.acceptsDirect()||ReadingCardsActivity.previewActive)&&isXbox(browser.getUrl())){
    pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicCardsFull="+(ReadingCards.auxiliaryEnabled(XboxActivity.this)||ReadingCardsActivity.previewActive)+";window.__arabicBounds="+java.util.Arrays.toString(ReadingCards.primary(XboxActivity.this))+";window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{
-    if(callbackId!=requestId)return;pending=false;if(!reading.accepts(generation)||destroyed)return;
+    if(callbackId!=requestId)return;pending=false;if(destroyed||!reading.accepts(generation)&&!ReadingCardsActivity.previewActive)return;
     try{
      Object raw=new JSONTokener(value).nextValue();if(!(raw instanceof String))return;JSONObject frame=new JSONObject((String)raw);
      switch(frame.getString("status")){
-      case "FRAME":String encoded=frame.getString("image");int comma=encoded.indexOf(',');if(comma>0&&encoded.length()<800000)CaptureService.directJpeg(Base64.decode(encoded.substring(comma+1),Base64.DEFAULT),frame.optBoolean("full",false),0);break;
+      case "FRAME":String encoded=frame.getString("image");int comma=encoded.indexOf(',');if(comma>0&&encoded.length()<800000){byte[] bytes=Base64.decode(encoded.substring(comma+1),Base64.DEFAULT);if(reading.active()&&CaptureService.acceptsDirect())CaptureService.directJpeg(bytes,frame.optBoolean("full",false),0);else PhoneVideoPreview.jpeg(bytes);}break;
       case "CAPTURE_BLOCKED":Status.message="المشغّل يمنع قراءة الفيديو. جرّب مشاركة الشاشة إذا سمح بها النظام.";reading.stop();CaptureService.pauseDirect();updateButtons();break;
       case "WAIT_VIDEO":Status.message="بانتظار فيديو Xbox. اختر جهازك وشغّل اللعبة داخل الصفحة.";break;
      }

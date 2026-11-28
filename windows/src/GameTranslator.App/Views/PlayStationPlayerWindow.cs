@@ -37,6 +37,7 @@ public sealed class PlayStationPlayerWindow:Window
     }
     private async void Refresh()
     {
+        if(!IsVisible||WindowState==WindowState.Minimized)return;
         foreach(var key in captions.Where(x=>Environment.TickCount64>=x.Value.Until).Select(x=>x.Key).ToArray())Remove(key);
         frames.Interval=TimeSpan.FromMilliseconds(1000d/controller.Timing.PreviewFps);
         if(busy||controller.LastFrame is not {} frame||ReferenceEquals(last,frame))return;last=frame;busy=true;

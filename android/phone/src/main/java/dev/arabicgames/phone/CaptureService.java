@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class CaptureService extends Service {
  static volatile CaptureService current;private static volatile boolean apiTestActive;
- static void suspendForApiTest(boolean active){apiTestActive=active;CaptureService s=current;if(active&&s!=null){s.epoch++;s.localQueue.reset();s.gate.absent();}}
+ static void suspendForApiTest(boolean active){apiTestActive=active;CaptureService s=current;if(active&&s!=null){s.epoch++;s.presentedSource=s.presentedArabic="";s.localQueue.reset();s.gate.absent();}}
  private volatile boolean directActive;
  private volatile ArabicPack pack=ArabicPack.empty();
  static void refreshPack(){CaptureService s=current;if(s!=null)s.loadPack();}
@@ -59,7 +59,7 @@ public final class CaptureService extends Service {
   try {
    current=this;
    foreground(projection!=null||"capture".equals(intent.getAction()));
-   if(server==null){String code=getSharedPreferences("relay",MODE_PRIVATE).getString("pairingCode",null);if(code==null){code=Pairing.createCode();getSharedPreferences("relay",MODE_PRIVATE).edit().putString("pairingCode",code).apply();}server=new RelayServer(code);server.start(15000,false);Status.code=code;ui.post(testLoop);}
+   if(server==null){String code=getSharedPreferences("relay",MODE_PRIVATE).getString("pairingCode",null);if(code==null){code=Pairing.createCode();getSharedPreferences("relay",MODE_PRIVATE).edit().putString("pairingCode",code).apply();}server=new RelayServer(code,this);server.start(15000,false);Status.code=code;ui.post(testLoop);}
    if("test".equals(intent.getAction())){server.subtitle("آرثر: هذا اختبار العربية — 25 دولارًا",5000);Status.message="اختبار الربط فقط؛ لترجمة اللعبة اختر Xbox أو بدء ترجمة PS5. من الشاشة اختر اكتشاف الجوال ووافق على الرمز.";return START_NOT_STICKY;}
    if("ps5-preview".equals(intent.getAction())) {
     if(projection!=null){Status.message="أوقف مشاركة الشاشة قبل بدء PS5 المباشر.";return START_NOT_STICKY;}
@@ -68,13 +68,13 @@ public final class CaptureService extends Service {
    if("ps5-pause".equals(intent.getAction())){directActive=false;epoch++;localQueue.reset();gate.absent();Status.source="";Status.arabic="";if(server!=null)server.clear();Status.message="توقفت الترجمة؛ فيديو PS5 مستمر.";return START_NOT_STICKY;}
    if("ps5".equals(intent.getAction())) {
     if(projection!=null){Status.message="أوقف مشاركة الشاشة أولًا قبل تشغيل PS5 المباشر.";return START_NOT_STICKY;}
-    dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);directSource="ps5";epoch++;gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;
+    dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);directSource="ps5";epoch++;presentedSource=presentedArabic="";gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;
     if(wake==null){wake=((PowerManager)getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"ArabicGames:PS5");wake.acquire(4*60*60*1000L);}Ps5Session.start(this);return START_NOT_STICKY;
    }
    if("direct".equals(intent.getAction())) {
     Ps5Session.stop();dev.arabicgames.update.UpdateActivity.setPlaySessionActive(true);directSource="xbox";
     if(projection!=null){Status.message="أوقف مشاركة الشاشة أولًا قبل فتح وضع Xbox المباشر.";return START_NOT_STICKY;}
-    epoch++;gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;return START_NOT_STICKY;
+    epoch++;presentedSource=presentedArabic="";gate.absent();Status.framesRead=0;Status.observedOcr="";Status.source="";Status.arabic="";directActive=true;initEngine();Status.running=true;started=SystemClock.elapsedRealtime();lastText=started;return START_NOT_STICKY;
    }
    if(projection!=null)return START_NOT_STICKY;
    if(!"capture".equals(intent.getAction()))return START_NOT_STICKY;
@@ -105,7 +105,7 @@ public final class CaptureService extends Service {
  private void resize(int fullWidth,int fullHeight){
   if(closed||projection==null||fullWidth<1||fullHeight<1)return;
   float scale=Math.min(1f,1280f/Math.max(fullWidth,fullHeight));int w=Math.max(2,(int)(fullWidth*scale));int h=Math.max(2,(int)(fullHeight*scale));
-  if(w==width&&h==height)return;width=w;height=h;epoch++;gate.absent();
+  if(w==width&&h==height)return;width=w;height=h;epoch++;presentedSource=presentedArabic="";gate.absent();
   ImageReader next=ImageReader.newInstance(w,h,PixelFormat.RGBA_8888,2);
   try {
    if(display==null)display=projection.createVirtualDisplay("ArabicGameReader",w,h,density,DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,next.getSurface(),null,frames);
@@ -143,9 +143,9 @@ public final class CaptureService extends Service {
  static boolean screenTest(){CaptureService s=current;if(s==null||s.closed||s.server==null)return false;String text="اختبار إرسال من الجوال إلى الشاشة — "+(SystemClock.elapsedRealtime()/1000%10000);Status.arabic=text;Status.message="أُرسل اختبار الربط؛ قراءة اللعبة إن كانت تعمل تستمر.";s.server.subtitle(text,10000);final int generation=s.epoch;s.ui.postDelayed(()->{if(!s.closed&&s.epoch==generation&&Status.arabic.equals(text)){Status.arabic="";s.server.clear();}},10000);return true;}
  static void retryModel(){CaptureService s=current;if(s!=null)s.ensureModel();}
  static void readingCardsChanged(){CaptureService s=current;if(s==null)return;String geometry=java.util.Arrays.toString(ReadingCards.primary(s));if(!geometry.equals(s.primaryRegion)){s.primaryRegion=geometry;readingChanged();}else if(s.areas!=null)s.areas.reload();}
- static void readingChanged(){CaptureService s=current;if(s==null)return;if(s.areas!=null)s.areas.reload();s.epoch++;s.localQueue.reset();s.gate.resetMemory();s.lease.clear();s.history.clear();Status.arabic="";if(s.server!=null)s.server.clear();}
+ static void readingChanged(){CaptureService s=current;if(s==null)return;if(s.areas!=null)s.areas.reload();s.epoch++;s.presentedSource=s.presentedArabic="";s.localQueue.reset();s.gate.resetMemory();s.lease.clear();s.history.clear();Status.arabic="";if(s.server!=null)s.server.clear();}
  static void translationChanged(){CaptureService s=current;if(s==null||s.closed)return;
-  s.epoch++;s.localQueue.reset();if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.modelGeneration++;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.cloudFailures=0;s.ready=false;
+  s.epoch++;s.presentedSource=s.presentedArabic="";s.localQueue.reset();if(s.localSession!=null){s.localSession.close();s.localSession=null;}s.modelDownloading=false;s.modelGeneration++;s.localLoadEpoch=-1;s.gate.resetMemory();s.lease.clear();s.history.clear();s.cloudRetryAfter=0;s.cloudFailures=0;s.ready=false;
   if(s.areas!=null)s.areas.reload();Status.arabic="";Status.cloudMetrics="آخر طلب AI: لم يكتمل طلب بالمحرك الجديد بعد.";if(s.server!=null)s.server.clear();s.loadTranslationSettings();s.ensureModel();
  }
  private void loadTranslationSettings(){try{engine=AiPreferences.read(this);}catch(Exception e){engine=new AiPreferences.Config(AiPreferences.provider(this),"","","",AiPreferences.cloud(this));Status.message="تعذر قراءة مفتاح AI. افتح إعدادات المحرك وأعد إدخاله.";}}
@@ -163,7 +163,7 @@ public final class CaptureService extends Service {
    .addOnSuccessListener(v->{if(closed||modelGeneration!=downloadingGeneration)return;modelDownloading=false;ready=true;Status.modelReady=true;Status.message="النموذج جاهز للجلسة. شغّل قراءة الفيديو بعد ظهور اللعبة.";})
    .addOnFailureListener(e->{if(closed||modelGeneration!=downloadingGeneration)return;modelDownloading=false;ready=false;Status.message="تعذر تجهيز النموذج للجلسة. افحص تنزيله من الصفحة الرئيسية ثم أعد فتح Xbox المباشر.";});
  }
- static void pauseDirect(){CaptureService s=current;if(s!=null&&s.directActive){s.epoch++;s.localQueue.reset();s.gate.absent();s.lease.clear();Status.arabic="";if(s.server!=null)s.server.clear();}}
+ static void pauseDirect(){CaptureService s=current;if(s!=null&&s.directActive){s.epoch++;s.presentedSource=s.presentedArabic="";s.localQueue.reset();s.gate.absent();s.lease.clear();Status.arabic="";if(s.server!=null)s.server.clear();}}
  static boolean acceptsDirect(){CaptureService s=current;return !apiTestActive&&s!=null&&!s.closed&&s.directActive&&!"ps5".equals(s.directSource)&&s.ready&&s.localOcrAllowed()&&!s.busy.get();}
  static void ps5Failed(){CaptureService s=current;if(s!=null&&"ps5".equals(s.directSource))s.ui.post(s::stopSelf);}
  static void ps5Rgba(java.nio.ByteBuffer buffer,int w,int h,int stride){
@@ -260,8 +260,8 @@ public final class CaptureService extends Service {
    if(stack)ui.postDelayed(()->{if(!closed&&generation==epoch&&lastPresentedAt==presentation&&Status.arabic.equals(display)){Status.arabic=latest;lease.store(text,latest,presentation);if(server!=null)server.subtitle(latest,2200);}},Math.max(100,700-(translated-previousAt)));
   }finally{if(releaseFrame)busy.set(false);}
  }
- @Override public void onDestroy(){dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);Ps5Session.stop();current=null;directActive=false;closed=true;if(areas!=null)areas.close();areaWorker.shutdownNow();Status.source="";Status.arabic="";localQueue.reset();epoch++;ready=false;Status.running=false;Status.captureActive=false;Status.clients=0;Status.code="";ui.removeCallbacks(testLoop);
-  if(server!=null){server.clear();server.stop();server=null;}
+ @Override public void onDestroy(){dev.arabicgames.update.UpdateActivity.setPlaySessionActive(false);Ps5Session.stop();directActive=false;closed=true;if(areas!=null)areas.close();areaWorker.shutdownNow();Status.source="";Status.arabic="";localQueue.reset();epoch++;ready=false;Status.running=false;Status.captureActive=false;Status.clients=0;Status.code="";ui.removeCallbacks(testLoop);
+  if(server!=null){server.clear();server.stop();server=null;}current=null;
   if(display!=null)display.release();if(reader!=null)reader.close();if(projection!=null)projection.stop();
   if(localSession!=null){localSession.close();localSession=null;}aiWorker.shutdownNow();if(thread!=null)thread.quitSafely();if(recognizer!=null)recognizer.close();if(translator!=null)translator.close();
   if(wake!=null&&wake.isHeld())wake.release();stopForeground(true);super.onDestroy();

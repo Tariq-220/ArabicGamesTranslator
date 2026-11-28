@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 final class RelayServer extends NanoHTTPD {
- final String code;
+ final String code;private final android.content.Context context;
  static volatile RelayServer active;
  private String pendingTicket,pendingIp;private long pendingUntil;private boolean approved;
  synchronized String pendingChallenge(){return pendingTicket!=null&&System.nanoTime()/1_000_000<pendingUntil&&!approved?pendingTicket.substring(0,6):null;}
@@ -30,7 +30,9 @@ final class RelayServer extends NanoHTTPD {
  private final Map<String,long[]> attempts = new LinkedHashMap<>();
  RelayServer(String code) { this(code,8787); }
  RelayServer(String code,int port) { this(code,port,2500); }
- RelayServer(String code,int port,long heartbeatMs) { super(port); this.code=code; this.heartbeatMs=heartbeatMs; active=this; }
+ RelayServer(String code,int port,long heartbeatMs){this(code,port,heartbeatMs,null);}
+ RelayServer(String code,android.content.Context context){this(code,8787,2500,context);}
+ private RelayServer(String code,int port,long heartbeatMs,android.content.Context context){super(port);this.code=code;this.heartbeatMs=heartbeatMs;this.context=context==null?null:context.getApplicationContext();active=this;}
  int clients() { long now=System.nanoTime()/1_000_000;pollingSeen.entrySet().removeIf(e->now-e.getValue()>5000);Set<String> active=new HashSet<>(receivers.keySet());active.addAll(pollingSeen.keySet());return active.size(); }
  private synchronized boolean allowed(String ip, String supplied) {
   long now=System.nanoTime()/1_000_000;
@@ -53,21 +55,21 @@ final class RelayServer extends NanoHTTPD {
   if(!"/events".equals(session.getUri()))return newFixedLengthResponse(Response.Status.NOT_FOUND,"text/plain","Not found");
   Stream old=receivers.remove(receiver);if(old!=null)old.close();
   if(streams.size()>=8)return newFixedLengthResponse(Response.Status.SERVICE_UNAVAILABLE,"text/plain","Receiver limit reached");
-  Stream stream=new Stream(receiver);streams.add(stream);receivers.put(receiver,stream);stream.offer(("event: style\ndata: "+styleJson()+"\n\n").getBytes(StandardCharsets.UTF_8));
+  Stream stream=new Stream(receiver);streams.add(stream);receivers.put(receiver,stream);if(context!=null)stream.offer(("event: style\ndata: "+styleJson()+"\n\n").getBytes(StandardCharsets.UTF_8));
   long remaining=lastUntil-System.nanoTime()/1_000_000;if(lastText!=null&&remaining>0)stream.offer(caption(lastText,(int)remaining,revision));
   Response r=newChunkedResponse(Response.Status.OK,"text/event-stream; charset=utf-8",stream);
   r.addHeader("Cache-Control","no-store");r.addHeader("X-Content-Type-Options","nosniff");return r;
  }
- synchronized void subtitle(String arabic,int ms) {lastText=arabic;lastUntil=System.nanoTime()/1_000_000+ms;revision=CAPTION_SEQUENCE.incrementAndGet();String style=styleJson();if(!style.equals(lastStyle)){lastStyle=style;broadcast("style",style);}localCaption(arabic,ms,false);broadcast("subtitle",captionJson(arabic,ms,revision));}
- private static final java.util.concurrent.atomic.AtomicLong CAPTION_SEQUENCE=new java.util.concurrent.atomic.AtomicLong();private String lastStyle="";
- private static JSONObject card(){return CaptureService.current==null?new JSONObject():ReadingCards.dialogue(CaptureService.current);}
- private static String styleJson(){JSONObject c=card();try{return new JSONObject().put("fontSize",c.optInt("fontSize",28)).put("background",c.optInt("background",72)).put("appearance",new JSONObject().put("font",c.optString("font","noto")).put("matchSize",false).put("speakerColors",true).put("accent",c.optBoolean("accent",false)).put("accentOpacity",c.optInt("accentOpacity",100)).put("accentStrength",c.optInt("accentStrength",100)).put("backdrop","rect").put("align","center").put("position","custom")).toString();}catch(JSONException e){return "{}";}}
- private void localCaption(String text,int ms,boolean clear){if(CaptureService.current==null)return;try{JSONObject c=card(),style=new JSONObject(styleJson());Status.areaCaptions.put("dialogue",new JSONObject().put("id","dialogue").put("revision",revision).put("clear",clear).put("text",text).put("duration",ms).put("output",c.optJSONObject("output")).put("fontSize",c.optInt("fontSize",28)).put("background",c.optInt("background",72)).put("appearance",style.optJSONObject("appearance")));}catch(JSONException ignored){}}
- private static String captionJson(String text,int ms,long revision){try{return new JSONObject().put("text",text).put("duration",ms).put("revision",revision).put("customPlacement",true).put("box",card().optJSONObject("output")).toString();}catch(Exception e){return "{}";}}
- private static byte[] caption(String text,int ms,long revision){return ("event: subtitle\ndata: "+captionJson(text,ms,revision)+"\n\n").getBytes(StandardCharsets.UTF_8);}
+ synchronized void subtitle(String arabic,int ms) {lastText=arabic;lastUntil=System.nanoTime()/1_000_000+ms;revision++;String style=styleJson();if(context!=null&&!style.equals(lastStyle)){lastStyle=style;broadcast("style",style);}localCaption(arabic,ms,false);broadcast("subtitle",captionJson(arabic,ms,revision));}
+ private static final java.util.concurrent.atomic.AtomicLong LOCAL_CAPTION_SEQUENCE=new java.util.concurrent.atomic.AtomicLong();private String lastStyle="";
+ private JSONObject card(){return context==null?new JSONObject():ReadingCards.dialogue(context);}
+ private String styleJson(){JSONObject c=card();try{return new JSONObject().put("fontSize",c.optInt("fontSize",28)).put("background",c.optInt("background",72)).put("appearance",new JSONObject().put("font",c.optString("font","noto")).put("matchSize",false).put("speakerColors",true).put("accent",c.optBoolean("accent",false)).put("accentOpacity",c.optInt("accentOpacity",100)).put("accentStrength",c.optInt("accentStrength",100)).put("backdrop","rect").put("align","center").put("position","custom")).toString();}catch(JSONException e){return "{}";}}
+ private void localCaption(String text,int ms,boolean clear){if(context==null)return;try{JSONObject c=card(),style=new JSONObject(styleJson());Status.areaCaptions.put("dialogue",new JSONObject().put("id","dialogue").put("revision",LOCAL_CAPTION_SEQUENCE.incrementAndGet()).put("clear",clear).put("text",text).put("duration",ms).put("output",c.optJSONObject("output")).put("fontSize",c.optInt("fontSize",28)).put("background",c.optInt("background",72)).put("appearance",style.optJSONObject("appearance")));}catch(JSONException ignored){}}
+ private String captionJson(String text,int ms,long revision){try{return new JSONObject().put("text",text).put("duration",ms).put("revision",revision).put("customPlacement",true).put("box",card().optJSONObject("output")).toString();}catch(Exception e){return "{}";}}
+ private byte[] caption(String text,int ms,long revision){return ("event: subtitle\ndata: "+captionJson(text,ms,revision)+"\n\n").getBytes(StandardCharsets.UTF_8);}
  synchronized void area(JSONObject value){broadcast("area",value.toString());}
  synchronized void openTvPanel(){broadcast("settings","{}");}
- synchronized void clear() { lastText=null;lastUntil=0;revision=CAPTION_SEQUENCE.incrementAndGet();localCaption("",0,true);broadcast("clear","{\"revision\":"+revision+"}"); }
+ synchronized void clear() { lastText=null;lastUntil=0;revision++;localCaption("",0,true);broadcast("clear","{\"revision\":"+revision+"}"); }
  private void broadcast(String event,String json) { byte[] data=("event: "+event+"\ndata: "+json+"\n\n").getBytes(StandardCharsets.UTF_8);for(Stream s:streams)s.offer(data); }
  @Override public void stop() { if(active==this)active=null; for(Stream s:streams)s.close();pollingSeen.clear();super.stop(); }
  private final class Stream extends InputStream {
