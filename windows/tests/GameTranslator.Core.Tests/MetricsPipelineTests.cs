@@ -83,7 +83,7 @@ public class MetricsPipelineTests
         pipeline.MetricsReady += reported.Add;
         await Run(pipeline, clock, 3);
         var metrics = Assert.Single(reported);
-        Assert.Equal(new LineMetrics(25, null, 25, null, LineOrigin.Pack), metrics);
+        Assert.Equal(new LineMetrics(25, null, 25, null, LineOrigin.Pack) {FirstObservedTotalMs=25,BeforeRequestMs=25,PipelineWaitMs=0}, metrics);
         Assert.Equal("OCR 25 ms · Ready pack · Delay 25 ms", metrics.Summary(Localizer.ForLanguage("en")));
     }
 

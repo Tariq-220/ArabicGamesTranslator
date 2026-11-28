@@ -217,7 +217,7 @@ public sealed class ReadingAreaSession : IDisposable
 
     private void PublishCached(State s,long generation,bool final,string originalSource)
     {
-        AreaCaption? caption=null;AreaTrace? trace=null;
+        AreaCaption? caption=null;AreaTrace? trace=null;string? finalStatus=null;
         lock(gate)
         {
             if(disposed||!states.Contains(s)||s.Generation!=generation||s.Candidate.Length==0)return;
@@ -229,6 +229,10 @@ public sealed class ReadingAreaSession : IDisposable
                 if(s.Candidate!=originalSource){s.Sent="";s.RetryAt=0;}
                 else if(partial||string.IsNullOrWhiteSpace(result)){s.Sent="";s.Failures++;s.RetryAt=now()+Math.Min(8000,1000*(1<<Math.Min(3,s.Failures-1)));}
                 else s.Sent=s.Candidate;
+                if(partial||string.IsNullOrWhiteSpace(result)){
+                    int translated=panel?.Cells.Count(c=>!string.IsNullOrWhiteSpace(c.Text))??0;
+                    finalStatus=translated>0?$"تُعرض {translated} أجزاء · بعض الأجزاء لم تُقبل؛ المحاولة التالية تلقائية.":"قُرئ النص، لكن ناتج ترجمته لم يُقبل؛ المحاولة التالية تلقائية.";
+                }
             }
             var colorsChanged=panel is not null&&s.LastSourcePanel is not null&&!panel.Cells.Select(c=>(c.Background,c.Foreground)).SequenceEqual(s.LastSourcePanel.Cells.Select(c=>(c.Background,c.Foreground)));
             if(!string.IsNullOrWhiteSpace(result)&&(colorsChanged||result!=s.LastResult||panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>Key(c.Source)).SequenceEqual(s.LastPanel.Cells.Select(c=>Key(c.Source))))){
@@ -255,6 +259,7 @@ public sealed class ReadingAreaSession : IDisposable
         }
         if(caption is not null){Status?.Invoke(s.Area.Id,$"تُعرض الترجمة · {caption.Panel?.Cells.Count(c=>!string.IsNullOrWhiteSpace(c.Text))??1} أجزاء");Caption?.Invoke(caption);}
         if(trace is not null)Trace?.Invoke(trace);
+        if(finalStatus is not null)Status?.Invoke(s.Area.Id,finalStatus);
     }
 
     private async Task Translate(State s)
@@ -288,8 +293,15 @@ public sealed class ReadingAreaSession : IDisposable
                 else {
                     try{values=await translator.TranslateManyAsync(batch,cancel.Token).ConfigureAwait(false);}
                     catch(TranslatorException error)when(error.Status==TranslatorStatus.OutputRejected){
-                        foreach(var piece in batch)Trace?.Invoke(new(s.Area.Id,s.Area.Name,piece,"","rejected_output",(int)Math.Clamp(now()-started,0,int.MaxValue),error.Status.ToString()));
-                        continue; // A rejected contact or damaged row cannot starve all later messages.
+                        if(batch.Length==1){Trace?.Invoke(new(s.Area.Id,s.Area.Name,batch[0],"","rejected_output",(int)Math.Clamp(now()-started,0,int.MaxValue),error.Status.ToString()));continue;}
+                        // Some providers reject the whole batch for one damaged title. Recover the
+                        // other cells individually; do not discard an otherwise readable map description.
+                        var recovered=new string[batch.Length];
+                        for(int i=0;i<batch.Length;i++){
+                            try{recovered[i]=await translator.TranslateAsync(batch[i],cancel.Token).ConfigureAwait(false);}
+                            catch(TranslatorException invalid)when(invalid.Status==TranslatorStatus.OutputRejected){recovered[i]="";}
+                        }
+                        values=recovered;
                     }
                 }
                 if(values.Count!=batch.Length)throw new TranslatorException(TranslatorStatus.EngineFailed);

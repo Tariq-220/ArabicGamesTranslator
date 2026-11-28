@@ -22,6 +22,10 @@ public static class PhoneReadingEvidence
     {
         var text=reading.Text;
         if(Regex.IsMatch(text,@"\bMAP\b[\s\S]{0,100}\b(?:BRIEF|PROGRESS)\b|\bBRIEF\b[\s\S]{0,80}\bPROGRESS\b|\bPROGRESS\b[\s\S]{0,80}\bBRIEF\b",RegexOptions.IgnoreCase))return true;
+        // Store/bank map panels are often inside a phone ROI while their MAP header is outside it.
+        // Require two distinct whole UI fields, never prose merely mentioning a shop or destination.
+        var fields=reading.Lines.Select(l=>Regex.Match(l.Text.Trim(),@"^(SELL VALUE|REGISTRATION FEE|PARKING SPOTS|TAKE VALUE|CASH DRAWER|VAULT|FEATURES|SECURITY|STYLE)(?:\s*[\d$£€,.()\-–]+)?$",RegexOptions.IgnoreCase)).Where(m=>m.Success).Select(m=>m.Groups[1].Value.ToUpperInvariant()).Distinct().Count();
+        if(fields>=2)return true;
         if(reading.Lines.Any(line=>IsDialogue(line.Text)))return true;
         return reading.Lines.Count>0&&reading.Lines.All(l=>Distance(l.Text));
     }

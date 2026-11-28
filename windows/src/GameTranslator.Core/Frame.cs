@@ -9,6 +9,8 @@ public sealed class Frame(byte[] pixels, int width, int height, int stride)
     public int Width { get; } = width;
     public int Height { get; } = height;
     public int Stride { get; } = stride;
+    public int? CaptureMs {get;init;}
+    public string? CaptureBackend {get;init;}
 
     public static Frame Blank(int width, int height) => new(new byte[width * height * 4], width, height, width * 4);
 
@@ -33,7 +35,7 @@ public sealed class Frame(byte[] pixels, int width, int height, int stride)
             int a=Math.Min(Height-1,(int)((y+.5)/ratio))*Stride+Math.Min(Width-1,(int)((x+.5)/ratio))*4,b=y*target.Stride+x*4;
             target.Pixels[b]=Pixels[a];target.Pixels[b+1]=Pixels[a+1];target.Pixels[b+2]=Pixels[a+2];target.Pixels[b+3]=Pixels[a+3];
         }
-        return target;
+        return WithCaptureInfo(target);
     }
     public Frame Crop(int x, int y, int width, int height)
     {
@@ -44,7 +46,7 @@ public sealed class Frame(byte[] pixels, int width, int height, int stride)
         var result = Blank(width, height);
         for (var row = 0; row < height; row++)
             Buffer.BlockCopy(Pixels, ((y + row) * Stride) + (x * 4), result.Pixels, row * result.Stride, width * 4);
-        return result;
+        return WithCaptureInfo(result);
     }
 
     /// <summary>İki doğrusal (bilinear) büyütme; kısa satırların okunmasına yardım eder.</summary>
@@ -74,8 +76,9 @@ public sealed class Frame(byte[] pixels, int width, int height, int stride)
                 }
             }
         }
-        return result;
+        return WithCaptureInfo(result);
     }
+    private Frame WithCaptureInfo(Frame target)=>CaptureMs is null&&CaptureBackend is null?target:new(target.Pixels,target.Width,target.Height,target.Stride){CaptureMs=CaptureMs,CaptureBackend=CaptureBackend};
 }
 
 /// <summary>Görüntüde altyazının arandığı bölge, kenarlara oranla (0–1, üstten ve soldan).</summary>

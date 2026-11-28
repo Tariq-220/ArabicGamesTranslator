@@ -28,6 +28,19 @@ jobs:
           $exe=Resolve-Path windows/src/GameTranslator.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/GameTranslator.exe
           $process=Start-Process $exe -ArgumentList '--render-arabic',"$env:RUNNER_TEMP/rebuild-screens" -PassThru -Wait
           if($process.ExitCode -ne 0){Get-Content "$env:RUNNER_TEMP/rebuild-screens/errors.txt" -ErrorAction SilentlyContinue;throw 'Arabic UI preview failed'}
+      - name: Validate native capture and compatibility path
+        shell: pwsh
+        run: |
+          $exe=Resolve-Path windows/src/GameTranslator.App/bin/Release/net10.0-windows10.0.19041.0/win-x64/GameTranslator.exe
+          $process=Start-Process $exe -ArgumentList '--probe-capture',"$env:RUNNER_TEMP/capture-probe" -PassThru -Wait
+          if($process.ExitCode -ne 0){Get-Content "$env:RUNNER_TEMP/capture-probe/errors.txt" -ErrorAction SilentlyContinue;throw 'Native capture validation failed'}
+          Get-Content "$env:RUNNER_TEMP/capture-probe/capture-probe.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: native-capture-probe
+          path: ${{ runner.temp }}/capture-probe
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -39,11 +52,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/save-rebuild-previews.py
       - name: Dialogue and independent region regression tests
-        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~LatencyRecoveryTests_062|FullyQualifiedName~LatencyRecoveryTests_061|FullyQualifiedName~MetricsPipelineTests|FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests|FullyQualifiedName~LanDiscoveryTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~CaptionPresentationTests"
+        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~LatencyRecoveryTests_063|FullyQualifiedName~LatencyRecoveryTests_062|FullyQualifiedName~LatencyRecoveryTests_061|FullyQualifiedName~MetricsPipelineTests|FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests|FullyQualifiedName~LanDiscoveryTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~CaptionPresentationTests"
       - name: Preview lifecycle and persistence
         run: dotnet test windows/tests/GameTranslator.Shell.Tests/GameTranslator.Shell.Tests.csproj -c Release --filter "FullyQualifiedName~RebuildPreviewTests"
       - name: Translation quality validation
-        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~ArabicDesktopUpdateTests|FullyQualifiedName~ServiceImprovementTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~ReadingRecoveryTests|FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests|FullyQualifiedName~CommunityCorrectionsTests|FullyQualifiedName~ReviewedLanguageTests|FullyQualifiedName~EngineComparisonTests|FullyQualifiedName~ComparisonLogExporterTests|FullyQualifiedName~ReadingModesTests|FullyQualifiedName~DialogueReadingRegressionTests|FullyQualifiedName~DeepLRebuildTests|FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~ArabicSpeakerTests|FullyQualifiedName~LocalSpeakerPresentationTests|FullyQualifiedName~SpatialBatchTests|FullyQualifiedName~ArabicGamePackTests"
+        run: dotnet test windows/tests/GameTranslator.Translation.Tests/GameTranslator.Translation.Tests.csproj -c Release --filter "FullyQualifiedName~LatencyRecoveryTests_063|FullyQualifiedName~ArabicDesktopUpdateTests|FullyQualifiedName~ServiceImprovementTests|FullyQualifiedName~DeepLTranslatorTests|FullyQualifiedName~ReadingRecoveryTests|FullyQualifiedName~ModelCompatibilityTests|FullyQualifiedName~ReviewedDialogueTests|FullyQualifiedName~GitHubUpdateTests|FullyQualifiedName~GoogleAndProfileTests|FullyQualifiedName~CloudFailureTests|FullyQualifiedName~ComparisonLogTests|FullyQualifiedName~DialogueProfileTests|FullyQualifiedName~CommunityCorrectionsTests|FullyQualifiedName~ReviewedLanguageTests|FullyQualifiedName~EngineComparisonTests|FullyQualifiedName~ComparisonLogExporterTests|FullyQualifiedName~ReadingModesTests|FullyQualifiedName~DialogueReadingRegressionTests|FullyQualifiedName~DeepLRebuildTests|FullyQualifiedName~ArabicOutputQualityTests|FullyQualifiedName~ArabicSpeakerTests|FullyQualifiedName~LocalSpeakerPresentationTests|FullyQualifiedName~SpatialBatchTests|FullyQualifiedName~ArabicGamePackTests"
 
   android:
     if: ${{ !contains(github.event.head_commit.message, '[final-metadata]') && !contains(github.event.head_commit.message, '[windows-only]') }}

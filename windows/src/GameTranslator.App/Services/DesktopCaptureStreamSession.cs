@@ -30,6 +30,10 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
 
     [System.Runtime.InteropServices.DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
     private static extern uint TimeEndPeriod(uint uMilliseconds);
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct NativePoint {public int X,Y;}
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(NativePoint point,uint flags);
 
     public DesktopCaptureStreamSession(string? targetWindowTitle = null, int screenIndex = 0)
     {
@@ -50,12 +54,24 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
     private async Task CaptureLoopAsync(CancellationToken token)
     {
         bool emittedStreaming = false;
+        GraphicsWindowCapture? graphics=null;IntPtr graphicsTarget=IntPtr.Zero;bool graphicsMonitor=false,attempted=false;long graphicsStarted=0;
+        Frame? ModernFrame(IntPtr target,bool monitor,out bool warming)
+        {
+            if(target!=graphicsTarget||monitor!=graphicsMonitor){graphics?.Dispose();graphics=null;graphicsTarget=target;graphicsMonitor=monitor;attempted=false;}
+            if(!attempted){attempted=true;graphicsStarted=Environment.TickCount64;graphics=GraphicsWindowCapture.TryStart(target,monitor,()=>SamplingIntervalMs);}
+            if(graphics?.Faulted==true){graphics.Dispose();graphics=null;}
+            var latest=graphics?.Latest;
+            warming=graphics is not null&&latest is null&&Environment.TickCount64-graphicsStarted<1200;
+            if(graphics is not null&&latest is null&&!warming){graphics.Dispose();graphics=null;}
+            return latest;
+        }
         TimeBeginPeriod(1);
 
         try
         {
             while (running && !token.IsCancellationRequested)
             {
+                var iterationStarted=Environment.TickCount64;
                 try
                 {
                     // A full-monitor capture must not feed the translator's own settings/status back into OCR.
@@ -73,7 +89,9 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
                             var targetMon = monitors.FirstOrDefault(m => m.Index == mIndex) ?? monitors.FirstOrDefault(m => m.IsPrimary);
                             if (targetMon != null)
                             {
-                                frame = WindowCaptureService.CaptureScreen(targetMon.Left, targetMon.Top, targetMon.Width, targetMon.Height);
+                                var monitor=MonitorFromPoint(new NativePoint{X=targetMon.Left+1,Y=targetMon.Top+1},0);
+                                frame=ModernFrame(monitor,true,out var warming);
+                                if(frame is null&&!warming)frame=WindowCaptureService.CaptureScreen(targetMon.Left, targetMon.Top, targetMon.Width, targetMon.Height);
                             }
                         }
                     }
@@ -87,7 +105,8 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
                         var hWnd = WindowCaptureService.FindWindowBySubstring(winTitle);
                         if (hWnd != IntPtr.Zero)
                         {
-                            frame = WindowCaptureService.Capture(hWnd);
+                            frame=ModernFrame(hWnd,false,out var warming);
+                            if(frame is null&&!warming)frame=WindowCaptureService.Capture(hWnd);
                         }
                     }
                     // 3. Özel bir pencere veya monitör belirtilmemişse genel masaüstünü yakala
@@ -98,6 +117,8 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
 
                     if (frame != null)
                     {
+                        if(token.IsCancellationRequested)break;
+                        if(frame.CaptureBackend is null)frame=new Frame(frame.Pixels,frame.Width,frame.Height,frame.Stride){CaptureBackend="gdi",CaptureMs=(int)Math.Clamp(Environment.TickCount64-iterationStarted,0,int.MaxValue)};
                         if (!emittedStreaming)
                         {
                             emittedStreaming = true;
@@ -110,7 +131,7 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
 
                 try
                 {
-                    await Task.Delay(SamplingIntervalMs, token); // OCR sampling; avoids copying the desktop at 60 FPS.
+                    await Task.Delay(CaptureCadence.RemainingMs(SamplingIntervalMs,Environment.TickCount64-iterationStarted), token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -120,6 +141,7 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
         }
         finally
         {
+            graphics?.Dispose();
             TimeEndPeriod(1);
         }
     }

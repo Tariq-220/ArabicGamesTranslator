@@ -40,6 +40,12 @@ public sealed record LineMetrics(int? OcrMs, int? TranslationMs, int TotalMs, in
 
     public int? QueueWaitMs {get;init;}
     public int? ProviderMs {get;init;}
+    /// <summary>First matching OCR frame to send, including stabilization; not HDMI-to-TV latency.</summary>
+    public int? FirstObservedTotalMs {get;init;}
+    public int? BeforeRequestMs {get;init;}
+    public int? PipelineWaitMs {get;init;}
+    public int? CaptureMs {get;init;}
+    public string? CaptureBackend {get;init;}
 
     private static int Clamp(long ms) => (int)Math.Clamp(ms, 0, int.MaxValue);
 

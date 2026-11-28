@@ -493,7 +493,7 @@ public sealed class XboxTestWindow : Window
             var item=new ComboBoxItem{Content="الشاشة كاملة: "+monitor.Name,Tag="monitor:"+monitor.Index};windows.Items.Add(item);if((string)item.Tag==old)windows.SelectedItem=item;
         }
     }
-    private static string EngineStatus(TranslatorStatus value)=>value switch{TranslatorStatus.OutputRejected=>"الناتج يحتاج إعادة ترجمة",TranslatorStatus.ServiceBusy=>"المحرك مشغول",TranslatorStatus.EngineFailed=>"خطأ في تشغيل المحرك",TranslatorStatus.ServiceUnreachable=>"الخدمة غير متاحة / انتهت المهلة",TranslatorStatus.ModelRejected=>"النموذج الجاري لا يطابق الاختيار",TranslatorStatus.KeyRejected=>"المفتاح أو رمز الربط مرفوض",_=>value.ToString()};
+    private static string EngineStatus(TranslatorStatus value)=>value switch{TranslatorStatus.OutputRejected=>"لم تُقبل ترجمة آخر نص حوار؛ حالة البطاقات أسفل كل بطاقة",TranslatorStatus.ServiceBusy=>"المحرك مشغول",TranslatorStatus.EngineFailed=>"خطأ في تشغيل المحرك",TranslatorStatus.ServiceUnreachable=>"الخدمة غير متاحة / انتهت المهلة",TranslatorStatus.ModelRejected=>"النموذج الجاري لا يطابق الاختيار",TranslatorStatus.KeyRejected=>"المفتاح أو رمز الربط مرفوض",_=>value.ToString()};
     private void UpdateConnectionBar()
     {
         var engineState = testingKey ? "جارٍ الاختبار" : !controller.IsRunning ? "متوقف" : controller.TranslatorStatus==TranslatorStatus.Ready ? "يعمل" : EngineStatus(controller.TranslatorStatus);
@@ -515,6 +515,7 @@ public sealed class XboxTestWindow : Window
         translated.Text = controller.LastTranslation;
         if (controller.LastLineMetrics is { } m)
             timing.Text = m.Origin==LineOrigin.Pack ? $"ترجمة من قاموس المراجعة — بدون طلب للمحرك | الإجمالي: {m.TotalMs} ms" : $"القراءة: {m.OcrMs} ms | الترجمة: {m.TranslationMs} ms | الإجمالي داخل البرنامج: {m.TotalMs} ms";
+            if(m.FirstObservedTotalMs is {} total)timing.Text+=$" | من أول قراءة: {total} ms | قبل الطلب: {m.BeforeRequestMs} ms | انتظار داخلي: {m.PipelineWaitMs} ms | الالتقاط: {m.CaptureBackend??"غير مقاس"} {m.CaptureMs} ms";
         status.Text = controller.OcrMissing ? "حزمة قراءة الإنجليزية مفقودة: ثبّت English من إعدادات لغات Windows."
             : controller.IsRunning ? "الترجمة تعمل — "+(controller.TranslatorStatus switch {
                 TranslatorStatus.ServiceUnreachable=>"تعذر الاتصال بخدمة الترجمة أو انتهت المهلة؛ المفتاح لم يُحذف.",
