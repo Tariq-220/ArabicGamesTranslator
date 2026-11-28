@@ -101,9 +101,13 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
     /// <summary>Son <see cref="Feed"/> çağrısında bırakılan satır (günlük için); her çağrıda sıfırlanır.</summary>
     public StabilizerNote? Note { get; private set; }
 
-    public StabilizerAction Feed(string rawText)
+    public StabilizerAction Feed(string rawText)=>Feed(rawText,null);
+    public StabilizerAction Feed(string rawText,long? observedAt)
     {
         var time = now();
+        // Stability is time between source images, not time spent decoding them. A cached
+        // second OCR read is faster than the first; that must not add another capture cycle.
+        var sampleTime=observedAt??time;
         var text = TextMatch.Normalize(rawText);
         Note = null;
         // 3 karakterden kısa okumalar (gürültü, tek simge) boş kare sayılır.
@@ -132,7 +136,7 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
             candidate = text;
             candidateRaw = rawText.Trim();
             candidateCount = 1;
-            candidateSince = time;
+            candidateSince = sampleTime;
         }
         // Daktilo efektinde metin büyürken aday değişir; tamamlanıp kararlı olunca gider.
         // Noktalamayla biten satır zaten tamamdır; hızlı konuşmada beklemeden ilk karede gider. Çöp gibi okunan satır
@@ -140,9 +144,9 @@ public sealed class SubtitleStabilizer(double similarity = 0.85, int stableFrame
         // cleanFastPathOnly (Linux, Tesseract): noktalamayla bitse bile çöp parçalı okuma ilk karede gitmez.
         var garbled = OcrNoise.LooksGarbled(rawText);
         var ready = garbled
-            ? candidateCount >= stableFrames && time - candidateSince >= GarbledStableMs
+            ? candidateCount >= stableFrames && sampleTime - candidateSince >= GarbledStableMs
             : candidateCount >= stableFrames || (EndsSentence(rawText) && (!cleanFastPathOnly || LooksClean(rawText)));
-        ready = ready && time-candidateSince>=MinimumStableMs;
+        ready = ready && sampleTime-candidateSince>=MinimumStableMs;
         // Gönderilenin gürültülü yeniden okuması yeni satır değildir; TV'de aynı cümle iki kez görünmesin.
         if (!TextMatch.DifferentSpeakers(rawText,sentRaw)&&IsSame(text, sent)) return StabilizerAction.None;
         if (!ready)

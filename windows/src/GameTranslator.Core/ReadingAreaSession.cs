@@ -248,7 +248,7 @@ public sealed class ReadingAreaSession : IDisposable
             if(disposed||!states.Contains(s)||s.Generation!=generation||s.Candidate.Length==0)return;
             var panel=s.Panel;var frame=s.PanelFrame;
             var plainMap=panel is null&&s.Area.Kind==ReadingAreaKind.MapCard;
-            var partial=(panel is not null||plainMap)&&Pieces(s,s.Candidate,panel).Any(c=>!s.Cache.TryGetValue(Key(c),out var value)||string.IsNullOrWhiteSpace(value));
+            var partial=panel is not null?panel.Cells.Any(c=>(!s.Cache.TryGetValue(Key(c.Source),out var value)||string.IsNullOrWhiteSpace(value))&&!(panel.Kind=="phone"&&PhoneHeadingText(c) is not null)):plainMap&&Pieces(s,s.Candidate,null).Any(c=>!s.Cache.TryGetValue(Key(c),out var value)||string.IsNullOrWhiteSpace(value));
             if(panel is not null){panel=panel with{Cells=panel.Cells.Select(c=>c with{Text=VisibleCellTranslation(c,s.Cache,s.LastSourcePanel,s.LastPanel,panel.Kind=="phone")}).ToArray()};}
             var result=panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>c.Text)):plainMap?string.Join("\n",Pieces(s,s.Candidate,null).Select(p=>s.Cache.GetValueOrDefault(Key(p),"")).Where(t=>t.Length>0)):s.Cache.GetValueOrDefault(Key(s.Candidate),"");
             if(final){
@@ -297,8 +297,12 @@ public sealed class ReadingAreaSession : IDisposable
         try
         {
             var pieces=Pieces(s,source,panel);
-            foreach(var piece in pieces){if(reviewed?.Invoke(piece) is {Length:>0} ready){lock(gate)s.Cache[Key(piece)]=ready;}}
-            var missing=pieces.Where(t=>{lock(gate)return !s.Cache.ContainsKey(Key(t));}).ToArray();
+            foreach(var piece in pieces){
+                var ready=reviewed?.Invoke(piece);
+                if(ready is null&&panel is {Kind:"phone"}&&panel.Cells.Any(c=>c.Heading&&Key(c.Source)==Key(piece)))ready=ArabicGameNames.Speaker(piece.Trim());
+                if(ready is {Length:>0}){lock(gate)s.Cache[Key(piece)]=ready;}
+            }
+            var missing=pieces.Where(t=>{lock(gate)return !s.Cache.ContainsKey(Key(t));}).OrderBy(t=>panel is {Kind:"phone"}&&panel.Cells.Any(c=>c.Heading&&Key(c.Source)==Key(t))?1:0).ToArray();
             // First show reusable cells. Each small batch is published immediately; a slow last message
             // or a rejected English cell must not hide the rest of the phone conversation.
             PublishCached(s,generation,false,source);
@@ -347,12 +351,22 @@ public sealed class ReadingAreaSession : IDisposable
     internal static string VisibleCellTranslation(PanelCell cell,IReadOnlyDictionary<string,string> cache,PanelLayout? oldSource,PanelLayout? oldDisplay,bool phone)
     {
         if(cache.TryGetValue(Key(cell.Source),out var value)&&!string.IsNullOrWhiteSpace(value))return value;
+        if(phone&&PhoneHeadingText(cell) is {} heading)return heading;
         if(!phone||oldSource is null||oldDisplay is null)return "";
         for(int i=0;i<Math.Min(oldSource.Cells.Count,oldDisplay.Cells.Count);i++){
             var prior=oldSource.Cells[i];
             if(Math.Abs(prior.Box.Top-cell.Box.Top)<.06&&PhonePanelTracker.Same(prior,cell)&&!string.IsNullOrWhiteSpace(oldDisplay.Cells[i].Text))return oldDisplay.Cells[i].Text;
         }
         return "";
+    }
+    private static string? PhoneHeadingText(PanelCell cell)
+    {
+        if(!cell.Heading)return null;var source=cell.Source.Trim();
+        if(ArabicGameNames.Speaker(source) is {} known)return known;
+        // An unknown contact remains source-grounded metadata, never an invented Arabic name.
+        // This exception does not apply to message bodies or untranslated interface headings.
+        if(source.Length>60||source.Where(char.IsLetter).All(char.IsUpper)||System.Text.RegularExpressions.Regex.IsMatch(source,@"\b(?:Suggested|Reminders|Notifications|Members|Messages|New)\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase))return null;
+        return System.Text.RegularExpressions.Regex.IsMatch(source,@"^[A-Z][A-Za-z'’.-]*(?: [A-Z][A-Za-z'’.-]*){0,2}$")?source:null;
     }
     private static AreaCaption Make(State s,string text,bool clear=false)=>new(s.Area.Id,s.Revision,text,s.Output??s.Area.PresentationOutput(),
         s.Area.FontSize,s.Area.Background,s.Area.DurationMs,clear,s.Area.Appearance);

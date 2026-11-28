@@ -1,0 +1,21 @@
+{
+  "status": "prepared_source_only_no_release",
+  "version_unchanged": "0.5.13",
+  "windows_validated_source": "d926d6bbc88d626ac83d155150f78c7b101ded58",
+  "windows_validation_run": 46139391420,
+  "windows_tests": {"core": 295, "shell": 12, "translation": 181},
+  "windows_native_capture": "passed_changing_and_resized_native_window_and_live_wgc",
+  "subsequent_core_changes": ["source_frame_timestamps_for_stability", "contact_metadata_visibility_and_body_priority"],
+  "subsequent_core_tests_local": 299,
+  "subsequent_windows_rebuild": false,
+  "subsequent_validation_note": "Platform-neutral Core changes tested locally with the same Core filter; the ordinary full checks remain required before the future combined release.",
+  "models_changed": false,
+  "credentials_changed": false,
+  "user_coordinates_changed": false,
+  "installer_prepared": false,
+  "android_built": false,
+  "release_published_or_changed": false,
+  "car_phone_observation": "User confirmed the separate card was disabled.",
+  "observed_dialogue_ms": {"first_matching_ocr_frame_to_send_median": 360, "p90": 485, "max": 828, "provider_median": 250, "queue_median": 0},
+  "visual_verification_pending": ["notification_clarity_on_user_screen", "actual_phone_bubble_proportions_and_colours"]
+}

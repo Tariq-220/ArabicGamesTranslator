@@ -64,6 +64,22 @@ public class LatencyRecoveryTests_064
         var tracker=new PhonePanelTracker();tracker.Observe(Page("Sintrontera","Meet me at the boat later."),0);
         Assert.Equal("Sinfrontera",tracker.Observe(Page("Sinfrontera","Meet me at the boat later."),100)!.Cells[0].Source);
     }
+    [Fact]public void AContactHeaderCanRemainVisibleWithoutAllowingEnglishMessageBodies()
+    {
+        var cache=new Dictionary<string,string>();var name=new PanelCell("Unlisted Friend","",new(.3,.04,.7,.08),"#FFFFFF","#20232A",.03,false,true);
+        Assert.Equal("Unlisted Friend",ReadingAreaSession.VisibleCellTranslation(name,cache,null,null,true));
+        Assert.Equal("جيسون",ReadingAreaSession.VisibleCellTranslation(name with{Source="Jason"},cache,null,null,true));
+        Assert.Empty(ReadingAreaSession.VisibleCellTranslation(name with{Heading=false,Source="Come over here."},cache,null,null,true));
+        Assert.Empty(ReadingAreaSession.VisibleCellTranslation(name with{Source="Reminders Notifications"},cache,null,null,true));
+        Assert.Empty(ReadingAreaSession.VisibleCellTranslation(name with{Source="FRESHEN UP"},cache,null,null,true));
+    }
+    [Fact]public async Task UnknownContactRequestRunsAfterTheMessageAndCannotCauseAnEndlessRetry()
+    {
+        long at=0;var engine=new ContactEngine();var reader=new SpatialReader("Unlisted Friend\nMeet me at home.");using var session=new ReadingAreaSession([ReadingArea.Phone() with{Source=new(0,1,0,1),AutoDetect=false,IntervalMs=16}],()=>reader,engine,()=>at);
+        var shown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);session.Caption+=c=>{if(!c.Clear&&c.Text.Contains("قابلني"))shown.TrySetResult(c);};
+        await session.ProcessAsync(Light());at=150;await session.ProcessAsync(Light());var caption=await shown.Task.WaitAsync(TimeSpan.FromSeconds(3));Assert.Contains(caption.Panel!.Cells,c=>c.Heading&&c.Text=="Unlisted Friend");Assert.Equal("Meet me at home.",engine.Requested[0]);
+        for(int n=0;n<3;n++){at+=500;await session.ProcessAsync(Light());}Assert.Equal(1,engine.Requested.Count(t=>t=="Unlisted Friend"));
+    }
     [Fact]public void HeaderOnlyOcrBlinkIsBoundedAndNeverCarriesIntoAnotherContact()
     {
         var tracker=new PhonePanelTracker();var initial=Page("Jason","We should leave right now.");tracker.Observe(initial,0);
@@ -95,6 +111,19 @@ public class LatencyRecoveryTests_064
         var words=new Words("cool","dog","flight","was","fine");Assert.Equal("Jason: COOL dog.",OcrGlyphRepair.Repair("Jason: COOI dog.",words));Assert.Equal("Driver: Flight was fine.",OcrGlyphRepair.Repair("Driver: FIight was fine.",words));
         Assert.Equal("Nason: I will go.",OcrGlyphRepair.Repair("Nason: I will go.",words));Assert.Equal("Jason: FIB agents.",OcrGlyphRepair.Repair("Jason: FIB agents.",words));Assert.Equal("Jason: COOI dog.",OcrGlyphRepair.Repair("Jason: COOI dog.",new Words("cooi","cool")));Assert.Equal("COOI",OcrGlyphRepair.Repair("COOI",words));
     }
+    [Fact]public async Task DialogueStabilityUsesTheImageTimesInsteadOfWaitingForAnotherOcrCycle()
+    {
+        var clock=new TestClock{Now=0};var engine=new SpeakerEngine();var p=new SubtitlePipeline(new ClockReader(clock),engine,new FakeSender(),new ReadScheduler(maxReuse:1),clock.Read){MinimumStableMs=40};
+        await p.ProcessAsync(Frame.Blank(32,32),new(),0);await p.WaitForTranslationsAsync();Assert.Empty(engine.Requested);
+        clock.Now=50;await p.ProcessAsync(Frame.Blank(32,32),new(),50);await p.WaitForTranslationsAsync();
+        Assert.Single(engine.Requested);Assert.Equal(50,p.LastMetrics!.BeforeRequestMs);
+    }
+    [Fact]public async Task CpuWaitingAloneCannotConfirmTwoImagesTakenTooCloseTogether()
+    {
+        var clock=new TestClock{Now=0};var engine=new SpeakerEngine();var p=new SubtitlePipeline(new ClockReader(clock),engine,new FakeSender(),new ReadScheduler(maxReuse:1),clock.Read){MinimumStableMs=40};
+        await p.ProcessAsync(Frame.Blank(32,32),new(),0);await p.WaitForTranslationsAsync();clock.Now=500;
+        await p.ProcessAsync(Frame.Blank(32,32),new(),20);await p.WaitForTranslationsAsync();Assert.Empty(engine.Requested);
+    }
     [Fact]public async Task NewNotificationConfirmsAfterSettleInsteadOfTheFullBackgroundInterval()
     {
         long at=0;var reader=new SpatialReader("Andy\nI will meet you at the store.");var engine=new SpeakerEngine();var area=ReadingArea.Notification() with{AutoDetect=false,Source=new(0,1,0,1),IntervalMs=450};
@@ -119,4 +148,6 @@ public class LatencyRecoveryTests_064
     }
     private sealed class TurnsEngine:ITextTranslator{public Task<string> TranslateAsync(string source,CancellationToken token=default)=>Task.FromResult(source.StartsWith("Jason:")?"جيسون: كيف لا تفقده؟\nأحد السكان: انظر إليّ!":"أحد السكان: انظر إليّ!");}
     private sealed class Words(params string[] words):ISpellDictionary{public bool Contains(string word)=>words.Contains(word,StringComparer.OrdinalIgnoreCase);}
+    private sealed class ClockReader(TestClock clock):ITextReader{public string Read(Frame frame){clock.Now+=31;return "Jason: Hold the door.";}}
+    private sealed class ContactEngine:ITextTranslator{public readonly List<string> Requested=[];public Task<string> TranslateAsync(string text,CancellationToken token=default){Requested.Add(text);return text=="Unlisted Friend"?Task.FromException<string>(new TranslatorException(TranslatorStatus.OutputRejected)):Task.FromResult("قابلني في المنزل.");}}
 }
