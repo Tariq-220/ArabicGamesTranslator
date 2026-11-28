@@ -16,16 +16,21 @@ internal static class CaptureProbe
         try{
             window=new Window{Title="ArabicGames capture validation",Width=360,Height=240,Left=40,Top=40,Background=Brushes.Red,WindowStyle=WindowStyle.None,ResizeMode=ResizeMode.NoResize,ShowActivated=false};
             window.Show();window.UpdateLayout();var handle=new WindowInteropHelper(window).Handle;
-            using var modern=GraphicsWindowCapture.TryStart(handle,false,()=>40);
+            // Change inside the configured interval, then stop drawing. The new static image
+            // must still arrive, even if no subsequent FrameArrived event rescues a dropped update.
+            using var modern=GraphicsWindowCapture.TryStart(handle,false,()=>250);
             var red=modern is null?null:await WaitFor(modern,f=>Dominant(f,2));
             if(modern is not null&&red is null)throw new InvalidOperationException("WGC started but did not deliver the red window.");
             window.Background=Brushes.Blue;window.UpdateLayout();
             var blue=modern is null?null:await WaitFor(modern,f=>!ReferenceEquals(f,red)&&Dominant(f,0));
             if(modern is not null&&blue is null)throw new InvalidOperationException("WGC retained an old image after the window changed.");
             if(blue is not null&&(blue.Width<300||blue.Height<180))throw new InvalidOperationException("WGC window geometry is invalid.");
+            window.Width=500;window.Height=300;window.UpdateLayout();
+            var resized=modern is null?null:await WaitFor(modern,f=>f.Width>=499&&f.Height>=299&&Dominant(f,0));
+            if(modern is not null&&resized is null)throw new InvalidOperationException("WGC did not recreate its pool after a native window resize.");
             var fallback=WindowCaptureService.Capture(handle);
             if(fallback is null||!Dominant(fallback,0))throw new InvalidOperationException("Compatibility capture did not deliver the blue window.");
-            File.WriteAllText(Path.Combine(folder,"capture-probe.json"),JsonSerializer.Serialize(new{Wgc=modern is null?"unavailable_on_runner":"passed_changing_native_window",Fallback="passed",Width=blue?.Width,Height=blue?.Height,CopyMs=blue?.CaptureMs},new JsonSerializerOptions{WriteIndented=true}));
+            File.WriteAllText(Path.Combine(folder,"capture-probe.json"),JsonSerializer.Serialize(new{Wgc=modern is null?"unavailable_on_runner":"passed_changing_and_resized_native_window",Fallback="passed",Width=resized?.Width,Height=resized?.Height,CopyMs=resized?.CaptureMs},new JsonSerializerOptions{WriteIndented=true}));
             window.Close();app.Shutdown(0);
         }catch(Exception e){File.WriteAllText(Path.Combine(folder,"errors.txt"),e.ToString());window?.Close();app.Shutdown(1);}
     }

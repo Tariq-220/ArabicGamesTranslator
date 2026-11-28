@@ -24,7 +24,7 @@ internal sealed class GraphicsWindowCapture : IDisposable
     private Frame? latest;
     private SizeInt32 size;
     private long lastCopy=long.MinValue/2;
-    private int processing,disposed,released;
+    private int processing,pending,disposed,released;
     public bool Faulted {get;private set;}
     public Frame? Latest=>Volatile.Read(ref latest);
 
@@ -52,19 +52,25 @@ internal sealed class GraphicsWindowCapture : IDisposable
     private void OnClosed(GraphicsCaptureItem sender,object args)=>Faulted=true;
     private async void OnFrame(Direct3D11CaptureFramePool sender,object args)
     {
-        if(Volatile.Read(ref disposed)!=0||Interlocked.Exchange(ref processing,1)!=0)return;
+        if(Volatile.Read(ref disposed)!=0)return;
+        if(Interlocked.Exchange(ref processing,1)!=0){Volatile.Write(ref pending,1);return;}
         try{
+            if(Volatile.Read(ref disposed)!=0)return;
+            var remaining=interval()-(Environment.TickCount64-lastCopy);
+            // A static menu may change only once inside this interval. Defer that update,
+            // rather than dropping it and waiting for another event which may never arrive.
+            if(remaining>0)await Task.Delay((int)Math.Min(1000,remaining));
             if(Volatile.Read(ref disposed)!=0)return;
             // Prefer the newest completed frame after a slow copy. The two-slot GPU pool
             // must not become an extra queue of old subtitle images.
-            var frame=sender.TryGetNextFrame();if(frame is null)return;
+            var frame=sender.TryGetNextFrame();if(frame is null)return;SizeInt32? resize=null;
             try{
             for(int n=0;n<2;n++){var newer=sender.TryGetNextFrame();if(newer is null)break;frame.Dispose();frame=newer;}
             var at=Environment.TickCount64;
-            if(at-lastCopy<interval())return;
             lastCopy=at;
             var content=frame.ContentSize;
             if(content.Width<1||content.Height<1)return;
+            if(content.Width!=size.Width||content.Height!=size.Height)resize=content;
             using var bitmap=await SoftwareBitmap.CreateCopyFromSurfaceAsync(frame.Surface,BitmapAlphaMode.Ignore);
             var pixels=new byte[checked(bitmap.PixelWidth*bitmap.PixelHeight*4)];bitmap.CopyToBuffer(pixels.AsBuffer());
             var captured=new Frame(pixels,bitmap.PixelWidth,bitmap.PixelHeight,bitmap.PixelWidth*4)
@@ -72,14 +78,17 @@ internal sealed class GraphicsWindowCapture : IDisposable
             // During a resize the pool can briefly have the previous surface dimensions.
             if(content.Width<captured.Width||content.Height<captured.Height)
                 captured=captured.Crop(0,0,Math.Min(content.Width,captured.Width),Math.Min(content.Height,captured.Height));
-            if(Volatile.Read(ref disposed)==0)Volatile.Write(ref latest,captured);
+            if(Volatile.Read(ref disposed)==0&&captured.Width==content.Width&&captured.Height==content.Height)Volatile.Write(ref latest,captured);
             }finally{frame.Dispose();}
             // Recreate only after releasing the borrowed surface.
-            var next=item.Size;
-            if(next.Width>0&&next.Height>0&&(next.Width!=size.Width||next.Height!=size.Height)&&Volatile.Read(ref disposed)==0){sender.Recreate(device,DirectXPixelFormat.B8G8R8A8UIntNormalized,2,next);size=next;}
+            if(resize is {} next&&Volatile.Read(ref disposed)==0){sender.Recreate(device,DirectXPixelFormat.B8G8R8A8UIntNormalized,2,next);size=next;}
         }
         catch(Exception){Faulted=true;}
-        finally{Volatile.Write(ref processing,0);ReleaseIfStopped();}
+        finally{
+            Volatile.Write(ref processing,0);ReleaseIfStopped();
+            if(Interlocked.Exchange(ref pending,0)!=0&&Volatile.Read(ref disposed)==0)
+                _=Task.Run(()=>OnFrame(sender,args));
+        }
     }
     public void Dispose()
     {

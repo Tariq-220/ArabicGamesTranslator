@@ -54,13 +54,20 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
     private async Task CaptureLoopAsync(CancellationToken token)
     {
         bool emittedStreaming = false;
-        GraphicsWindowCapture? graphics=null;IntPtr graphicsTarget=IntPtr.Zero;bool graphicsMonitor=false,attempted=false;long graphicsStarted=0;
-        Frame? ModernFrame(IntPtr target,bool monitor,out bool warming)
+        GraphicsWindowCapture? graphics=null;IntPtr graphicsTarget=IntPtr.Zero;bool graphicsMonitor=false,attempted=false;long graphicsStarted=0,lastCompatibilityCheck=0;
+        Frame? ModernFrame(IntPtr target,bool monitor,Func<Frame?> compatibility,out bool warming)
         {
             if(target!=graphicsTarget||monitor!=graphicsMonitor){graphics?.Dispose();graphics=null;graphicsTarget=target;graphicsMonitor=monitor;attempted=false;}
-            if(!attempted){attempted=true;graphicsStarted=Environment.TickCount64;graphics=GraphicsWindowCapture.TryStart(target,monitor,()=>SamplingIntervalMs);}
+            if(!attempted){attempted=true;graphicsStarted=Environment.TickCount64;lastCompatibilityCheck=graphicsStarted;graphics=GraphicsWindowCapture.TryStart(target,monitor,()=>SamplingIntervalMs);}
             if(graphics?.Faulted==true){graphics.Dispose();graphics=null;}
             var latest=graphics?.Latest;
+            if(latest is not null&&Environment.TickCount64-lastCompatibilityCheck>=1500&&WindowCaptureService.IsFrameBlack(latest.Pixels,latest.Width,latest.Height)){
+                lastCompatibilityCheck=Environment.TickCount64;
+                // A protected/incompatible WGC surface can be black without throwing. Switch only
+                // if the existing capture can actually see content; genuine black loading screens stay black.
+                var old=compatibility();
+                if(old is not null&&!WindowCaptureService.IsFrameBlack(old.Pixels,old.Width,old.Height)){graphics?.Dispose();graphics=null;latest=old;}
+            }
             warming=graphics is not null&&latest is null&&Environment.TickCount64-graphicsStarted<1200;
             if(graphics is not null&&latest is null&&!warming){graphics.Dispose();graphics=null;}
             return latest;
@@ -90,7 +97,7 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
                             if (targetMon != null)
                             {
                                 var monitor=MonitorFromPoint(new NativePoint{X=targetMon.Left+1,Y=targetMon.Top+1},0);
-                                frame=ModernFrame(monitor,true,out var warming);
+                                frame=ModernFrame(monitor,true,()=>WindowCaptureService.CaptureScreen(targetMon.Left,targetMon.Top,targetMon.Width,targetMon.Height),out var warming);
                                 if(frame is null&&!warming)frame=WindowCaptureService.CaptureScreen(targetMon.Left, targetMon.Top, targetMon.Width, targetMon.Height);
                             }
                         }
@@ -105,7 +112,7 @@ public sealed class DesktopCaptureStreamSession : IStreamSession
                         var hWnd = WindowCaptureService.FindWindowBySubstring(winTitle);
                         if (hWnd != IntPtr.Zero)
                         {
-                            frame=ModernFrame(hWnd,false,out var warming);
+                            frame=ModernFrame(hWnd,false,()=>WindowCaptureService.Capture(hWnd),out var warming);
                             if(frame is null&&!warming)frame=WindowCaptureService.Capture(hWnd);
                         }
                     }

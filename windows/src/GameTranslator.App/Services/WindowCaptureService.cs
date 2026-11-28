@@ -469,7 +469,7 @@ public static class WindowCaptureService
         }
     }
 
-    private static bool IsFrameBlack(byte[] pixels, int width, int height)
+    internal static bool IsFrameBlack(byte[] pixels, int width, int height)
     {
         if (pixels == null || pixels.Length < 16) return true;
         int step = Math.Max(1, (width * height) / 40);
