@@ -1,0 +1,50 @@
+{
+  "release_id": 461337237,
+  "url": "https://github.com/Tariq-220/ArabicGamesTranslator/releases/tag/untagged-e876e4ea5b597773ec18",
+  "draft": true,
+  "source": "91e63273f8fd56d695e1d979da0bf8c309d123bc",
+  "version": "0.5.12",
+  "validation_run": 46098236001,
+  "source_tests": {
+    "core": 260,
+    "shell": 12,
+    "translation": 166
+  },
+  "package_run": 46113971427,
+  "unchanged_android": {
+    "phone": "0.5.0",
+    "tv": "0.4.9"
+  },
+  "assets": [
+    {
+      "name": "ArabicGames-Arabic-Guide.zip",
+      "size": 1147808,
+      "digest": "sha256:936d664e681b3d6cdc68e4183ff373708f2bd2a0c6b8125b682d2013ef2d1c1c"
+    },
+    {
+      "name": "ArabicGames-Enable-AutoUpdate.zip",
+      "size": 2129,
+      "digest": "sha256:31f6fc8ced09761045653642b179ec3f0807c44fac9531fbb16563b6a5563f0a"
+    },
+    {
+      "name": "ArabicGames-Source-0.5.12.zip",
+      "size": 42614743,
+      "digest": "sha256:e2856cd83071dfe471ac349a6302c195a5f6d0b73c0b858d44c0745884cfd0e5"
+    },
+    {
+      "name": "ArabicGames-Windows-0.5.12-Full-Install.zip",
+      "size": 194464796,
+      "digest": "sha256:7de5553e8270b47a5818606bf1ad3a845de63227e2925ac21524fab4dff89b11"
+    },
+    {
+      "name": "ArabicGames-Windows-0.5.12-Update.zip",
+      "size": 33324533,
+      "digest": "sha256:fb47e741d80cd89fffb901cd9516decdad0afab5e315722dc483475df691fb83"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 510,
+      "digest": "sha256:e256dbe5b57a1eb3f1e02d955ef32cf558b9892cda607c133ffee02f31dc62c9"
+    }
+  ]
+}
