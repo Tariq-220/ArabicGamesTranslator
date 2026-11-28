@@ -27,13 +27,15 @@ public static class SpatialText
     {
         bool plainMenu=kind==ReadingAreaKind.Menu&&!MenuReading.SettingsPage(reading);
         bool phoneLike=kind is ReadingAreaKind.Phone or ReadingAreaKind.Notification;
-        var lines=reading.Lines.Where(l=>!string.IsNullOrWhiteSpace(l.Text)&&l.Box is not null)
+        var lines=reading.Lines.Where(l=>!string.IsNullOrWhiteSpace(l.Text)&&l.Box is not null&&(!phoneLike||l.Text.Count(char.IsLetter)>=2))
             .OrderBy(l=>l.Box!.Value.Top).ThenBy(l=>l.Box!.Value.Left).Take(64).ToList();
         var groups=new List<List<TextLine>>();
+        bool Header(TextLine line)=>phoneLike&&line.Box!.Value.Top<.16&&!PhonePanelTracker.Body(new(line.Text,"",line.Box.Value,"#FFFFFF","#20232A",.03));
         foreach(var line in lines)
         {
             var b=line.Box!.Value;var h=b.Bottom-b.Top;
             var group=groups.FindLast(g=>{
+                if(Header(line)||g.Any(Header))return false;
                 var last=g[^1].Box!.Value;var overlap=Math.Min(last.Right,b.Right)-Math.Max(last.Left,b.Left);
                 var gap=(b.Top-last.Bottom)*frame.Height;
                 return gap>=-h*frame.Height*.2&&gap<=Math.Max(h,last.Bottom-last.Top)*frame.Height*.65
@@ -55,7 +57,7 @@ public static class SpatialText
             var pad=Math.Min(.012,medianH*.22);var box=new TextBox(Math.Max(0,b.Left-pad),Math.Max(0,b.Top-pad),Math.Min(1,b.Right+pad),Math.Min(1,b.Bottom+pad));
             if(phoneLike)box=BubbleBounds(frame,box,color);
             var background=Hex(color);var foreground=Ink(frame,b,color);
-            var title=phoneLike&&b.Top<.12&&g.Count==1&&!PhonePanelTracker.Body(new(text,"",box,background,foreground,medianH));
+            var title=phoneLike&&b.Top<.16&&g.Count==1&&!PhonePanelTracker.Body(new(text,"",box,background,foreground,medianH));
             if(plainMenu){double width=Math.Min(.35,Math.Max(.14,box.Right-box.Left));double left=box.Right<.65?Math.Min(1-width,box.Right+.015):Math.Max(0,box.Left-width-.015);box=box with{Left=left,Right=left+width};foreground="#FFFFFF";}
             cells.Add(new(text,"",box,background,foreground,medianH,phoneLike&&!title,title));
             if(clean is not null)Fill(clean,box,color); // Preserve avatars, dividers, badges and the phone's original panel; remove English ink.
@@ -72,11 +74,27 @@ public static class SpatialText
         var placed=new List<(PanelCell Cell,double Top,double Height)>();
         foreach(var cell in panel.Cells.OrderBy(c=>c.Box.Top)){
             var font=cell.Heading?Math.Max(bodyFont,cell.LineHeight*originalHeight*.98):bodyFont;
-            var chars=Math.Max(3,(cell.Box.Right-cell.Box.Left)*width/(font*.52));
+            var box=cell.Box;
+            var measuredHeight=(box.Bottom-box.Top)*originalHeight;
+            var length=Math.Max(cell.Text.Length,cell.Source.Length*.85);
+            var widthReserve=Math.Max(length,cell.Source.Length*(box.Right-box.Left<.35?1.8:1.15));
+            // Use available horizontal room before growing the whole conversation vertically.
+            // Narrow English bubbles must not reserve 1.8x text in the same narrow column.
+            if(!cell.Heading){
+                var rowsInSource=Math.Max(1,Math.Floor(measuredHeight/(font*1.55)));
+                var desired=Math.Max(box.Right-box.Left,Math.Min(.9,(widthReserve/rowsInSource*font*.52+font*.5)/width));
+                var blue=cell.Background.Length==7&&int.TryParse(cell.Background.AsSpan(1),System.Globalization.NumberStyles.HexNumber,System.Globalization.CultureInfo.InvariantCulture,out var rgb)&&(rgb&255)-((rgb>>16)&255)>45;
+                box=blue?box with{Left=Math.Min(box.Left,Math.Max(0,box.Right-desired))}:box with{Right=Math.Max(box.Right,Math.Min(1,box.Left+desired))};
+            }
+            else{
+                var desired=Math.Max(box.Right-box.Left,Math.Min(.9,(widthReserve*font*.52+font*.5)/width));
+                var left=Math.Clamp((box.Left+box.Right-desired)/2,0,1-desired);box=box with{Left=left,Right=left+desired};
+            }
+            var chars=Math.Max(3,(box.Right-box.Left)*width/(font*.52));
             // Reserve the English message's space before translation so incremental results do not resize the page.
-            var rows=Math.Max(1,Math.Ceiling(Math.Max(cell.Text.Length,cell.Source.Length*(cell.Box.Right-cell.Box.Left<.35?1.8:.85))/chars));
-            var height=Math.Max((cell.Box.Bottom-cell.Box.Top)*originalHeight,rows*font*1.55+font*.45);
-            var top=Math.Max(cell.Box.Top*originalHeight,cursor);placed.Add((cell,top,height));cursor=top+height+font*.38;
+            var rows=Math.Max(1,Math.Ceiling(length/chars));
+            var height=Math.Max(measuredHeight,rows*font*1.55+font*.45);
+            var top=Math.Max(box.Top*originalHeight,cursor);placed.Add((cell with{Box=box},top,height));cursor=top+height+font*.38;
         }
         var total=Math.Max(originalHeight,cursor);
         return panel with{Height=(int)Math.Ceiling(total),Cells=placed.Select(p=>p.Cell with{Box=p.Cell.Box with{Top=p.Top/total,Bottom=(p.Top+p.Height)/total},LineHeight=(p.Cell.Heading?Math.Max(bodyFont,p.Cell.LineHeight*originalHeight*.98):bodyFont)/total}).ToArray()};

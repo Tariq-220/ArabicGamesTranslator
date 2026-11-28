@@ -33,6 +33,12 @@ public interface ITextTranslator
     void Prefetch(string text) { }
 }
 
+/// <summary>Optional bounded diagnostic output; never used as displayable text.</summary>
+public interface IRejectedTranslationDiagnostics
+{
+    string? RejectedOutput(string source);
+}
+
 public enum TranslatorStatus
 {
     Ready,

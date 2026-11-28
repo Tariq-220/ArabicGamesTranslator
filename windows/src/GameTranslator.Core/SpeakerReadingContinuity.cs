@@ -19,12 +19,19 @@ public sealed class SpeakerReadingContinuity
         return source;
     }
     public void Reset(){speaker="";body="";confirmedAt=long.MinValue/2;}
-    private static bool OneEdit(string first,string second)
+    internal static bool OneEdit(string first,string second)
     {
-        var a=first.ToLowerInvariant();var b=second.ToLowerInvariant();
+        var a=string.Concat(first.Where(char.IsLetterOrDigit)).ToLowerInvariant();var b=string.Concat(second.Where(char.IsLetterOrDigit)).ToLowerInvariant();
         if(Math.Abs(a.Length-b.Length)>1)return false;
         int i=0,j=0,changes=0;
         while(i<a.Length&&j<b.Length){if(a[i]==b[j]){i++;j++;continue;}if(++changes>1)return false;if(a.Length>=b.Length)i++;if(b.Length>=a.Length)j++;}
         return changes+(a.Length-i)+(b.Length-j)<=1;
+    }
+    internal static bool CorrectsLabel(string newer,string previous)
+    {
+        var(a,x)=CaptionAppearance.SplitSpeaker(newer);var(b,y)=CaptionAppearance.SplitSpeaker(previous);
+        if(a.Length==0||b.Length==0||TextMatch.Normalize(x)!=TextMatch.Normalize(y)||x.Contains('?')!=y.Contains('?'))return false;
+        var known=ArabicGameNames.Speaker(a.TrimEnd(':','：'));var before=ArabicGameNames.Speaker(b.TrimEnd(':','：'));
+        return known is not null&&before is null&&OneEdit(a,b);
     }
 }

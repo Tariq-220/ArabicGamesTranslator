@@ -8,13 +8,14 @@ namespace GameTranslator.Core;
 public static class ArabicGameNames
 {
     private static readonly IReadOnlyDictionary<string,string> Names=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase) {
-        ["In Spanish"]="بالإسبانية",["Staff Member"]="الموظف",["Cops"]="رجال الشرطة",["Pilot"]="الطيار",["Vagrants"]="المتشردون",["Security Guard"]="حارس الأمن",["Security Guards"]="حراس الأمن",
+        ["In Spanish"]="بالإسبانية",["Staff Member"]="الموظف",["Cops"]="رجال الشرطة",["Pilot"]="الطيار",["Vagrants"]="المتشردون",["Vagrant"]="المتشرد",["Worker"]="العامل",["Security Guard"]="حارس الأمن",["Security Guards"]="حراس الأمن",
         ["Local"]="أحد السكان",["Locals"]="السكان",["Driver"]="السائق",["Stranger"]="الغريب",["Cop"]="الشرطي",["Tourist"]="السائح",["Tourists"]="السياح",["Officer"]="الشرطي",["Man"]="الرجل",["Woman"]="المرأة",
         ["Jason"]="جيسون",["Lucia"]="لوسيا",["Donnie"]="دوني",["Leonida"]="ليونيدا",
         ["Vicki"]="فيكي",["Kyle"]="كايل",["Raul"]="راؤول",["Dre'Quan"]="دري كوان",["Karim"]="كريم",["Boobie"]="بوبي",
         ["Wade"]="وايد",["Billy"]="بيلي",["Kenton"]="كينتون",["Andy"]="آندي",["Shirley"]="شيرلي",["Brian"]="براين",
         ["John"]="جون",["Arthur"]="آرثر",["Marston"]="مارستون",["Atreus"]="أتريوس",["Kratos"]="كريتوس",["Mimir"]="ميمير",
-        ["Andrea"]="أندريا",["Felipe"]="فيليبي",["Nicole"]="نيكول",["Sinfrontera"]="سينفرونتيرا"
+        ["Andrea"]="أندريا",["Felipe"]="فيليبي",["Nicole"]="نيكول",["Sinfrontera"]="سينفرونتيرا",
+        ["DWNPLY"]="داونبلاي",["San4San"]="سان فور سان",["Only Raw Records"]="أونلي راو ريكوردز",["WhatUp"]="وات أب",["Dre'Quån"]="دري كوان",["Jack of Hearts"]="جاك أوف هارتس",["Bayside Apartments"]="شقق بايسايد"
     };
     public static string CanonicalSpeaker(string name){var value=name.Trim();if(Names.ContainsKey(value))return value;var plain=string.Concat(value.Normalize(NormalizationForm.FormD).Where(c=>CharUnicodeInfo.GetUnicodeCategory(c)!=UnicodeCategory.NonSpacingMark)).Normalize(NormalizationForm.FormC);if(Names.ContainsKey(plain))return plain;
         // Strip only short OCR fragments before an exact known speaker label.

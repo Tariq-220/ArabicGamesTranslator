@@ -6,7 +6,7 @@ namespace GameTranslator.Core;
 /// A failed translation is an error, never an English caption or an invented replacement.</summary>
 public static partial class ArabicOutputQuality
 {
-    private static readonly HashSet<string> Acronyms=new(["FIB","IAA","FPS","XP","PSN","DLC","HUD","GTA","TV","USB","HDMI","LB","RB","LT","RT","ESC","ENTER","TAB"],StringComparer.Ordinal);
+    private static readonly HashSet<string> Acronyms=new(["FIB","IAA","FPS","XP","PSN","DLC","HUD","GTA","TV","USB","HDMI","LB","RB","LT","RT","ESC","ENTER","TAB","XXX"],StringComparer.Ordinal);
     public static string DialogueInput(string text)
     {
         var result=new System.Text.StringBuilder();

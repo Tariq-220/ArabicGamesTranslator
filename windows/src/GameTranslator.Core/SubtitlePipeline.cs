@@ -587,7 +587,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     }
     private void Present(string source,string translated,TextBox? box,int duration)
     {
-        var replaces=RevisesShown(source)||LastPair is {} last&&TextMatch.Normalize(last.Translation)==TextMatch.Normalize(translated);
+        var replaces=RevisesShown(source)||LastPair is {} last&&(TextMatch.Normalize(last.Translation)==TextMatch.Normalize(translated)||now()-lastPresentedAt<=1500&&SpeakerReadingContinuity.CorrectsLabel(source,last.Source)||now()-lastPresentedAt<=2500&&DialogueTurnOverlap.SharesTurn(source,last.Source));
         // Keep at most the preceding reply. Never hold up inference to make a caption readable.
         DisplayText=KeepRapidReplies&&!replaces&&DisplayText.Length>0&&LastPair is {} previous&&now()-lastPresentedAt<MinimumDisplayMs
             ?previous.Translation+"\n"+translated:translated;

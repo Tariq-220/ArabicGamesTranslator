@@ -64,6 +64,7 @@ public sealed class WindowsOcrReader : ITextReader
             var alternate=RecognizeOnce(TextImage.WhiteTextOnly(image,3));
             if(SpeakerMerge.HasBody(alternate)&&score(alternate.Text)>score(best.Text))best=SpeakerMerge.AttachStandaloneLabels(alternate);
         }
+        if(english&&WindowsSpellDictionary.Shared.IsWorking)best=new Reading(best.Lines.Select(line=>line with{Text=OcrGlyphRepair.Repair(line.Text,WindowsSpellDictionary.Shared)}));
         return best;
     }
 
