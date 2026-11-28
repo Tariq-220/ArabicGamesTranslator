@@ -25,8 +25,8 @@ public class PhoneUpdate061Test {
   cards.put(ReadingCards.card("phone","الجوال","phone",ReadingCards.box(0,0,1,1),ReadingCards.box(.05,.1,.4,.9),true));
   cards.put(ReadingCards.card("map","الخريطة","map",ReadingCards.box(0,0,1,1),ReadingCards.box(.5,.1,.9,.7),true));
   cards.put(ReadingCards.card("mission","المهمة","instructions",ReadingCards.box(0,0,1,1),ReadingCards.box(.1,.8,.9,.9),true));ReadingCards.save(c,cards);
-  List<JSONObject> outputs=new ArrayList<>();List<String> requests=new ArrayList<>();
-  PhoneAreas areas=new PhoneAreas(c,text->{requests.add(text);return new CompletableFuture<>();},outputs::add,null);
+  List<JSONObject> outputs=new ArrayList<>();List<String> requests=new ArrayList<>();Map<String,CompletableFuture<String>> pending=new HashMap<>();
+  PhoneAreas areas=new PhoneAreas(c,text->{requests.add(text);CompletableFuture<String> job=new CompletableFuture<>();pending.put(text,job);return job;},outputs::add,null);
   Field field=PhoneAreas.class.getDeclaredField("states");field.setAccessible(true);List<?> states=(List<?>)field.get(areas);
   Method accept=PhoneAreas.class.getDeclaredMethod("accept",states.get(0).getClass(),long.class,List.class);accept.setAccessible(true);
   accept.invoke(areas,states.get(0),0L,new ArrayList<>(Arrays.asList(row("Jason",.02f,.08f,"#EEEEEE"),row("Almost there!",.2f,.3f,"#EEEEEE"),row("I'm on it.",.5f,.6f,"#EEEEEE"))));
@@ -35,7 +35,7 @@ public class PhoneUpdate061Test {
   for(int i=1;i<3;i++)accept.invoke(areas,states.get(i),0L,new ArrayList<>(Arrays.asList(row("Dropped off scuba at your boat.",.21f,.29f,"#20232A"))));
   org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMillis(200));
   for(int i=1;i<3;i++)accept.invoke(areas,states.get(i),0L,new ArrayList<>(Arrays.asList(row("Dropped off scuba at your boat.",.21f,.29f,"#20232A"))));
-  assertEquals(java.util.Collections.singletonList("Jason"),requests);assertTrue(outputs.stream().noneMatch(x->"map".equals(x.optString("id"))||"mission".equals(x.optString("id"))));areas.close();
+  assertEquals(java.util.Collections.singletonList("Jason"),requests);assertTrue(outputs.stream().noneMatch(x->"map".equals(x.optString("id"))||"mission".equals(x.optString("id"))));cards.getJSONObject(1).put("fontSize",33);ReadingCards.save(c,cards);areas.reload();pending.get("Jason").complete("جيسون");assertTrue(requests.contains("Almost there!"));pending.get("Almost there!").complete("أوشكت على الوصول!");assertTrue(outputs.stream().anyMatch(x->"phone".equals(x.optString("id"))&&!x.optBoolean("clear")));areas.close();
  }
  @Test public void NavigationInEitherOrderAndRecordedButtonsAreNotAuxiliaryMessages(){assertTrue(PhoneAreas.navigation("PROGRESS\nBRIEF\nROBBERY OPPORTUNITY"));assertTrue(PhoneAreas.navigation("BRIEF\nPROGRESS"));assertTrue(PhoneAreas.control("EXIT O"));assertTrue(PhoneAreas.control("PHOTO STUDIO O SELEC"));assertFalse(PhoneAreas.control("Get in the car."));}
  @Test public void FormalLexiconDoesNotHideSentencesOrChangeUnknownNames(){assertEquals("ابن العاهرة",FormalArabic.normalize("ابن القحبة"));assertEquals("جيسون",FormalArabic.ready("Jason"));assertEquals("السكان: تبًّا لك، أيها الوغد!",FormalArabic.ready("Locals: Suck my fuckin' nuts!"));assertNull(FormalArabic.ready("Jason: He said that and walked away."));}

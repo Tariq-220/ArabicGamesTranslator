@@ -3,7 +3,7 @@ android {
  namespace 'dev.arabicgames.phone'
  compileSdk 35
  sourceSets { main.java.srcDir '../shared/src/main/java'; main.assets.srcDir '../tv/src/main/assets' }
- defaultConfig { applicationId 'dev.arabicgames.phone'; minSdk 26; targetSdk 35; versionCode 24; versionName '0.4.12'; ndk { abiFilters 'arm64-v8a' } }
+ defaultConfig { applicationId 'dev.arabicgames.phone'; minSdk 26; targetSdk 35; versionCode 27; versionName '0.5.0'; ndk { abiFilters 'arm64-v8a' } }
  splits { abi { enable false } }
  buildTypes {
   debug { debuggable false; jniDebuggable false }
@@ -11,7 +11,8 @@ android {
  }
  testOptions { unitTests.includeAndroidResources = true
   unitTests.all {
-   maxHeapSize = '1g'
+   maxHeapSize = '2g'
+   forkEvery = 20
    systemProperty 'robolectric.dependency.repo.url', 'https://repo.maven.apache.org/maven2'
    ['http.proxyHost','http.proxyPort','https.proxyHost','https.proxyPort','javax.net.ssl.trustStore'].each { key -> if(System.getProperty(key)) systemProperty key,System.getProperty(key) }
   }

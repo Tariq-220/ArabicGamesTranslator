@@ -31,7 +31,7 @@ public final class XboxActivity extends Activity {
   for(org.json.JSONObject area:Status.areaCaptions.values()){String id=area.optString("id");long revision=area.optLong("revision");if(areaRevisions.getOrDefault(id,-1L)<revision){areaRevisions.put(id,revision);if(areaLayer!=null)areaLayer.apply(area);}}
   String arabic=Status.arabic;
   if(!caption.getText().toString().equals(arabic))caption.setText(arabic);
-  caption.setVisibility(arabic.isEmpty()?View.GONE:View.VISIBLE);
+  org.json.JSONObject placed=Status.areaCaptions.get("dialogue");caption.setVisibility(arabic.isEmpty()||placed!=null&&!placed.optBoolean("clear")?View.GONE:View.VISIBLE);
   if(SystemClock.elapsedRealtime()-audioAt>700){applyAudio();audioAt=SystemClock.elapsedRealtime();}
   if(reading.active()&&!pending&&CaptureService.acceptsDirect()&&isXbox(browser.getUrl())){
    pending=true;pendingAt=SystemClock.elapsedRealtime();final int callbackId=++requestId,generation=reading.generation();browser.evaluateJavascript("window.__arabicCardsFull="+(ReadingCards.auxiliaryEnabled(XboxActivity.this)||ReadingCardsActivity.previewActive)+";window.__arabicBounds="+java.util.Arrays.toString(ReadingCards.primary(XboxActivity.this))+";window.__arabicRegion="+JSONObject.quote(getSharedPreferences("reading",0).getString("region","subtitles"))+";\n"+script,value->{

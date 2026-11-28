@@ -23,6 +23,7 @@ public sealed class ReadingAreaSession : IDisposable
     private readonly object gate=new();
     private readonly List<State> states;
     private readonly ITextTranslator translator;
+    private readonly Func<ITextReader> makeReader;
     private readonly Func<long> now;
     private readonly Func<string,string?>? reviewed;
     private readonly Func<string,TextBox,bool>? dialogue;
@@ -42,9 +43,17 @@ public sealed class ReadingAreaSession : IDisposable
     public ReadingAreaSession(IEnumerable<ReadingArea> areas, Func<ITextReader> makeReader,
         ITextTranslator translator, Func<long>? clock=null,Func<string,string?>? reviewedLookup=null,Func<string,TextBox,bool>? isDialogue=null)
     {
-        this.translator=translator;reviewed=reviewedLookup;dialogue=isDialogue;now=clock??(()=>Environment.TickCount64);
+        this.translator=translator;this.makeReader=makeReader;reviewed=reviewedLookup;dialogue=isDialogue;now=clock??(()=>Environment.TickCount64);
         states=ReadingArea.Unique(areas).Where(a=>a.Enabled&&a.Kind!=ReadingAreaKind.Dialogue).Take(8)
             .GroupBy(a=>a.Id,StringComparer.Ordinal).Select(g=>new State(g.First().Validate(),makeReader())).ToList();
+    }
+
+    public void UpdateAreas(IEnumerable<ReadingArea> areas)
+    {
+        var next=ReadingArea.Unique(areas).Where(a=>a.Enabled&&a.Kind!=ReadingAreaKind.Dialogue).Take(8).GroupBy(a=>a.Id,StringComparer.Ordinal).Select(g=>g.First().Validate()).ToArray();
+        var removed=new List<State>();
+        lock(gate){if(disposed)return;var updated=new List<State>();foreach(var area in next){var previous=states.FirstOrDefault(s=>s.Area.Id==area.Id);if(previous is not null&&previous.Area==area)updated.Add(previous);else{var state=new State(area,previous?.Reader??makeReader()){Revision=previous is null?0:previous.Revision+1};if(previous is not null)foreach(var pair in previous.Cache)state.Cache[pair.Key]=pair.Value;updated.Add(state);}}removed=states.Except(updated).ToList();states.Clear();states.AddRange(updated);cursor=0;}
+        foreach(var old in removed)ClearConflicting(old);
     }
 
     public Task ProcessAsync(Frame frame)
@@ -177,7 +186,7 @@ public sealed class ReadingAreaSession : IDisposable
         AreaCaption? clear=null,renewed=null;bool start=false;
         lock(gate)
         {
-            if(disposed)return;
+            if(disposed||!states.Contains(s))return;
             var at=now();
             if(text.Length<2)
             {
@@ -210,7 +219,7 @@ public sealed class ReadingAreaSession : IDisposable
         AreaCaption? caption=null;AreaTrace? trace=null;
         lock(gate)
         {
-            if(disposed||s.Generation!=generation||s.Candidate.Length==0)return;
+            if(disposed||!states.Contains(s)||s.Generation!=generation||s.Candidate.Length==0)return;
             var panel=s.Panel;var frame=s.PanelFrame;
             var result=panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>s.Cache.GetValueOrDefault(Key(c.Source),""))):s.Cache.GetValueOrDefault(Key(s.Candidate),"");
             if(panel is not null){panel=panel with{Cells=panel.Cells.Select(c=>c with{Text=s.Cache.GetValueOrDefault(Key(c.Source),"")}).ToArray()};}
@@ -220,7 +229,8 @@ public sealed class ReadingAreaSession : IDisposable
                 else if(partial||string.IsNullOrWhiteSpace(result)){s.Sent="";s.Failures++;s.RetryAt=now()+Math.Min(8000,1000*(1<<Math.Min(3,s.Failures-1)));}
                 else s.Sent=s.Candidate;
             }
-            if(!string.IsNullOrWhiteSpace(result)&&(result!=s.LastResult||panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>Key(c.Source)).SequenceEqual(s.LastPanel.Cells.Select(c=>Key(c.Source))))){
+            var colorsChanged=panel is not null&&s.LastSourcePanel is not null&&!panel.Cells.Select(c=>(c.Background,c.Foreground)).SequenceEqual(s.LastSourcePanel.Cells.Select(c=>(c.Background,c.Foreground)));
+            if(!string.IsNullOrWhiteSpace(result)&&(colorsChanged||result!=s.LastResult||panel is not null&&s.LastPanel is not null&&!panel.Cells.Select(c=>Key(c.Source)).SequenceEqual(s.LastPanel.Cells.Select(c=>Key(c.Source))))){
                 if(panel is {Kind:"notification"}){
                     var body=panel.Cells.Where(c=>!c.Heading).ToArray();if(body.Length==0)body=panel.Cells.ToArray();
                     if(!body.Any(c=>!string.IsNullOrWhiteSpace(c.Text)))return;
@@ -248,7 +258,7 @@ public sealed class ReadingAreaSession : IDisposable
     {
         string source;long generation;PanelLayout? panel;long started=now();
         using var cancel=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-        lock(gate){if(disposed||s.Candidate.Length==0){s.Busy=false;return;}source=s.Candidate;panel=s.Panel;generation=s.Generation;s.ActiveTranslation=cancel;}
+        lock(gate){if(disposed||!states.Contains(s)||s.Candidate.Length==0){s.Busy=false;return;}source=s.Candidate;panel=s.Panel;generation=s.Generation;s.ActiveTranslation=cancel;}
         Trace?.Invoke(new(s.Area.Id,s.Area.Name,source,"","translating"));
         try
         {
@@ -264,7 +274,7 @@ public sealed class ReadingAreaSession : IDisposable
                 lifetime.Token.ThrowIfCancellationRequested();
                 string[] batch;
                 lock(gate){
-                    if(disposed||s.Generation!=generation)return;
+                    if(disposed||!states.Contains(s)||s.Generation!=generation)return;
                     // Do not spend the provider on messages which were scrolled out while an earlier item ran.
                     var wanted=s.Panel is {Cells.Count:>0}?s.Panel.Cells.Select(c=>Key(c.Source)).ToHashSet(StringComparer.Ordinal):new HashSet<string>([Key(s.Candidate)],StringComparer.Ordinal);
                     batch=pendingBatch.Where(t=>wanted.Contains(Key(t))).ToArray();

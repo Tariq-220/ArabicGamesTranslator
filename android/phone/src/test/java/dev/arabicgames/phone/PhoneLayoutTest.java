@@ -16,6 +16,7 @@ import static org.junit.Assert.*;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk=35)
 public class PhoneLayoutTest {
+ @Test @Config(qualifiers="w360dp-h780dp-port")public void readingCardsHaveNumericInputsAndSelectedCardPreview(){try(var c=Robolectric.buildActivity(ReadingCardsActivity.class).setup()){ReadingCardsActivity a=c.get();layout(a,360,780);assertNotNull(find(a.getWindow().getDecorView(),"تعديل القراءة"));assertNotNull(find(a.getWindow().getDecorView(),"تعديل الظهور"));preview(a,"reading-cards-portrait.png");}}
  @Test public void oledCoverDoesNotFinishActivityAndBackRestoresBrightness(){
   try(var c=Robolectric.buildActivity(XboxActivity.class).setup()){
    XboxActivity a=c.get();android.view.WindowManager.LayoutParams attrs=a.getWindow().getAttributes();attrs.screenBrightness=.7f;a.getWindow().setAttributes(attrs);

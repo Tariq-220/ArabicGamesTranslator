@@ -1,5 +1,6 @@
 {
-  "version": "0.5.10",
+  "version": "0.5.11",
   "repository": "Tariq-220/ArabicGamesTranslator",
-  "tvVersion": "0.4.8"
+  "tvVersion": "0.4.9",
+  "phoneVersion": "0.5.0"
 }

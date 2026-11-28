@@ -18,9 +18,11 @@ public sealed class PhonePanelTracker
         return capture=detected;
     }
     private readonly Dictionary<string,long> seen=new(StringComparer.Ordinal);
+    private readonly Dictionary<string,(int Color,int Count)> colorVotes=new(StringComparer.Ordinal);
     private static string Key(PanelCell c)=>TextMatch.Normalize(c.Source)+(c.Source.Contains('?')?"?":"");
     public static bool Body(PanelCell c){if(c.Heading)return false;var text=c.Source.Trim();if(System.Text.RegularExpressions.Regex.IsMatch(text,@"^(?:New messages?|Locating\.*)$",System.Text.RegularExpressions.RegexOptions.IgnoreCase))return false;var words=text.Split(' ',StringSplitOptions.RemoveEmptyEntries);return text.StartsWith("Map Pin ",StringComparison.OrdinalIgnoreCase)||text.IndexOfAny(['!','?','…'])>=0||words.Skip(1).Any(w=>w.Length>0&&char.IsLower(w[0]))||new[]{"Hey","Hi","Hello","Okay","OK","Thanks","Yes","No"}.Contains(text,StringComparer.OrdinalIgnoreCase);}
-    public void Reset(){current=pending=null;capture=null;seen.Clear();confirmations=0;newPageAt=0;}
+    public void Reset(){current=pending=null;capture=null;seen.Clear();colorVotes.Clear();confirmations=0;newPageAt=0;}
+    private static int BubbleColor(string value){if(value.Length!=7||value[0]!='#'||!int.TryParse(value.AsSpan(1),System.Globalization.NumberStyles.HexNumber,System.Globalization.CultureInfo.InvariantCulture,out var rgb))return 0;var r=(rgb>>16)&255;var g=(rgb>>8)&255;var b=rgb&255;return b>150&&g>75&&b-r>45?1:Math.Min(r,Math.Min(g,b))>125?2:0;}
     private static bool Negation(string s)=>System.Text.RegularExpressions.Regex.IsMatch(s,@"\b(?:not|no|never|cannot)\b|n['’]t\b",System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     internal static bool Same(PanelCell a,PanelCell b)
     {
@@ -48,14 +50,18 @@ public sealed class PhonePanelTracker
             var samePending=pending is not null&&pending.Cells.Where(Content).Any(p=>next.Cells.Any(n=>Content(n)&&Same(p,n)&&Shift(p.Box,n.Box)<.06));
             if(!samePending){pending=next;pendingAt=at;confirmations=1;return at-newPageAt>600?null:current;}
             if(++confirmations<2||at-pendingAt<60)return at-newPageAt>600?null:current;
-            current=next;pending=null;seen.Clear();foreach(var c in next.Cells)seen[Key(c)]=at;return next;
+            current=next;pending=null;seen.Clear();colorVotes.Clear();foreach(var c in next.Cells)seen[Key(c)]=at;return next;
         }
         pending=null;confirmations=0;
         var cells=new List<PanelCell>();
         foreach(var n in next.Cells){
             var prior=current.Cells.FirstOrDefault(p=>Same(p,n)&&Shift(p.Box,n.Box)<.06);
             var grows=prior is not null&&Key(n).Length>Key(prior).Length&&(Key(n).StartsWith(Key(prior)+" ",StringComparison.Ordinal)||Key(n).EndsWith(" "+Key(prior),StringComparison.Ordinal));
-            var cell=prior is null?n:n with{Source=grows?n.Source:prior.Source,Background=prior.Background,Foreground=prior.Foreground,LineHeight=prior.LineHeight,Box=prior.Box};
+            var acceptColor=false;
+            if(prior is not null){var key=Key(prior)+"@"+prior.Box.Top.ToString("F3",System.Globalization.CultureInfo.InvariantCulture);var oldColor=BubbleColor(prior.Background);var newColor=BubbleColor(n.Background);
+                if(oldColor!=0&&newColor!=0&&oldColor!=newColor){if(colorVotes.Count>128)colorVotes.Clear();var vote=colorVotes.GetValueOrDefault(key);vote=(newColor,vote.Color==newColor?vote.Count+1:1);colorVotes[key]=vote;acceptColor=vote.Count>=2;if(acceptColor)colorVotes.Remove(key);}else colorVotes.Remove(key);
+            }
+            var cell=prior is null?n:n with{Source=grows?n.Source:prior.Source,Background=acceptColor?n.Background:prior.Background,Foreground=acceptColor?n.Foreground:prior.Foreground,LineHeight=prior.LineHeight,Box=prior.Box};
             cells.Add(cell);seen[Key(cell)]=at;
         }
         foreach(var p in current.Cells.Where(p=>!cells.Any(n=>Same(p,n))))if(at-seen.GetValueOrDefault(Key(p),at)<=4000&&!cells.Any(n=>Overlap(p.Box,n.Box)))cells.Add(p);

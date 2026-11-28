@@ -1049,7 +1049,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<ReadingArea> ReadingAreas
     {
         get => ReadingArea.Unique(store.Load<List<ReadingArea>>("reading-areas-v1") ?? []).Select(a=>a.Kind==ReadingAreaKind.Phone&&a.Source==new CropRegion(.12,.95,.40,.97)?a with{Source=new(.08,.98,.03,.97)}:a.Kind==ReadingAreaKind.Menu&&a.Source==new CropRegion(.14,.86,.08,.47)&&a.Output==new CropRegion(.14,.86,.50,.90)?ReadingArea.Menu() with{Id=a.Id,Name=a.Name,Enabled=a.Enabled}:a).ToList();
-        set { var unique=ReadingArea.Unique(value).Take(8).ToList();if(ReadingAreas.SequenceEqual(unique))return;store.Save("reading-areas-v1", unique); if(isRunning)MakeAreaSession(); Changed(nameof(ReadingAreas)); }
+        set { var unique=ReadingArea.Unique(value).Take(8).ToList();if(ReadingAreas.SequenceEqual(unique))return;store.Save("reading-areas-v1", unique); if(isRunning){if(areaSession is {} current)current.UpdateAreas(unique);else MakeAreaSession();} Changed(nameof(ReadingAreas)); }
     }
     public ReadingLayout CaptureReadingLayout()=>new(1,[new ReadingArea("dialogue","الحوار",ReadingAreaKind.Dialogue,settings.Region,DialogueOutput,FontSize:settings.Style.FontSize,Background:settings.Style.Background,Appearance:settings.Style.Appearance),..ReadingAreas]);
     public ReadingLayout ReadingBaseline {
@@ -1060,7 +1060,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<AreaTrace>? AreaTraceObserved;
     public bool ArabicPacksEnabled {get=>store.Load<bool?>("arabic-ready-packs")??true;set{store.Save("arabic-ready-packs",value);ArabicGamePackStore.Shared.Enabled=value;}}
     private static string? ReadyArabic(string game,string source){
-        IEnumerable<string?> Candidates(){yield return CommunityCorrections.Find(game,source);yield return ReviewedArabicExpressions.Find(source);yield return ArabicGameNames.Speaker(source.Trim());yield return ArabicGamePackStore.Shared.Find(game,source);yield return CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null;}
+        IEnumerable<string?> Candidates(){yield return CommunityCorrections.FindPersonal(game,source);yield return ReviewedArabicExpressions.Find(source);yield return CommunityCorrections.Find(game,source);yield return ArabicGameNames.Speaker(source.Trim());yield return ArabicGamePackStore.Shared.Find(game,source);yield return CommunityCorrections.PublicEnabled?DialogueProfile.Reviewed(source,game):null;}
         foreach(var candidate in Candidates()){if(candidate is null)continue;var value=ArabicRegister.Normalize(candidate);if(!ArabicRegister.NeedsRephrase(source,value)&&ArabicOutputQuality.Accepts(source,value))return value;}return null;
     }
 

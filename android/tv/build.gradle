@@ -5,7 +5,7 @@ android {
  buildFeatures { buildConfig true }
  signingConfigs { debug { enableV1Signing true; enableV2Signing true } }
  sourceSets { main.java.srcDir '../shared/src/main/java' }
- defaultConfig { applicationId 'dev.arabicgames.tv'; minSdk 26; targetSdk 35; versionCode 36; versionName '0.4.8' }
+ defaultConfig { applicationId 'dev.arabicgames.tv'; minSdk 26; targetSdk 35; versionCode 37; versionName '0.4.9' }
  buildTypes {
   debug { debuggable false; jniDebuggable false }
   release { debuggable false; jniDebuggable false; minifyEnabled false; signingConfig signingConfigs.debug }

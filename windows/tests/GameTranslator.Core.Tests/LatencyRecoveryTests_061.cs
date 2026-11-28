@@ -96,6 +96,32 @@ public class LatencyRecoveryTests_061
         Assert.Null(ReviewedArabicExpressions.Find("Jason: He said 'Suck my balls!' and walked away."));
         Assert.Null(ReviewedArabicExpressions.Find("Mystery speaker: Suck my balls!"));
     }
+    [Fact]public async Task EditingAnotherCardDoesNotCancelOrRestartTheActiveArea()
+    {
+        long now=0;int made=0;var engine=new PausedResult();
+        var first=ReadingArea.Menu() with{AutoDetect=false,Source=new(0,1,0,1)};var other=ReadingArea.Menu() with{AutoDetect=false,Source=new(0,1,0,.5)};
+        using var s=new ReadingAreaSession([first,other],()=>new Reader(made++==0?"A complete message.":"Another complete message."),engine,()=>now);
+        var shown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);s.Caption+=c=>{if(c.Id==first.Id&&!c.Clear)shown.TrySetResult(c);};
+        await s.ProcessAsync(Frame.Blank(300,200));now=500;await s.ProcessAsync(Frame.Blank(300,200));now=1000;await s.ProcessAsync(Frame.Blank(300,200));await engine.Started.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        s.UpdateAreas([first,other with{FontSize=33}]);Assert.False(engine.Token.IsCancellationRequested);engine.Result.TrySetResult("رسالة مكتملة.");Assert.Equal(first.Id,(await shown.Task.WaitAsync(TimeSpan.FromSeconds(3))).Id);Assert.Equal(2,made);
+    }
+    [Fact]public async Task EditedCardRevisionContinuesAfterItsClearSoReceiverCanShowItAgain()
+    {
+        long now=0;var area=ReadingArea.Menu() with{AutoDetect=false};using var s=new ReadingAreaSession([area],()=>new Reader("A complete message."),new Engine(),()=>now);
+        var oldShown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);var newShown=new TaskCompletionSource<AreaCaption>(TaskCreationOptions.RunContinuationsAsynchronously);long cleared=-1;
+        s.Caption+=c=>{if(c.Clear)cleared=c.Revision;else if(c.FontSize==33)newShown.TrySetResult(c);else oldShown.TrySetResult(c);};
+        await s.ProcessAsync(Frame.Blank(300,200));now=500;await s.ProcessAsync(Frame.Blank(300,200));await oldShown.Task.WaitAsync(TimeSpan.FromSeconds(3));s.UpdateAreas([area with{FontSize=33}]);now=1000;await s.ProcessAsync(Frame.Blank(300,200));
+        Assert.True((await newShown.Task.WaitAsync(TimeSpan.FromSeconds(3))).Revision>cleared);Assert.True(cleared>0);
+    }
+    private sealed class PausedResult:ITextTranslator
+    {public readonly TaskCompletionSource Started=new(TaskCreationOptions.RunContinuationsAsynchronously);public readonly TaskCompletionSource<string> Result=new(TaskCreationOptions.RunContinuationsAsynchronously);public CancellationToken Token;public Task<string> TranslateAsync(string text,CancellationToken token=default){Token=token;Started.TrySetResult();return Result.Task.WaitAsync(token);}}
+    [Fact]public void OneColorGlitchIsIgnoredButRepeatedClearBubbleEvidenceCanCorrectTheInitialColor()
+    {
+        var tracker=new PhonePanelTracker();PanelLayout Page(string bg)=>new(400,800,"phone",null,[new("Almost there!","",new(.1,.2,.9,.3),bg,bg=="#FFFFFF"?"#20232A":"#FFFFFF",.03,true)]);
+        tracker.Observe(Page("#FFFFFF"),0);Assert.Equal("#FFFFFF",tracker.Observe(Page("#2266DD"),100)!.Cells[0].Background);
+        Assert.Equal("#2266DD",tracker.Observe(Page("#2266DD"),200)!.Cells[0].Background);
+        Assert.Equal("#2266DD",tracker.Observe(Page("#FFFFFF"),300)!.Cells[0].Background);
+    }
     private sealed class Reader(string text):ITextReader
     {
         public string Text=text;

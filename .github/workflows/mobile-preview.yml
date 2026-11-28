@@ -1,0 +1,61 @@
+name: Build mobile preview packages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mobile-preview-packages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Restore unchanged, verified native engines without rebuilding models
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download android-v0.4.14-tv0.3.10 --repo '${{ github.repository }}' --pattern ArabicGames-Phone-0.4.14-arm64.apk --dir "$RUNNER_TEMP/native-source"
+          python - <<'PY'
+          import os,pathlib,hashlib,zipfile,json
+          apk=pathlib.Path(os.environ['RUNNER_TEMP'])/'native-source/ArabicGames-Phone-0.4.14-arm64.apk'
+          assert hashlib.file_digest(apk.open('rb'),'sha256').hexdigest()=='20a461e0b02eb1b5ebf76383d3c823ff38a12de32ef2972bae8f99875a3740e0'
+          ps=json.loads(pathlib.Path('android/phone/src/main/assets/ps5-native/native-build-info.json').read_text())
+          ct=json.loads(pathlib.Path('android/phone/src/main/assets/ct2-native/native-build-info.json').read_text())
+          expected={'libgtnative.so':ps['sha256'],**ct['files']}
+          target=pathlib.Path('android/phone/src/main/jniLibs/arm64-v8a');target.mkdir(parents=True,exist_ok=True)
+          with zipfile.ZipFile(apk) as archive:
+              for name,digest in expected.items():
+                  data=archive.read('lib/arm64-v8a/'+name)
+                  assert hashlib.sha256(data).hexdigest()==digest,name
+                  (target/name).write_bytes(data)
+          print('Restored three verified native runtime libraries; private signing key is not used in CI.')
+          PY
+      - name: Build final phone and TV APKs for local signing
+        working-directory: android
+        run: bash gradlew :phone:assembleRelease :tv:assembleRelease --console=plain
+      - name: Stage and record source identity
+        run: |
+          mkdir -p out/mobile
+          cp android/phone/build/outputs/apk/release/phone-release.apk out/mobile/phone-for-signing.apk
+          cp android/tv/build/outputs/apk/release/tv-release.apk out/mobile/tv-for-signing.apk
+          python - <<'PY'
+          import pathlib,json,hashlib,subprocess
+          root=pathlib.Path('out/mobile')
+          data={'source':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'files':{}}
+          for file in sorted(root.glob('*.apk')):
+              data['files'][file.name]={'bytes':file.stat().st_size,'sha256':hashlib.file_digest(file.open('rb'),'sha256').hexdigest()}
+          (root/'source-and-hashes.json').write_text(json.dumps(data,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mobile-for-local-signing
+          path: out/mobile
+          if-no-files-found: error
+          compression-level: 0

@@ -22,7 +22,7 @@ final class ReadingCards {
   return a;
  }
  static synchronized JSONArray load(Context c){android.content.SharedPreferences p=c.getSharedPreferences("reading",0);try{String raw=p.getString(KEY,null);if(raw!=null)return new JSONArray(raw);JSONArray a=defaults(c);p.edit().putString(KEY,a.toString()).putString(BASE,a.toString()).apply();return a;}catch(JSONException e){try{return defaults(c);}catch(JSONException impossible){return new JSONArray();}}}
- static synchronized void save(Context c,JSONArray cards){c.getSharedPreferences("reading",0).edit().putString(KEY,cards.toString()).apply();CaptureService.readingChanged();}
+ static synchronized void save(Context c,JSONArray cards){c.getSharedPreferences("reading",0).edit().putString(KEY,cards.toString()).apply();CaptureService.readingCardsChanged();}
  static void baseline(Context c,JSONArray cards){android.content.SharedPreferences p=c.getSharedPreferences("reading",0);p.edit().putString("cards-baseline-previous-v1",p.getString(BASE,"")).putString(BASE,cards.toString()).apply();}
  static JSONObject restore(Context c,String id){try{JSONArray a=new JSONArray(c.getSharedPreferences("reading",0).getString(BASE,"[]"));for(int i=0;i<a.length();i++)if(id.equals(a.getJSONObject(i).optString("id")))return a.getJSONObject(i);}catch(JSONException ignored){}return null;}
  static JSONObject dialogue(Context c){JSONArray a=load(c);for(int i=0;i<a.length();i++){JSONObject x=a.optJSONObject(i);if(x!=null&&"dialogue".equals(x.optString("kind")))return x;}return new JSONObject();}
