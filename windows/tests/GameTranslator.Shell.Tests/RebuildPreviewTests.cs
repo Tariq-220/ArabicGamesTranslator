@@ -5,6 +5,14 @@ using GameTranslator.Shell;
 namespace GameTranslator.Shell.Tests;
 public class RebuildPreviewTests
 {
+    [Fact]public void DisabledCardReportsStoppedAndRecordsItsConfigurationTransition()
+    {
+        using var controller=AppControllerTests.Make();var area=ReadingArea.Instructions();var traces=new List<AreaTrace>();controller.AreaTraceObserved+=traces.Add;
+        controller.ReadingAreas=[area];controller.ReadingAreas=[area with{Enabled=false}];
+        Assert.Contains("موقوفة",controller.ReadingAreaStatus(area.Id));
+        Assert.Equal(new[]{"enabled","disabled"},traces.Where(t=>t.AreaId==area.Id).Select(t=>t.Stage));
+        Assert.False(controller.ReadingAreas.Single().Enabled);
+    }
     [Fact]public void UserBaselineCapturesCurrentLayoutAndSurvivesLaterEdits()
     {
         var store=new MemoryStore();using var controller=AppControllerTests.Make(store:store);

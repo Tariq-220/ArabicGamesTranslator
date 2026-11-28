@@ -174,6 +174,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
     public bool DialogueBlockOnly {get;set;}=true;
     public Func<string,string?>? ReviewedLookup {get;set;}
     private readonly RereadGuard rereadGuard=new();
+    private readonly SpeakerReadingContinuity speakerContinuity=new();
     public Action<string>? Log { get; set; }
     /// <summary>Paket isabetinde satırın geldiği paket (günlük için; bilinmiyorsa null).</summary>
     public Func<string?>? PackName { get; set; }
@@ -234,6 +235,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
         if(CenterOnly&&reading.Box is {} middle&&Math.Abs((middle.PlacedIn(area).Left+middle.PlacedIn(area).Right)/2-.5)>.18)reading=Reading.Empty;
         if(sender is ISubtitleCoverSender cover&&reading.Box is {} coverBox&&!string.IsNullOrWhiteSpace(reading.Text))cover.Cover(reading.Text,coverBox.PlacedIn(area));
         if(SourceFilter is { } filter)reading=new Reading(reading.Lines.Select(line=>line with {Text=filter(line.Text)}));
+        if(GuardDamagedRereads&&DialogueBlockOnly){lock(gate){var source=reading.Text;var repaired=speakerContinuity.Filter(source,now());if(repaired!=source){var label=CaptionAppearance.SplitSpeaker(repaired).Name;reading=new Reading(reading.Lines.Select((line,index)=>index==0?line with{Text=label+" "+CaptionAppearance.SplitSpeaker(line.Text).Body}:line));}}}
         lock(gate){observed=reading;observedArea=area;}
         RenewVisibleSource(reading.Text);
         Action? after = null;
@@ -840,7 +842,7 @@ public sealed class SubtitlePipeline(ITextReader reader, ITextTranslator transla
             lastReading = Reading.Empty;
             lastReadMs = null;
             currentRead = null;
-            schedule.Reset();rereadGuard.Reset();observed=Reading.Empty;
+            schedule.Reset();rereadGuard.Reset();speakerContinuity.Reset();observed=Reading.Empty;
             if (stabilizer.Reset() == StabilizerAction.Clear||DisplayText.Length>0) ClearCaption();
         }
     }

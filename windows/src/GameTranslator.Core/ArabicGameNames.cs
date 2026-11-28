@@ -13,7 +13,8 @@ public static class ArabicGameNames
         ["Jason"]="جيسون",["Lucia"]="لوسيا",["Donnie"]="دوني",["Leonida"]="ليونيدا",
         ["Vicki"]="فيكي",["Kyle"]="كايل",["Raul"]="راؤول",["Dre'Quan"]="دري كوان",["Karim"]="كريم",["Boobie"]="بوبي",
         ["Wade"]="وايد",["Billy"]="بيلي",["Kenton"]="كينتون",["Andy"]="آندي",["Shirley"]="شيرلي",["Brian"]="براين",
-        ["John"]="جون",["Arthur"]="آرثر",["Marston"]="مارستون",["Atreus"]="أتريوس",["Kratos"]="كريتوس",["Mimir"]="ميمير"
+        ["John"]="جون",["Arthur"]="آرثر",["Marston"]="مارستون",["Atreus"]="أتريوس",["Kratos"]="كريتوس",["Mimir"]="ميمير",
+        ["Andrea"]="أندريا",["Felipe"]="فيليبي",["Nicole"]="نيكول",["Sinfrontera"]="سينفرونتيرا"
     };
     public static string CanonicalSpeaker(string name){var value=name.Trim();if(Names.ContainsKey(value))return value;var plain=string.Concat(value.Normalize(NormalizationForm.FormD).Where(c=>CharUnicodeInfo.GetUnicodeCategory(c)!=UnicodeCategory.NonSpacingMark)).Normalize(NormalizationForm.FormC);if(Names.ContainsKey(plain))return plain;
         // Strip only short OCR fragments before an exact known speaker label.

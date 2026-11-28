@@ -86,6 +86,7 @@ public sealed class ReadingAreaSession : IDisposable
             lifetime.Token.ThrowIfCancellationRequested();
             var unchanged=ReuseIdenticalFrames&&s.CachedFrame is {} previous&&now()-s.CachedAt<1000&&previous.Width==crop.Width&&previous.Height==crop.Height&&previous.Stride==crop.Stride&&previous.Pixels.AsSpan().SequenceEqual(crop.Pixels);
             var reading=unchanged?s.CachedReading:s.Area.Kind==ReadingAreaKind.Instructions?s.Reader.ReadLines(crop,true):s.Reader.ReadSpatial(crop);
+            lock(gate){if(disposed||!states.Contains(s))return;}
             if(ReuseIdenticalFrames&&!unchanged){s.CachedReading=reading;s.CachedAt=now();s.CachedFrame=new Frame((byte[])crop.Pixels.Clone(),crop.Width,crop.Height,crop.Stride);}
             if(s.Area.Kind==ReadingAreaKind.Menu&&s.Area.AutoDetect)reading=MenuReading.Select(crop,reading,!states.Any(x=>x.Area.Kind==ReadingAreaKind.MapCard));
             if(s.Area.Kind is not (ReadingAreaKind.Phone or ReadingAreaKind.Notification)){
@@ -221,9 +222,9 @@ public sealed class ReadingAreaSession : IDisposable
         {
             if(disposed||!states.Contains(s)||s.Generation!=generation||s.Candidate.Length==0)return;
             var panel=s.Panel;var frame=s.PanelFrame;
-            var result=panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>s.Cache.GetValueOrDefault(Key(c.Source),""))):s.Cache.GetValueOrDefault(Key(s.Candidate),"");
-            if(panel is not null){panel=panel with{Cells=panel.Cells.Select(c=>c with{Text=s.Cache.GetValueOrDefault(Key(c.Source),"")}).ToArray()};}
-            var partial=panel is not null&&panel.Cells.Any(c=>string.IsNullOrWhiteSpace(c.Text));
+            var partial=panel is not null&&panel.Cells.Any(c=>!s.Cache.TryGetValue(Key(c.Source),out var value)||string.IsNullOrWhiteSpace(value));
+            if(panel is not null){panel=panel with{Cells=panel.Cells.Select(c=>c with{Text=VisibleCellTranslation(c,s.Cache,s.LastSourcePanel,s.LastPanel,panel.Kind=="phone")}).ToArray()};}
+            var result=panel is {Cells.Count:>0}?string.Join("\n",panel.Cells.Select(c=>c.Text)):s.Cache.GetValueOrDefault(Key(s.Candidate),"");
             if(final){
                 if(s.Candidate!=originalSource){s.Sent="";s.RetryAt=0;}
                 else if(partial||string.IsNullOrWhiteSpace(result)){s.Sent="";s.Failures++;s.RetryAt=now()+Math.Min(8000,1000*(1<<Math.Min(3,s.Failures-1)));}
@@ -241,7 +242,9 @@ public sealed class ReadingAreaSession : IDisposable
                 if(panel is {Kind:"phone"}){
                     var body=panel.Cells.Where(PhonePanelTracker.Body).ToArray();if(!body.Any(c=>!string.IsNullOrWhiteSpace(c.Text)))return;
                     var o=s.Output??s.Area.PresentationOutput();double scale=Math.Max(.01,Math.Min((o.Right-o.Left)*s.FullWidth/panel.Width,(o.Bottom-o.Top)*s.FullHeight/panel.Height));
-                    if(s.LastPanel is {Kind:"phone"} previous&&s.LastSourcePanel is {} raw&&panel.Cells.Count==raw.Cells.Count&&panel.Cells.Select((c,i)=>Key(raw.Cells[i].Source)==Key(c.Source)).All(same=>same))
+                    // A pending expansion may carry the old Arabic temporarily. Once the fuller
+                    // translation arrives, grow its bubble instead of freezing the old short height.
+                    if(s.LastPanel is {Kind:"phone"} previous&&s.LastSourcePanel is {} raw&&panel.Cells.Count==raw.Cells.Count&&panel.Cells.Select((c,i)=>Key(raw.Cells[i].Source)==Key(c.Source)).All(same=>same)&&!panel.Cells.Where((c,i)=>previous.Cells[i].Text.Length>0&&c.Text.Length>previous.Cells[i].Text.Length+2).Any())
                         panel=panel with{Width=previous.Width,Height=previous.Height,Cells=panel.Cells.Select((c,i)=>c with{Box=previous.Cells[i].Box,LineHeight=previous.Cells[i].LineHeight}).ToArray()};
                     else panel=SpatialText.ReflowPhone(panel,s.Area.Appearance?.MatchSize==false?s.Area.FontSize*s.FullWidth/1920d/scale:null);
                 }
@@ -302,6 +305,16 @@ public sealed class ReadingAreaSession : IDisposable
         catch(OperationCanceledException) { }
         catch(Exception error){if(!lifetime.IsCancellationRequested){var reason=error is TranslatorException failure?failure.Status.ToString():error.GetType().Name;Status?.Invoke(s.Area.Id,"تعذر طلب الترجمة: "+reason);Trace?.Invoke(new(s.Area.Id,s.Area.Name,source,"","failed",(int)Math.Clamp(now()-started,0,int.MaxValue),reason));Failed?.Invoke(s.Area.Id,reason);lock(gate)s.RetryAt=now()+1000;}}
         finally {lock(gate){s.Busy=false;s.ActiveTranslation=null;}}
+    }
+    internal static string VisibleCellTranslation(PanelCell cell,IReadOnlyDictionary<string,string> cache,PanelLayout? oldSource,PanelLayout? oldDisplay,bool phone)
+    {
+        if(cache.TryGetValue(Key(cell.Source),out var value)&&!string.IsNullOrWhiteSpace(value))return value;
+        if(!phone||oldSource is null||oldDisplay is null)return "";
+        for(int i=0;i<Math.Min(oldSource.Cells.Count,oldDisplay.Cells.Count);i++){
+            var prior=oldSource.Cells[i];
+            if(Math.Abs(prior.Box.Top-cell.Box.Top)<.06&&PhonePanelTracker.Same(prior,cell)&&!string.IsNullOrWhiteSpace(oldDisplay.Cells[i].Text))return oldDisplay.Cells[i].Text;
+        }
+        return "";
     }
     private static AreaCaption Make(State s,string text,bool clear=false)=>new(s.Area.Id,s.Revision,text,s.Output??s.Area.PresentationOutput(),
         s.Area.FontSize,s.Area.Background,s.Area.DurationMs,clear,s.Area.Appearance);

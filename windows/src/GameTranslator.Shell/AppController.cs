@@ -157,6 +157,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         }
     }
     public LineMetrics? LastLineMetrics { get; private set; }
+    public bool LastPresentationRestored {get;private set;}
     public string LastSource { get => lastSource; private set => Set(ref lastSource, value); }
     public string LastTranslation { get => lastTranslation; private set => Set(ref lastTranslation, value); }
     public TranslatorStatus TranslatorStatus { get => translatorStatus; private set => Set(ref translatorStatus, value); }
@@ -1012,7 +1013,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public event Action<string,string>? LineDiscarded;
     private ReadingAreaSession? areaSession;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string,string> areaStatus=new();
-    public string ReadingAreaStatus(string id)=>id=="dialogue"?(isRunning?"الحوار · حالة المحرك: "+(TranslatorStatus==TranslatorStatus.OutputRejected?"الناتج فارغ أو غير مترجم":TranslatorStatus==TranslatorStatus.ServiceBusy?"المحرك مشغول":TranslatorStatus.ToString()):"ابدأ الترجمة لتفعيل قراءة الحوار"):areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
+    public string ReadingAreaStatus(string id)=>id=="dialogue"?(isRunning?"الحوار · حالة المحرك: "+(TranslatorStatus==TranslatorStatus.OutputRejected?"الناتج فارغ أو غير مترجم":TranslatorStatus==TranslatorStatus.ServiceBusy?"المحرك مشغول":TranslatorStatus.ToString()):"ابدأ الترجمة لتفعيل قراءة الحوار"):ReadingAreas.FirstOrDefault(a=>a.Id==id)?.Enabled!=true?"المنطقة موقوفة · لا قراءة أو ترجمة":areaStatus.GetValueOrDefault(id,isRunning?"بانتظار قراءة المنطقة":"ابدأ الترجمة لتفعيل قراءة البطاقات");
     private TranslationWorkQueue? translationQueue;
     public event Action? AreasCleared;
     private void ClearAreas(){server.ClearAreas();post(()=>AreasCleared?.Invoke());}
@@ -1049,7 +1050,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
     public IReadOnlyList<ReadingArea> ReadingAreas
     {
         get => ReadingArea.Unique(store.Load<List<ReadingArea>>("reading-areas-v1") ?? []).Select(a=>a.Kind==ReadingAreaKind.Phone&&a.Source==new CropRegion(.12,.95,.40,.97)?a with{Source=new(.08,.98,.03,.97)}:a.Kind==ReadingAreaKind.Menu&&a.Source==new CropRegion(.14,.86,.08,.47)&&a.Output==new CropRegion(.14,.86,.50,.90)?ReadingArea.Menu() with{Id=a.Id,Name=a.Name,Enabled=a.Enabled}:a).ToList();
-        set { var unique=ReadingArea.Unique(value).Take(8).ToList();if(ReadingAreas.SequenceEqual(unique))return;store.Save("reading-areas-v1", unique); if(isRunning){if(areaSession is {} current)current.UpdateAreas(unique);else MakeAreaSession();} Changed(nameof(ReadingAreas)); }
+        set { var unique=ReadingArea.Unique(value).Take(8).ToList();var previous=ReadingAreas;if(previous.SequenceEqual(unique))return;store.Save("reading-areas-v1", unique); if(isRunning){if(areaSession is {} current)current.UpdateAreas(unique);else MakeAreaSession();}foreach(var area in unique){var old=previous.FirstOrDefault(a=>a.Id==area.Id);if(old is null||old.Enabled!=area.Enabled){var trace=new AreaTrace(area.Id,area.Name,"","",area.Enabled?"enabled":"disabled");post(()=>AreaTraceObserved?.Invoke(trace));}} Changed(nameof(ReadingAreas)); }
     }
     public ReadingLayout CaptureReadingLayout()=>new(1,[new ReadingArea("dialogue","الحوار",ReadingAreaKind.Dialogue,settings.Region,DialogueOutput,FontSize:settings.Style.FontSize,Background:settings.Style.Background,Appearance:settings.Style.Appearance),..ReadingAreas]);
     public ReadingLayout ReadingBaseline {
@@ -1106,7 +1107,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         LastLineMetrics = null;
         built.MetricsReady += metrics => post(() => { LastLineMetrics = metrics; Changed(nameof(LastLineMetrics)); });
         if (settings.TargetLanguage == "tr") built.PackLookup = CommunityPatchManager.Shared.Match;
-        Action<string,string,bool> present = (source, translation, renewed) =>
+        Action<string,string,bool,bool> present = (source, translation, renewed, restored) =>
         {
             var outputArea=DialogueOutput;
             TextBox? box = (settings.Style.Appearance?.Position??"custom")=="custom"?new TextBox(outputArea.Left,outputArea.Top,outputArea.Right,outputArea.Bottom):settings.Style.Appearance?.Ride==false?new TextBox(settings.Region.Left,settings.Region.Top,settings.Region.Right,settings.Region.Bottom):built.LastBox;
@@ -1114,6 +1115,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
             post(() =>
             {
                 LastSource = source;LastCaptionLineHeight=CaptionSizing.LineHeight(source,built.LastBox);
+                LastPresentationRestored=restored;
                 LastTranslation = translation;
                 if (box is not null) lastSubtitleBox = box;
                 var targetBox = box ?? lastSubtitleBox ?? (settings.Region is { } r
@@ -1122,7 +1124,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
                 if(renewed)LiveSubtitleRenewed?.Invoke(display,ms,targetBox);else LiveSubtitleShown?.Invoke(display, ms, targetBox);
             });
         };
-        built.PairShown+=(s,t)=>present(s,t,false);built.PairRestored+=(s,t)=>present(s,t,false);built.CaptionRenewed+=()=>{if(built.LastPair is {} p)present(p.Source,p.Translation,true);};
+        built.PairShown+=(s,t)=>present(s,t,false,false);built.PairRestored+=(s,t)=>present(s,t,false,true);built.CaptionRenewed+=()=>{if(built.LastPair is {} p)present(p.Source,p.Translation,true,false);};
         // Model bu arada inmiş olabilir; her çeviri sonucu durumu günceller.
         built.TranslationResult += error => post(() => TranslatorStatus = error ?? TranslatorStatus.Ready);
         built.SpeechReady += lines => post(() => Speak(lines));

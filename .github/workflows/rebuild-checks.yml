@@ -39,7 +39,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/save-rebuild-previews.py
       - name: Dialogue and independent region regression tests
-        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~LatencyRecoveryTests_061|FullyQualifiedName~MetricsPipelineTests|FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests|FullyQualifiedName~LanDiscoveryTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~CaptionPresentationTests"
+        run: dotnet test windows/tests/GameTranslator.Core.Tests/GameTranslator.Core.Tests.csproj -c Release --filter "FullyQualifiedName~LatencyRecoveryTests_062|FullyQualifiedName~LatencyRecoveryTests_061|FullyQualifiedName~MetricsPipelineTests|FullyQualifiedName~SubtitlePipelineTests|FullyQualifiedName~SubtitleStabilizerTests|FullyQualifiedName~TranslationIsolationTests|FullyQualifiedName~ReadingAreaTests|FullyQualifiedName~XboxNavigationTests|FullyQualifiedName~TranslationWorkQueueTests|FullyQualifiedName~SpellScoringTests|FullyQualifiedName~LanDiscoveryTests|FullyQualifiedName~SubtitleServerTests|FullyQualifiedName~CaptionPresentationTests"
       - name: Preview lifecycle and persistence
         run: dotnet test windows/tests/GameTranslator.Shell.Tests/GameTranslator.Shell.Tests.csproj -c Release --filter "FullyQualifiedName~RebuildPreviewTests"
       - name: Translation quality validation
